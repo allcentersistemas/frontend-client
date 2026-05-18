@@ -35,7 +35,12 @@ export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const isDevServer = command === 'serve'
   const isProdBuild = mode === 'production' || mode === 'staging'
-  const base = isProdBuild ? '/portal/' : '/'
+  const baseFromEnv = (env.VITE_APP_BASE ?? '').trim()
+  const base = baseFromEnv
+    ? baseFromEnv.endsWith('/')
+      ? baseFromEnv
+      : `${baseFromEnv}/`
+    : '/'
   const systemTarget = env.VITE_PROXY_SYSTEM_TARGET || 'http://localhost:8080'
   const optimizationTarget =
     env.VITE_PROXY_OPTIMIZATION_TARGET || 'http://localhost:8082'
