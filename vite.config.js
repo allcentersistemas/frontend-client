@@ -40,7 +40,9 @@ export default defineConfig(({ mode, command }) => {
     ? baseFromEnv.endsWith('/')
       ? baseFromEnv
       : `${baseFromEnv}/`
-    : '/'
+    : isProdBuild
+      ? '/portal/'
+      : '/'
   const systemTarget = env.VITE_PROXY_SYSTEM_TARGET || 'http://localhost:8080'
   const optimizationTarget =
     env.VITE_PROXY_OPTIMIZATION_TARGET || 'http://localhost:8082'
