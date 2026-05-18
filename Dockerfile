@@ -9,7 +9,8 @@ RUN npm run build -- --mode ${VITE_BUILD_MODE} \
     && cp -a /app/dist/. /app/out/portal/
 
 FROM nginx:1.27-alpine
-COPY config/nginx.static.conf /etc/nginx/conf.d/default.conf
+ARG NGINX_CONF=config/nginx.static.conf
+COPY ${NGINX_CONF} /etc/nginx/conf.d/default.conf
 COPY --from=build /app/out /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
