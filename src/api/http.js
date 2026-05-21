@@ -54,8 +54,39 @@ export async function parseHttpError(response) {
   }
   try {
     const body = await response.json()
-    return new Error(body.message || body.code || response.statusText || `Error ${status}`)
+    return formatApiErrorBody(body, status, response.statusText)
   } catch {
     return new Error(response.statusText || `Error HTTP ${status}`)
   }
+}
+
+const FIELD_LABELS = {
+  email: 'Correo',
+  password: 'Contraseña',
+  displayName: 'Nombre para mostrar',
+  companyName: 'Empresa',
+  phone: 'Teléfono',
+  taxId: 'Identificación fiscal',
+}
+
+/**
+ * @param {Record<string, unknown>} body — ApiErrorResponse del backend
+ * @param {number} status
+ * @param {string} statusText
+ */
+export function formatApiErrorBody(body, status, statusText) {
+  const base = body?.message || body?.code || statusText || `Error ${status}`
+
+  const details = body?.details
+  if (details && typeof details === 'object' && !Array.isArray(details)) {
+    const lines = Object.entries(details).map(([field, msg]) => {
+      const label = FIELD_LABELS[field] || field
+      return `${label}: ${msg}`
+    })
+    if (lines.length) {
+      return new Error(`${base}\n${lines.join('\n')}`)
+    }
+  }
+
+  return new Error(String(base))
 }
