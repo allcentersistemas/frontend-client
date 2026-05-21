@@ -7,17 +7,19 @@ import {
   getClientRefreshToken,
   saveClientSession,
 } from '../auth/clientSession'
-import '../App.css'
-import './AppShell.css'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { cn } from '../lib/cn'
+import logo from '../assets/allcenter1.png'
 
 export default function AppShell() {
   const navigate = useNavigate()
   const location = useLocation()
   const [booting, setBooting] = useState(true)
   const [user, setUser] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const isOptActive = useMemo(
-    () => location.pathname.startsWith('/app/optimizaciones'),
+    () => location.pathname.startsWith('/app/planilla-corte'),
     [location.pathname],
   )
 
@@ -75,56 +77,127 @@ export default function AppShell() {
 
   if (booting) {
     return (
-      <div className="shell app-boot">
-        <p className="muted">Validando sesión…</p>
+      <div className="app-loading">
+        <div className="app-loading__spinner" aria-hidden />
+        <p className="text-sm">Validando sesión…</p>
       </div>
     )
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Navegación principal">
-        <div className="sidebar-brand">Allcenter</div>
+    <div
+      className={cn(
+        'relative min-h-svh lg:grid lg:min-h-screen lg:grid-cols-[280px_1fr]',
+        menuOpen && 'max-lg:overflow-hidden',
+      )}
+    >
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-slate-100 dark:bg-slate-950" aria-hidden />
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_90%_60%_at_0%_-10%,rgba(251,191,36,0.18),transparent_50%),radial-gradient(ellipse_80%_50%_at_100%_100%,rgba(245,158,11,0.1),transparent_45%),linear-gradient(180deg,rgb(248,250,252)_0%,rgb(241,245,249)_100%)] dark:bg-[radial-gradient(ellipse_90%_60%_at_0%_-10%,rgba(251,191,36,0.12),transparent_50%),radial-gradient(ellipse_80%_50%_at_100%_100%,rgba(245,158,11,0.08),transparent_45%),linear-gradient(180deg,rgb(15,23,42)_0%,rgb(2,6,23)_100%)]"
+        aria-hidden
+      />
+
+      <header className="fixed inset-x-0 top-0 z-40 flex min-h-14 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/85 px-4 py-3 backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 lg:hidden">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm dark:border-white/10 dark:bg-white/[0.05] dark:text-white"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          {menuOpen ? 'Cerrar' : 'Menú'}
+        </button>
+        <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">Portal cliente</p>
+      </header>
+
+      {menuOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          aria-label="Cerrar menú"
+          onClick={() => setMenuOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-[min(88vw,300px)] flex-col border-r border-slate-200/80 bg-white/90 px-4 py-6 shadow-xl backdrop-blur-2xl transition-transform max-lg:pt-[4.5rem] dark:border-white/[0.08] dark:bg-slate-950/70 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+          menuOpen ? 'translate-x-0' : 'max-lg:-translate-x-full',
+        )}
+      >
+        <div className="mb-8 flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-200 to-amber-400 dark:from-yellow-300 dark:to-amber-500">
+            <img src={logo} alt="AllCenter" className="h-9 w-9 object-contain" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-slate-900 dark:text-white">AllCenter</p>
+            <p className="truncate text-xs text-slate-500">Portal cliente</p>
+          </div>
+        </div>
+
         {user ? (
-          <div className="sidebar-user">
-            <span className="sidebar-user-label">Sesión</span>
-            <span className="sidebar-user-email" title={user.email}>
+          <div className="mb-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-white/10 dark:bg-black/20">
+            <p className="text-[0.65rem] font-bold tracking-wider text-slate-500 uppercase">Sesión</p>
+            <p className="truncate text-sm text-slate-800 dark:text-slate-200" title={user.email}>
               {user.email}
-            </span>
+            </p>
           </div>
         ) : null}
-        <nav className="sidebar-nav">
+
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
           <NavLink
             to="/app"
             end
-            className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              cn(
+                'rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                isActive
+                  ? 'bg-gradient-to-r from-amber-400/25 to-amber-600/15 text-amber-900 ring-1 ring-amber-400/30 dark:text-amber-50'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+              )
+            }
           >
             Inicio
           </NavLink>
 
-          <div className={`sidebar-group ${isOptActive ? 'sidebar-group-open' : ''}`}>
-            <div className="sidebar-group-label">Optimizaciones</div>
-            <ul className="sidebar-submenu">
-              <li>
-                <NavLink
-                  to="/app/planilla-corte"
-                  className={({ isActive }) =>
-                    isActive ? 'sidebar-link active' : 'sidebar-link'
-                  }
-                >
-                  Planilla de corte
-                </NavLink>
-              </li>
-            </ul>
-          </div>
+          <p className="mt-4 px-3 text-[0.65rem] font-bold tracking-wider text-slate-500 uppercase">
+            Optimizaciones
+          </p>
+          <NavLink
+            to="/app/planilla-corte"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              cn(
+                'rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                isActive || isOptActive
+                  ? 'bg-gradient-to-r from-amber-400/25 to-amber-600/15 text-amber-900 ring-1 ring-amber-400/30 dark:text-amber-50'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+              )
+            }
+          >
+            Planilla de corte
+          </NavLink>
         </nav>
-        <button type="button" className="btn secondary sidebar-logout" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
+
+        <div className="mt-auto space-y-3 border-t border-slate-200/80 pt-4 dark:border-white/[0.08]">
+          <div className="flex justify-center">
+            <ThemeToggle size="sm" />
+          </div>
+          <button
+            type="button"
+            className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-amber-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-amber-400/5"
+            onClick={handleLogout}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
-      <div className="app-shell-main">
-        <Outlet context={{ user, refreshUser }} />
-      </div>
+
+      <main className="min-w-0 pt-[3.75rem] lg:col-start-2 lg:pt-0">
+        <div className="app-shell-page">
+          <Outlet context={{ user, refreshUser }} />
+        </div>
+      </main>
     </div>
   )
 }

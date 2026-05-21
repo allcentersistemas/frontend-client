@@ -7,11 +7,9 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import RootRedirect from './pages/RootRedirect.jsx'
 import Inicio from './pages/app/Inicio.jsx'
 import PlanillaCortePage from './pages/app/PlanillaCortePage.jsx'
-import './App.css'
-
 export default function App() {
   return (
-    <div className="app-layout-root">
+    <div className="app-layout-root min-h-svh w-full">
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginPage />} />

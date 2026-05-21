@@ -234,15 +234,17 @@ export default function PlanillaCortePage() {
   }
 
   return (
-    <div>
-      <h1 className="page-title">Proyecto de corte</h1>
-      <p className="page-lead muted">
-        Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
-        captura sus detalles en la ventana emergente usando el formato de planilla de corte.
-      </p>
+    <div className="space-y-6">
+      <div className="page__head">
+        <h1>Proyecto de corte</h1>
+        <p className="page__lead">
+          Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
+          captura sus detalles en la ventana emergente usando el formato de planilla de corte.
+        </p>
+      </div>
 
-      <div className="card">
-        <h2>Paso 1: Proyecto</h2>
+      <div className="card pad">
+        <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
         <div className="material-grid">
           <label className="field">
             Nombre del proyecto
