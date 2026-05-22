@@ -5,7 +5,7 @@ import { ThemeToggle } from './ThemeToggle'
 /**
  * Contenedor visual compartido para login (y páginas públicas similares).
  */
-export function AuthShell({ title, subtitle, children, footer }) {
+export function AuthShell({ title, subtitle, children, footer, wide = false }) {
   return (
     <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-amber-50/40 px-4 dark:from-[#0f0f0f] dark:via-[#1a1a1a] dark:to-[#111827]">
       <div
@@ -21,7 +21,7 @@ export function AuthShell({ title, subtitle, children, footer }) {
         <ThemeToggle size="sm" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className={`relative z-10 w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
         <div className="rounded-3xl border border-amber-400/15 bg-white/80 p-10 shadow-2xl shadow-amber-500/10 backdrop-blur-2xl dark:border-yellow-400/10 dark:bg-white/5 dark:shadow-yellow-500/10">
           <div className="mb-10 flex flex-col items-center">
             <div className="mb-6 flex h-44 w-44 items-center justify-center rounded-full border bg-yellow-300">

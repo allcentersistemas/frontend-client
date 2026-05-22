@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Loader2, Lock, Mail } from 'lucide-react'
+import { Loader2, Lock, User } from 'lucide-react'
 import { clientLogin } from '../api/clientAuth'
 import { getClientAccessToken, saveClientSession } from '../auth/clientSession'
 import { prefillDemoLogin, registrationEnabled } from '../config/security'
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const location = useLocation()
   const from = location.state?.from?.pathname || '/app'
 
-  const [email, setEmail] = useState(prefillDemoLogin ? 'cliente@demo.allcenter.local' : '')
+  const [login, setLogin] = useState(prefillDemoLogin ? 'cliente@demo.allcenter.local' : '')
   const [password, setPassword] = useState(prefillDemoLogin ? 'cliente123' : '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      const session = await clientLogin(email.trim(), password)
+      const session = await clientLogin(login.trim(), password)
       saveClientSession(session.accessToken, session.refreshToken)
       navigate(from, { replace: true })
     } catch (err) {
@@ -54,12 +54,12 @@ export default function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        <AuthField label="Correo" icon={Mail}>
+        <AuthField label="Correo o usuario" icon={User}>
           <input
-            type="email"
+            type="text"
             autoComplete="username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
             required
             className={`${authInputClass} pl-12`}
           />
