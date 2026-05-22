@@ -5,7 +5,9 @@ RUN npm ci
 COPY . .
 ARG VITE_BUILD_MODE=production
 ARG VITE_APP_BASE=/
+ARG VITE_AUTH_REGISTRATION_ENABLED=false
 ENV VITE_APP_BASE=${VITE_APP_BASE}
+ENV VITE_AUTH_REGISTRATION_ENABLED=${VITE_AUTH_REGISTRATION_ENABLED}
 RUN npm run build -- --mode ${VITE_BUILD_MODE}
 
 # Coloca el build en la ruta que nginx sirve según VITE_APP_BASE (/ o /portal/)
