@@ -1,4 +1,4 @@
-import { orderApiUrl } from '../config/env'
+import { clientApiUrl } from '../config/env'
 import { fetchJson } from './http'
 import { clientRefreshSession } from './clientAuth'
 import {
@@ -7,6 +7,8 @@ import {
   getClientRefreshToken,
   saveClientSession,
 } from '../auth/clientSession'
+
+const OPT_BASE = '/client/optimizacion'
 
 function authHeaders(accessToken) {
   return {
@@ -38,9 +40,25 @@ async function withClientAuth(run) {
   }
 }
 
+export async function listProyectosOptimizacion() {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
+export async function getProyectoOptimizacion(proyectoId) {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
 export async function saveProyectoCompleto(payload) {
   return withClientAuth((accessToken) =>
-    fetchJson(orderApiUrl('/order/proyectos/guardar-completo'), {
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/guardar-completo`), {
       method: 'POST',
       headers: authHeaders(accessToken),
       body: JSON.stringify(payload),

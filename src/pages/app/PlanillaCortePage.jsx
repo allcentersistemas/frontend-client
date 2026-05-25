@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { saveProyectoCompleto } from '../../api/orderApi'
+import {
+  getProyectoOptimizacion,
+  listProyectosOptimizacion,
+  saveProyectoCompleto,
+} from '../../api/orderApi'
 
 function newDetalle() {
   return {
@@ -39,13 +43,59 @@ function newOrderDraft() {
   }
 }
 
+function clientDisplayName(user) {
+  if (!user) return ''
+  if (user.razonSocial?.trim()) return user.razonSocial.trim()
+  if (user.displayName?.trim()) return user.displayName.trim()
+  if (user.nombre?.trim()) return user.nombre.trim()
+  return user.email || ''
+}
+
+function isPersistedProjectId(id) {
+  const n = Number(id)
+  return Number.isFinite(n) && n > 0 && n < 1_000_000_000_000
+}
+
+function mapDetalleFromApi(detalle) {
+  return {
+    tablero: detalle.tablero || '',
+    cantidad: detalle.cantidad || '',
+    largoVeta: detalle.largoVeta || '',
+    ancho: detalle.ancho || '',
+    l1: detalle.l1 || '',
+    l2: detalle.l2 || '',
+    a1: detalle.a1 || '',
+    a2: detalle.a2 || '',
+    perforacionCantidad: detalle.perforacionCantidad || '',
+    perforacionLado1: detalle.perforacionLado1 || '',
+    perforacionLado2: detalle.perforacionLado2 || '',
+    ranuraDist: detalle.ranuraDist || '',
+    ranuraProf: detalle.ranuraProf || '',
+    ranuraEs: detalle.ranuraEs || '',
+    observado: Boolean(detalle.observado),
+    observacion: detalle.observacion || '',
+  }
+}
+
+function mapOrdersFromApi(savedOrders) {
+  return (savedOrders || []).map((order) => ({
+    id: order.id,
+    codigo: order.codigo || '',
+    descripcion: order.descripcion || '',
+    detalles: (order.detalles || []).map(mapDetalleFromApi),
+  }))
+}
+
 export default function PlanillaCortePage() {
   const { user } = useOutletContext()
-  const clientName = user?.companyName || user?.displayName || user?.email || ''
+  const clientName = clientDisplayName(user)
   const [projectDraft, setProjectDraft] = useState(newProjectDraft())
   const [project, setProject] = useState(null)
   const [orderDraft, setOrderDraft] = useState(newOrderDraft())
   const [orders, setOrders] = useState([])
+  const [savedProjects, setSavedProjects] = useState([])
+  const [loadingProjects, setLoadingProjects] = useState(true)
+  const [loadingProjectId, setLoadingProjectId] = useState(null)
   const [activeOrderId, setActiveOrderId] = useState(null)
   const [modalRows, setModalRows] = useState([newDetalle()])
   const [saving, setSaving] = useState(false)
@@ -88,16 +138,69 @@ export default function PlanillaCortePage() {
     )
   }, [clientName])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setLoadingProjects(true)
+      try {
+        const list = await listProyectosOptimizacion()
+        if (!cancelled) setSavedProjects(Array.isArray(list) ? list : [])
+      } catch {
+        if (!cancelled) setSavedProjects([])
+      } finally {
+        if (!cancelled) setLoadingProjects(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function loadSavedProject(proyectoId) {
+    setSaveError('')
+    setSaveOk('')
+    setLoadingProjectId(proyectoId)
+    try {
+      const response = await getProyectoOptimizacion(proyectoId)
+      const savedProject = response?.project
+      if (!savedProject) {
+        setSaveError('No se pudo cargar el proyecto.')
+        return
+      }
+      setProject({
+        id: savedProject.id,
+        nombre: savedProject.nombre || '',
+        cliente: savedProject.cliente || clientName,
+        referencia: savedProject.referencia || '',
+        descripcion: savedProject.descripcion || '',
+        creadoEn: savedProject.fechaCreacion,
+      })
+      setProjectDraft({
+        nombre: savedProject.nombre || '',
+        cliente: savedProject.cliente || clientName,
+        referencia: savedProject.referencia || '',
+        descripcion: savedProject.descripcion || '',
+      })
+      setOrders(mapOrdersFromApi(response.orders))
+      setSaveOk('Proyecto cargado desde el servidor.')
+    } catch (err) {
+      setSaveError(err.message || 'No se pudo cargar el proyecto.')
+    } finally {
+      setLoadingProjectId(null)
+    }
+  }
+
   function updateProjectDraft(key, value) {
     setProjectDraft((prev) => ({ ...prev, [key]: value }))
   }
 
   function createProject() {
     if (!projectDraft.nombre.trim()) return
+    const persistedId = project?.id && isPersistedProjectId(project.id) ? project.id : Date.now()
     setProject({
       ...projectDraft,
-      id: Date.now(),
-      creadoEn: new Date().toISOString(),
+      id: persistedId,
+      creadoEn: project?.creadoEn || new Date().toISOString(),
     })
     setSaveError('')
     setSaveOk('')
@@ -176,6 +279,7 @@ export default function PlanillaCortePage() {
     setSaving(true)
     try {
       const response = await saveProyectoCompleto({
+        projectId: isPersistedProjectId(project.id) ? project.id : null,
         project: {
           nombre: project.nombre,
           cliente: project.cliente || clientName,
@@ -200,32 +304,18 @@ export default function PlanillaCortePage() {
           creadoEn: savedProject.fechaCreacion || project.creadoEn,
         })
       }
-      setOrders(
-        savedOrders.map((order) => ({
-          id: order.id,
-          codigo: order.codigo || '',
-          descripcion: order.descripcion || '',
-          detalles: (order.detalles || []).map((detalle) => ({
-            tablero: detalle.tablero || '',
-            cantidad: detalle.cantidad || '',
-            largoVeta: detalle.largoVeta || '',
-            ancho: detalle.ancho || '',
-            l1: detalle.l1 || '',
-            l2: detalle.l2 || '',
-            a1: detalle.a1 || '',
-            a2: detalle.a2 || '',
-            perforacionCantidad: detalle.perforacionCantidad || '',
-            perforacionLado1: detalle.perforacionLado1 || '',
-            perforacionLado2: detalle.perforacionLado2 || '',
-            ranuraDist: detalle.ranuraDist || '',
-            ranuraProf: detalle.ranuraProf || '',
-            ranuraEs: detalle.ranuraEs || '',
-            observado: Boolean(detalle.observado),
-            observacion: detalle.observacion || '',
-          })),
-        })),
+      setOrders(mapOrdersFromApi(savedOrders))
+      try {
+        const list = await listProyectosOptimizacion()
+        setSavedProjects(Array.isArray(list) ? list : [])
+      } catch {
+        /* list refresh opcional */
+      }
+      setSaveOk(
+        isPersistedProjectId(project.id)
+          ? 'Proyecto actualizado correctamente en base de datos.'
+          : 'Proyecto, ordenes y detalles guardados correctamente en base de datos.',
       )
-      setSaveOk('Proyecto, ordenes y detalles guardados correctamente en base de datos.')
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar la información en base de datos.')
     } finally {
@@ -241,6 +331,47 @@ export default function PlanillaCortePage() {
           Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
           captura sus detalles en la ventana emergente usando el formato de planilla de corte.
         </p>
+      </div>
+
+      <div className="card pad">
+        <h2 className="card__title mb-4">Mis proyectos guardados</h2>
+        {loadingProjects ? (
+          <p className="muted">Cargando proyectos…</p>
+        ) : !savedProjects.length ? (
+          <p className="muted">Aun no tiene proyectos guardados en el servidor.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Referencia</th>
+                  <th>Ordenes</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedProjects.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.nombre}</td>
+                    <td>{item.referencia || '-'}</td>
+                    <td>{item.cantidadOrdenes ?? 0}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        disabled={loadingProjectId === item.id}
+                        onClick={() => loadSavedProject(item.id)}
+                      >
+                        {loadingProjectId === item.id ? 'Cargando…' : 'Abrir'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="card pad">
@@ -605,7 +736,6 @@ export default function PlanillaCortePage() {
             {saving ? 'Guardando en BD…' : 'Guardar todo en base de datos'}
           </button>
         </div>
-        <pre className="planilla-preview">{JSON.stringify({ project, orders }, null, 2)}</pre>
       </div>
     </div>
   )
