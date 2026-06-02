@@ -56,13 +56,17 @@ export async function getProyectoOptimizacion(proyectoId) {
   )
 }
 
-export async function fetchKardexCatalogos() {
+/** Tableros y cantos registrados en Inventario → Tableros / Cantos (empleados). */
+export async function fetchPlanillaCatalogos() {
   return withClientAuth((accessToken) =>
     fetchJson(clientApiUrl(`${OPT_BASE}/catalogos/kardex`), {
       headers: authHeaders(accessToken),
     }),
   )
 }
+
+/** @deprecated Usar fetchPlanillaCatalogos */
+export const fetchKardexCatalogos = fetchPlanillaCatalogos
 
 export async function saveProyectoCompleto(payload) {
   return withClientAuth((accessToken) =>

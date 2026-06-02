@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  fetchKardexCatalogos,
+  fetchPlanillaCatalogos,
   getProyectoOptimizacion,
   listProyectosOptimizacion,
   saveProyectoCompleto,
@@ -142,7 +142,7 @@ export default function PlanillaCortePage() {
       setCatalogLoading(true)
       setCatalogError('')
       try {
-        const catalog = await fetchKardexCatalogos()
+        const catalog = await fetchPlanillaCatalogos()
         if (!cancelled) {
           setTablerosKardex(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
           setCantosKardex(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
@@ -151,7 +151,7 @@ export default function PlanillaCortePage() {
         if (!cancelled) {
           setTablerosKardex([])
           setCantosKardex([])
-          setCatalogError(err.message || 'No se pudo cargar el catálogo del kardex.')
+          setCatalogError(err.message || 'No se pudo cargar el catálogo de tableros y cantos.')
         }
       } finally {
         if (!cancelled) setCatalogLoading(false)
@@ -393,21 +393,20 @@ export default function PlanillaCortePage() {
       <div className="card pad">
         <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
         <p className="muted small" style={{ marginBottom: '0.75rem' }}>
-          El cliente se asigna automaticamente con su sesion. Los tableros y cantos del detalle se
-          eligen del kardex de inventario.
+          El cliente se asigna automaticamente con su sesion. Tableros y cantos se cargan del catalogo
+          registrado en Inventario.
         </p>
-        {catalogLoading ? <p className="muted small">Cargando catálogo del kardex…</p> : null}
+        {catalogLoading ? <p className="muted small">Cargando catálogo…</p> : null}
         {catalogError ? <p className="form-error small">{catalogError}</p> : null}
         {!catalogLoading && !tablerosKardex.length ? (
           <p className="muted small">
-            No hay tableros en kardex. En inventario, marque artículos con familia{' '}
-            <strong>TABLERO</strong> o SKU que empiece por <code>TAB</code> / <code>TBL</code>.
+            No hay tableros registrados. En el portal de empleados: Inventario → Tableros.
           </p>
         ) : null}
         {!catalogLoading && !cantosKardex.length ? (
           <p className="muted small">
-            No hay cantos en kardex; en el detalle de orden se usan <strong>DELGADO</strong> y{' '}
-            <strong>GRUESO</strong> por defecto. En inventario asigne familia <strong>CANTO</strong>.
+            No hay cantos registrados; en el detalle se usan <strong>DELGADO</strong> y{' '}
+            <strong>GRUESO</strong> por defecto. En empleados: Inventario → Cantos.
           </p>
         ) : null}
         <div className="material-grid">
@@ -543,7 +542,7 @@ export default function PlanillaCortePage() {
             </div>
             <div className="planilla-catalog-hint">
               <p className="muted small" style={{ margin: 0 }}>
-                Catálogo kardex: <strong>{tablerosKardex.length}</strong> tablero(s),{' '}
+                Catálogo: <strong>{tablerosKardex.length}</strong> tablero(s),{' '}
                 <strong>{cantoOptions.length}</strong> canto(s) para L1, L2, A1 y A2.
               </p>
               {catalogLoading ? (

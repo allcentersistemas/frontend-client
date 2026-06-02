@@ -1,5 +1,5 @@
 /**
- * Selector de material del kardex (inventario).
+ * Selector de tablero o canto del catálogo (tablas tablero / canto).
  * @param {{ value: string, onChange: (v: string) => void, options: Array<{ id?: number, sku?: string, name: string, stockOnHand?: number|string }>, placeholder?: string, disabled?: boolean, className?: string }} props
  */
 export function KardexMaterialSelect({
@@ -27,7 +27,7 @@ export function KardexMaterialSelect({
       disabled={disabled || !list.length}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="">{list.length ? placeholder : 'Sin artículos en kardex'}</option>
+      <option value="">{list.length ? placeholder : 'Sin opciones en catálogo'}</option>
       {list.map((opt) => {
         const val = (opt.name || opt.sku || '').trim()
         if (!val) return null
