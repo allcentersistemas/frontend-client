@@ -56,6 +56,14 @@ export async function getProyectoOptimizacion(proyectoId) {
   )
 }
 
+export async function fetchKardexCatalogos() {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/catalogos/kardex`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
 export async function saveProyectoCompleto(payload) {
   return withClientAuth((accessToken) =>
     fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/guardar-completo`), {

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
 import {
+  fetchKardexCatalogos,
   getProyectoOptimizacion,
   listProyectosOptimizacion,
   saveProyectoCompleto,
 } from '../../api/orderApi'
+import { KardexMaterialSelect } from '../../components/planilla/KardexMaterialSelect'
 
 function newDetalle() {
   return {
@@ -30,25 +31,20 @@ function newDetalle() {
 function newProjectDraft() {
   return {
     nombre: '',
-    cliente: '',
-    referencia: '',
     descripcion: '',
   }
 }
+
+const CANTO_FALLBACK = [
+  { id: 'delgado', name: 'DELGADO', sku: '' },
+  { id: 'grueso', name: 'GRUESO', sku: '' },
+]
 
 function newOrderDraft() {
   return {
     codigo: '',
     descripcion: '',
   }
-}
-
-function clientDisplayName(user) {
-  if (!user) return ''
-  if (user.razonSocial?.trim()) return user.razonSocial.trim()
-  if (user.displayName?.trim()) return user.displayName.trim()
-  if (user.nombre?.trim()) return user.nombre.trim()
-  return user.email || ''
 }
 
 function isPersistedProjectId(id) {
@@ -87,8 +83,6 @@ function mapOrdersFromApi(savedOrders) {
 }
 
 export default function PlanillaCortePage() {
-  const { user } = useOutletContext()
-  const clientName = clientDisplayName(user)
   const [projectDraft, setProjectDraft] = useState(newProjectDraft())
   const [project, setProject] = useState(null)
   const [orderDraft, setOrderDraft] = useState(newOrderDraft())
@@ -101,6 +95,15 @@ export default function PlanillaCortePage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveOk, setSaveOk] = useState('')
+  const [tablerosKardex, setTablerosKardex] = useState([])
+  const [cantosKardex, setCantosKardex] = useState([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState('')
+
+  const cantoOptions = useMemo(
+    () => (cantosKardex.length ? cantosKardex : CANTO_FALLBACK),
+    [cantosKardex],
+  )
 
   const activeOrder = useMemo(
     () => orders.find((order) => order.id === activeOrderId) || null,
@@ -128,15 +131,30 @@ export default function PlanillaCortePage() {
   )
 
   useEffect(() => {
-    setProjectDraft((prev) =>
-      prev.cliente
-        ? prev
-        : {
-            ...prev,
-            cliente: clientName,
-          },
-    )
-  }, [clientName])
+    let cancelled = false
+    ;(async () => {
+      setCatalogLoading(true)
+      setCatalogError('')
+      try {
+        const catalog = await fetchKardexCatalogos()
+        if (!cancelled) {
+          setTablerosKardex(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
+          setCantosKardex(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTablerosKardex([])
+          setCantosKardex([])
+          setCatalogError(err.message || 'No se pudo cargar el catálogo del kardex.')
+        }
+      } finally {
+        if (!cancelled) setCatalogLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -170,15 +188,11 @@ export default function PlanillaCortePage() {
       setProject({
         id: savedProject.id,
         nombre: savedProject.nombre || '',
-        cliente: savedProject.cliente || clientName,
-        referencia: savedProject.referencia || '',
         descripcion: savedProject.descripcion || '',
         creadoEn: savedProject.fechaCreacion,
       })
       setProjectDraft({
         nombre: savedProject.nombre || '',
-        cliente: savedProject.cliente || clientName,
-        referencia: savedProject.referencia || '',
         descripcion: savedProject.descripcion || '',
       })
       setOrders(mapOrdersFromApi(response.orders))
@@ -282,8 +296,6 @@ export default function PlanillaCortePage() {
         projectId: isPersistedProjectId(project.id) ? project.id : null,
         project: {
           nombre: project.nombre,
-          cliente: project.cliente || clientName,
-          referencia: project.referencia,
           descripcion: project.descripcion,
         },
         orders: orders.map((order) => ({
@@ -298,8 +310,6 @@ export default function PlanillaCortePage() {
         setProject({
           id: savedProject.id,
           nombre: savedProject.nombre || project.nombre,
-          cliente: savedProject.cliente || project.cliente,
-          referencia: savedProject.referencia || project.referencia,
           descripcion: savedProject.descripcion || project.descripcion,
           creadoEn: savedProject.fechaCreacion || project.creadoEn,
         })
@@ -345,7 +355,7 @@ export default function PlanillaCortePage() {
               <thead>
                 <tr>
                   <th>Nombre</th>
-                  <th>Referencia</th>
+                  <th>Descripcion</th>
                   <th>Ordenes</th>
                   <th>Acciones</th>
                 </tr>
@@ -354,7 +364,7 @@ export default function PlanillaCortePage() {
                 {savedProjects.map((item) => (
                   <tr key={item.id}>
                     <td>{item.nombre}</td>
-                    <td>{item.referencia || '-'}</td>
+                    <td>{item.descripcion || '-'}</td>
                     <td>{item.cantidadOrdenes ?? 0}</td>
                     <td>
                       <button
@@ -376,6 +386,18 @@ export default function PlanillaCortePage() {
 
       <div className="card pad">
         <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
+        <p className="muted small" style={{ marginBottom: '0.75rem' }}>
+          El cliente se asigna automaticamente con su sesion. Los tableros y cantos del detalle se
+          eligen del kardex de inventario.
+        </p>
+        {catalogLoading ? <p className="muted small">Cargando catálogo del kardex…</p> : null}
+        {catalogError ? <p className="form-error small">{catalogError}</p> : null}
+        {!catalogLoading && !tablerosKardex.length ? (
+          <p className="muted small">
+            No hay tableros en kardex. En inventario, marque artículos con familia{' '}
+            <strong>TABLERO</strong> o SKU que empiece por <code>TAB</code> / <code>TBL</code>.
+          </p>
+        ) : null}
         <div className="material-grid">
           <label className="field">
             Nombre del proyecto
@@ -383,22 +405,6 @@ export default function PlanillaCortePage() {
               value={projectDraft.nombre}
               onChange={(e) => updateProjectDraft('nombre', e.target.value)}
               placeholder="Cocina Integral #204"
-            />
-          </label>
-          <label className="field">
-            Cliente
-            <input
-              value={projectDraft.cliente}
-              readOnly
-              placeholder="Cliente autocompletado"
-            />
-          </label>
-          <label className="field">
-            Referencia
-            <input
-              value={projectDraft.referencia}
-              onChange={(e) => updateProjectDraft('referencia', e.target.value)}
-              placeholder="OT-2026-05"
             />
           </label>
           <label className="field span-2">
@@ -558,10 +564,11 @@ export default function PlanillaCortePage() {
                     <tr key={index}>
                       <td>{index + 1}</td>
                       <td>
-                        <input
-                            value={row.tablero}
-                            onChange={(e) => updateModalRow(index, 'tablero', e.target.value)}
-                            placeholder="MDF 18mm"
+                        <KardexMaterialSelect
+                          value={row.tablero}
+                          onChange={(v) => updateModalRow(index, 'tablero', v)}
+                          options={tablerosKardex}
+                          placeholder="Tablero"
                         />
                       </td>
                       <td>
@@ -587,42 +594,37 @@ export default function PlanillaCortePage() {
                         />
                       </td>
 
-                      {/* Canto: L1, L2, A1, A2 con opciones según imagen */}
                       <td>
-                        <select
-                            value={row.l1 || 'L1'}
-                            onChange={(e) => updateModalRow(index, 'l1', e.target.value)}
-                        >
-                          <option value="DELGADO">DELGADO</option>
-                          <option value="GRUESO">GRUESO</option>
-                        </select>
+                        <KardexMaterialSelect
+                          value={row.l1}
+                          onChange={(v) => updateModalRow(index, 'l1', v)}
+                          options={cantoOptions}
+                          placeholder="L1"
+                        />
                       </td>
                       <td>
-                        <select
-                            value={row.l2 || 'L2'}
-                            onChange={(e) => updateModalRow(index, 'l2', e.target.value)}
-                        >
-                          <option value="DELGADO">DELGADO</option>
-                        <option value="GRUESO">GRUESO</option>
-                        </select>
+                        <KardexMaterialSelect
+                          value={row.l2}
+                          onChange={(v) => updateModalRow(index, 'l2', v)}
+                          options={cantoOptions}
+                          placeholder="L2"
+                        />
                       </td>
                       <td>
-                        <select
-                            value={row.a1 || 'a1'}
-                            onChange={(e) => updateModalRow(index, 'a1', e.target.value)}
-                        >
-                          <option value="DELGADO">DELGADO</option>
-                          <option value="GRUESO">GRUESO</option>
-                        </select>
+                        <KardexMaterialSelect
+                          value={row.a1}
+                          onChange={(v) => updateModalRow(index, 'a1', v)}
+                          options={cantoOptions}
+                          placeholder="A1"
+                        />
                       </td>
                       <td>
-                        <select
-                            value={row.a2 || 'a2'}
-                            onChange={(e) => updateModalRow(index, 'a2', e.target.value)}
-                        >
-                          <option value="DELGADO">DELGADO</option>
-                          <option value="GRUESO">GRUESO</option>
-                        </select>
+                        <KardexMaterialSelect
+                          value={row.a2}
+                          onChange={(v) => updateModalRow(index, 'a2', v)}
+                          options={cantoOptions}
+                          placeholder="A2"
+                        />
                       </td>
 
                       {/* Perforación: Cantidad (input), Lado1 y Lado2 con opciones L1/L2/a1/a2 */}
