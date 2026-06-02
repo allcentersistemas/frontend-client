@@ -69,8 +69,22 @@
   min-width: 78px;
 }
 
-.planilla-table td input {
-  @apply w-full min-w-[56px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-slate-100;
+.planilla-table td input,
+.planilla-table td select,
+.planilla-select {
+  @apply w-full min-w-[72px] max-w-[180px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 dark:border-white/10 dark:bg-black/30 dark:text-slate-100;
+}
+
+.planilla-catalog-hint {
+  @apply mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-black/30;
+}
+
+.planilla-catalog-chips {
+  @apply mt-2 flex flex-wrap gap-1.5;
+}
+
+.planilla-catalog-chip {
+  @apply rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 dark:border-white/10 dark:bg-black/40 dark:text-slate-200;
 }
 
 .planilla-check {

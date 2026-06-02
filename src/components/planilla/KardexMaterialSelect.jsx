@@ -13,8 +13,8 @@ export function KardexMaterialSelect({
   const list = Array.isArray(options) ? options : []
 
   function optionLabel(opt) {
-    const name = opt.name || opt.sku || ''
-    const sku = opt.sku ? ` · ${opt.sku}` : ''
+    const name = (opt.name || opt.sku || '').trim()
+    const sku = opt.sku && opt.name ? ` · ${opt.sku}` : ''
     const stock = Number(opt.stockOnHand)
     const stockLabel = Number.isFinite(stock) && stock > 0 ? ` (${stock} en stock)` : ''
     return `${name}${sku}${stockLabel}`
@@ -22,21 +22,22 @@ export function KardexMaterialSelect({
 
   return (
     <select
-      className={className}
+      className={className ? className : 'planilla-select'}
       value={value || ''}
       disabled={disabled || !list.length}
       onChange={(e) => onChange(e.target.value)}
     >
       <option value="">{list.length ? placeholder : 'Sin artículos en kardex'}</option>
       {list.map((opt) => {
-        const val = opt.name || ''
+        const val = (opt.name || opt.sku || '').trim()
+        if (!val) return null
         return (
           <option key={opt.id ?? val} value={val}>
             {optionLabel(opt)}
           </option>
         )
       })}
-      {value && !list.some((o) => (o.name || '') === value) ? (
+      {value && !list.some((o) => (o.name || o.sku || '').trim() === value) ? (
         <option value={value}>{value} (guardado)</option>
       ) : null}
     </select>
