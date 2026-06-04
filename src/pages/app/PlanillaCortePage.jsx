@@ -420,14 +420,7 @@ export default function PlanillaCortePage() {
       </section>
 
       {activeOrder ? (
-        <div className="planilla-modal-backdrop" role="presentation" onClick={closeDetalleModal}>
-          <div
-            className="planilla-modal card pad"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="planilla-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="card pad mb-3">
             <div className="planilla-actions">
               <h2 id="planilla-modal-title" className="card__title">
                 Orden {activeOrder.codigo}
@@ -445,110 +438,110 @@ export default function PlanillaCortePage() {
             <div className="table-wrap planilla-wrap">
               <table className="data-table planilla-table">
                 <thead>
-                  <tr>
-                    <th rowSpan={2}>#</th>
-                    <th rowSpan={2}>Tablero</th>
-                    <th colSpan={3}>Piezas</th>
-                    <th colSpan={4}>Canto</th>
-                    <th colSpan={3}>Perforación</th>
-                    <th colSpan={3}>Ranura</th>
-                    <th rowSpan={2}>Obs.</th>
-                    <th rowSpan={2} />
-                  </tr>
-                  <tr>
-                    <th>Cant.</th>
-                    <th>Largo</th>
-                    <th>Ancho</th>
-                    <th>L1</th>
-                    <th>L2</th>
-                    <th>A1</th>
-                    <th>A2</th>
-                    <th>Cant.</th>
-                    <th>Lado 1</th>
-                    <th>Lado 2</th>
-                    <th>Dist.</th>
-                    <th>Prof.</th>
-                    <th>Es.</th>
-                  </tr>
+                <tr>
+                  <th rowSpan={2}>#</th>
+                  <th rowSpan={2}>Tablero</th>
+                  <th colSpan={3}>Piezas</th>
+                  <th colSpan={4}>Canto</th>
+                  <th colSpan={3}>Perforación</th>
+                  <th colSpan={3}>Ranura</th>
+                  <th rowSpan={2}>Obs.</th>
+                  <th rowSpan={2} />
+                </tr>
+                <tr>
+                  <th>Cant.</th>
+                  <th>Largo</th>
+                  <th>Ancho</th>
+                  <th>L1</th>
+                  <th>L2</th>
+                  <th>A1</th>
+                  <th>A2</th>
+                  <th>Cant.</th>
+                  <th>Lado 1</th>
+                  <th>Lado 2</th>
+                  <th>Dist.</th>
+                  <th>Prof.</th>
+                  <th>Es.</th>
+                </tr>
                 </thead>
                 <tbody>
-                  {modalRows.map((row, index) => (
+                {modalRows.map((row, index) => (
                     <tr key={index}>
                       <td>{index + 1}</td>
                       <td>
                         <SearchableSelect
-                          value={row.tablero}
-                          onChange={(v) => updateModalRow(index, 'tablero', v)}
-                          options={tableros}
-                          placeholder="Tablero"
+                            value={row.tablero}
+                            onChange={(v) => updateModalRow(index, 'tablero', v)}
+                            options={tableros}
+                            placeholder="Tablero"
                         />
                       </td>
                       <td>
                         <input
-                          className="planilla-input"
-                          value={row.cantidad}
-                          onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
-                          inputMode="numeric"
+                            className="planilla-input"
+                            value={row.cantidad}
+                            onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
+                            inputMode="numeric"
                         />
                       </td>
                       <td>
                         <input
-                          className="planilla-input"
-                          value={row.largoVeta}
-                          onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
+                            className="planilla-input"
+                            value={row.largoVeta}
+                            onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
                         />
                       </td>
                       <td>
                         <input
-                          className="planilla-input"
-                          value={row.ancho}
-                          onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
+                            className="planilla-input"
+                            value={row.ancho}
+                            onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
                         />
                       </td>
                       <td>
                         <SearchableSelect
-                          value={row.l1}
-                          onChange={(v) => updateModalRow(index, 'l1', v)}
-                          options={cantoOptions}
-                          placeholder="L1"
+                            value={row.l1}
+                            onChange={(v) => updateModalRow(index, 'l1', v)}
+                            options={cantoOptions}
+                            placeholder="L1"
                         />
                       </td>
                       <td>
                         <SearchableSelect
-                          value={row.l2}
-                          onChange={(v) => updateModalRow(index, 'l2', v)}
-                          options={cantoOptions}
-                          placeholder="L2"
+                            value={row.l2}
+                            onChange={(v) => updateModalRow(index, 'l2', v)}
+                            options={cantoOptions}
+                            placeholder="L2"
                         />
                       </td>
                       <td>
                         <SearchableSelect
-                          value={row.a1}
-                          onChange={(v) => updateModalRow(index, 'a1', v)}
-                          options={cantoOptions}
-                          placeholder="A1"
+                            value={row.a1}
+                            onChange={(v) => updateModalRow(index, 'a1', v)}
+                            options={cantoOptions}
+                            placeholder="A1"
                         />
                       </td>
                       <td>
                         <SearchableSelect
-                          value={row.a2}
-                          onChange={(v) => updateModalRow(index, 'a2', v)}
-                          options={cantoOptions}
-                          placeholder="A2"
+                            value={row.a2}
+                            onChange={(v) => updateModalRow(index, 'a2', v)}
+                            options={cantoOptions}
+                            placeholder="A2"
                         />
                       </td>
                       <td>
                         <input
-                          className="planilla-input"
-                          value={row.perforacionCantidad}
-                          onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
+                            className="planilla-input"
+                            value={row.perforacionCantidad}
+                            onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
                         />
                       </td>
                       <td>
                         <select
-                          className="planilla-select"
-                          value={row.perforacionLado1 || 'L1'}
-                          onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
+                            className="planilla-select"
+                            value={row.perforacionLado1 || 'L1'}
+                            onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
                         >
                           <option value="L1">L1</option>
                           <option value="L2">L2</option>
@@ -558,9 +551,9 @@ export default function PlanillaCortePage() {
                       </td>
                       <td>
                         <select
-                          className="planilla-select"
-                          value={row.perforacionLado2 || 'L1'}
-                          onChange={(e) => updateModalRow(index, 'perforacionLado2', e.target.value)}
+                            className="planilla-select"
+                            value={row.perforacionLado2 || 'L1'}
+                            onChange={(e) => updateModalRow(index, 'perforacionLado2', e.target.value)}
                         >
                           <option value="L1">L1</option>
                           <option value="L2">L2</option>
@@ -570,9 +563,9 @@ export default function PlanillaCortePage() {
                       </td>
                       <td>
                         <select
-                          className="planilla-select"
-                          value={row.ranuraDist || '10'}
-                          onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
+                            className="planilla-select"
+                            value={row.ranuraDist || '10'}
+                            onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
                         >
                           <option value="10">10</option>
                           <option value="15">15</option>
@@ -581,9 +574,9 @@ export default function PlanillaCortePage() {
                       </td>
                       <td>
                         <select
-                          className="planilla-select"
-                          value={row.ranuraProf || '6'}
-                          onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
+                            className="planilla-select"
+                            value={row.ranuraProf || '6'}
+                            onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
                         >
                           <option value="6">6</option>
                           <option value="8">8</option>
@@ -592,9 +585,9 @@ export default function PlanillaCortePage() {
                       </td>
                       <td>
                         <select
-                          className="planilla-select"
-                          value={row.ranuraEs || '4'}
-                          onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
+                            className="planilla-select"
+                            value={row.ranuraEs || '4'}
+                            onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
                         >
                           <option value="4">4</option>
                           <option value="7">7</option>
@@ -602,23 +595,23 @@ export default function PlanillaCortePage() {
                       </td>
                       <td>
                         <input
-                          className="planilla-input planilla-input--wide"
-                          value={row.observacion}
-                          onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
+                            className="planilla-input planilla-input--wide"
+                            value={row.observacion}
+                            onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
                         />
                       </td>
                       <td>
                         <button
-                          type="button"
-                          className="btn secondary planilla-remove"
-                          onClick={() => removeModalRow(index)}
-                          disabled={modalRows.length === 1}
+                            type="button"
+                            className="btn secondary planilla-remove"
+                            onClick={() => removeModalRow(index)}
+                            disabled={modalRows.length === 1}
                         >
                           ×
                         </button>
                       </td>
                     </tr>
-                  ))}
+                ))}
                 </tbody>
               </table>
             </div>
@@ -629,7 +622,6 @@ export default function PlanillaCortePage() {
               </button>
             </div>
           </div>
-        </div>
       ) : null}
 
       <section className="card pad">
@@ -643,9 +635,9 @@ export default function PlanillaCortePage() {
             {saving ? 'Guardando…' : 'Guardar en servidor'}
           </button>
           {isPersistedProjectId(project?.id) ? (
-            <Link to="/app/proyectos" className="btn secondary">
-              Volver a proyectos
-            </Link>
+              <Link to="/app/proyectos" className="btn secondary">
+                Volver a proyectos
+              </Link>
           ) : null}
         </div>
       </section>
