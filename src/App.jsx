@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import RootRedirect from './pages/RootRedirect.jsx'
 import Inicio from './pages/app/Inicio.jsx'
+import ProyectosPage from './pages/app/ProyectosPage.jsx'
 import PlanillaCortePage from './pages/app/PlanillaCortePage.jsx'
 
 /** Despliegue en raíz (/) vs subruta (/portal/). */
@@ -38,7 +39,9 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/app" element={<AppShell />}>
           <Route index element={<Inicio />} />
+          <Route path="proyectos" element={<ProyectosPage />} />
           <Route path="planilla-corte" element={<PlanillaCortePage />} />
+          <Route path="planilla-corte/:projectId" element={<PlanillaCortePage />} />
         </Route>
       </Route>
     </Routes>

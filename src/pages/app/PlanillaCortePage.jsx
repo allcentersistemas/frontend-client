@@ -1,298 +1,67 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { fetchPlanillaCatalogos, getProyectoOptimizacion, saveProyectoCompleto } from '../../api/orderApi'
+import { SearchableSelect } from '../../components/planilla/SearchableSelect'
 import {
-  fetchPlanillaCatalogos,
-  getProyectoOptimizacion,
-  listProyectosOptimizacion,
-  saveProyectoCompleto,
-} from '../../api/orderApi'
+  isPersistedProjectId,
+  mapOrdersFromApi,
+  mergeCantoOptions,
+  newDetalle,
+  newOrderDraft,
+  newProjectDraft,
+} from '../../planilla/helpers'
 
-// ----------------------------------------------
-// SELECT CON BÚSQUEDA (reemplaza a KardexMaterialSelect)
-// ----------------------------------------------
-function SearchableSelect({ value, onChange, options, placeholder }) {
-  const [search, setSearch] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
-
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options
-    return options.filter(opt =>
-        (opt.name || opt.sku || '').toLowerCase().includes(search.toLowerCase())
-    )
-  }, [options, search])
-
-  const selectedLabel = useMemo(() => {
-    const selected = options.find(opt => opt.id === value || opt.name === value)
-    return selected ? (selected.name || selected.sku || value) : placeholder || 'Seleccionar'
-  }, [options, value, placeholder])
-
-  return (
-      <div className="searchable-select" style={{ position: 'relative', minWidth: '120px' }}>
-        <div
-            className="select-trigger"
-            onClick={() => setIsOpen(!isOpen)}
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              padding: '6px 8px',
-              cursor: 'pointer',
-              backgroundColor: 'white',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-        >
-          {selectedLabel}
-        </div>
-        {isOpen && (
-            <div
-                className="select-dropdown"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  zIndex: 1000,
-                  maxHeight: '250px',
-                  overflowY: 'auto'
-                }}
-            >
-              <input
-                  type="text"
-                  className="select-search"
-                  placeholder="Buscar..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    border: 'none',
-                    borderBottom: '1px solid #eee',
-                    outline: 'none'
-                  }}
-                  autoFocus
-              />
-              {filteredOptions.length === 0 ? (
-                  <div style={{ padding: '8px', color: '#999' }}>Sin resultados</div>
-              ) : (
-                  filteredOptions.map(opt => (
-                      <div
-                          key={opt.id || opt.name}
-                          className="select-option"
-                          onClick={() => {
-                            onChange(opt.id || opt.name)
-                            setIsOpen(false)
-                            setSearch('')
-                          }}
-                          style={{
-                            padding: '8px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #f0f0f0',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                      >
-                        {opt.name || opt.sku}
-                      </div>
-                  ))
-              )}
-            </div>
-        )}
-      </div>
-  )
-}
-
-// ----------------------------------------------
-// FUNCIONES AUXILIARES (igual que antes)
-// ----------------------------------------------
-function newDetalle() {
-  return {
-    tablero: '',
-    cantidad: '',
-    largoVeta: '',
-    ancho: '',
-    l1: '',
-    l2: '',
-    a1: '',
-    a2: '',
-    perforacionCantidad: '',
-    perforacionLado1: '',
-    perforacionLado2: '',
-    ranuraDist: '',
-    ranuraProf: '',
-    ranuraEs: '',
-    observado: false,
-    observacion: '',
-  }
-}
-
-function newProjectDraft() {
-  return {
-    nombre: '',
-    descripcion: '',
-  }
-}
-
-const CANTO_FALLBACK = [
-  { id: 'delgado', name: 'DELGADO', sku: '' },
-  { id: 'grueso', name: 'GRUESO', sku: '' },
-]
-
-function newOrderDraft() {
-  return {
-    codigo: '',
-    descripcion: '',
-  }
-}
-
-function isPersistedProjectId(id) {
-  const n = Number(id)
-  return Number.isFinite(n) && n > 0 && n < 1_000_000_000_000
-}
-
-function mapDetalleFromApi(detalle) {
-  return {
-    tablero: detalle.tablero || '',
-    cantidad: detalle.cantidad || '',
-    largoVeta: detalle.largoVeta || '',
-    ancho: detalle.ancho || '',
-    l1: detalle.l1 || '',
-    l2: detalle.l2 || '',
-    a1: detalle.a1 || '',
-    a2: detalle.a2 || '',
-    perforacionCantidad: detalle.perforacionCantidad || '',
-    perforacionLado1: detalle.perforacionLado1 || '',
-    perforacionLado2: detalle.perforacionLado2 || '',
-    ranuraDist: detalle.ranuraDist || '',
-    ranuraProf: detalle.ranuraProf || '',
-    ranuraEs: detalle.ranuraEs || '',
-    observado: Boolean(detalle.observado),
-    observacion: detalle.observacion || '',
-  }
-}
-
-function mapOrdersFromApi(savedOrders) {
-  return (savedOrders || []).map((order) => ({
-    id: order.id,
-    codigo: order.codigo || '',
-    descripcion: order.descripcion || '',
-    detalles: (order.detalles || []).map(mapDetalleFromApi),
-  }))
-}
-
-// ----------------------------------------------
-// COMPONENTE PRINCIPAL
-// ----------------------------------------------
 export default function PlanillaCortePage() {
+  const { projectId: projectIdParam } = useParams()
+  const navigate = useNavigate()
+  const editingId = projectIdParam && projectIdParam !== 'nuevo' ? Number(projectIdParam) : null
+
   const [projectDraft, setProjectDraft] = useState(newProjectDraft())
   const [project, setProject] = useState(null)
   const [orderDraft, setOrderDraft] = useState(newOrderDraft())
   const [orders, setOrders] = useState([])
-  const [savedProjects, setSavedProjects] = useState([])
-  const [loadingProjects, setLoadingProjects] = useState(true)
-  const [loadingProjectId, setLoadingProjectId] = useState(null)
+  const [loadingProject, setLoadingProject] = useState(Boolean(editingId))
   const [activeOrderId, setActiveOrderId] = useState(null)
   const [modalRows, setModalRows] = useState([newDetalle()])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveOk, setSaveOk] = useState('')
-  const [tablerosKardex, setTablerosKardex] = useState([])
-  const [cantosKardex, setCantosKardex] = useState([])
+  const [tableros, setTableros] = useState([])
+  const [cantos, setCantos] = useState([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
 
-  const cantoOptions = useMemo(() => {
-    const merged = [...cantosKardex]
-    for (const fb of CANTO_FALLBACK) {
-      const key = fb.name.toUpperCase()
-      if (!merged.some((o) => String(o.name || o.sku || '').toUpperCase() === key)) {
-        merged.push(fb)
-      }
-    }
-    return merged
-  }, [cantosKardex])
+  const cantoOptions = useMemo(() => mergeCantoOptions(cantos), [cantos])
 
   const activeOrder = useMemo(
-      () => orders.find((order) => order.id === activeOrderId) || null,
-      [orders, activeOrderId],
+    () => orders.find((order) => order.id === activeOrderId) || null,
+    [orders, activeOrderId],
   )
 
   const totalOrdenes = orders.length
   const totalDetalles = useMemo(
-      () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
-      [orders],
+    () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
+    [orders],
   )
-
   const totalPiezas = useMemo(
-      () =>
-          orders.reduce(
-              (sum, order) =>
-                  sum +
-                  order.detalles.reduce((inner, detalle) => {
-                    const qty = Number(detalle.cantidad || 0)
-                    return Number.isFinite(qty) ? inner + qty : inner
-                  }, 0),
-              0,
-          ),
-      [orders],
+    () =>
+      orders.reduce(
+        (sum, order) =>
+          sum +
+          order.detalles.reduce((inner, detalle) => {
+            const qty = Number(detalle.cantidad || 0)
+            return Number.isFinite(qty) ? inner + qty : inner
+          }, 0),
+        0,
+      ),
+    [orders],
   )
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setCatalogLoading(true)
-      setCatalogError('')
-      try {
-        const catalog = await fetchPlanillaCatalogos()
-        if (!cancelled) {
-          setTablerosKardex(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
-          setCantosKardex(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setTablerosKardex([])
-          setCantosKardex([])
-          setCatalogError(err.message || 'No se pudo cargar el catálogo de tableros y cantos.')
-        }
-      } finally {
-        if (!cancelled) setCatalogLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setLoadingProjects(true)
-      try {
-        const list = await listProyectosOptimizacion()
-        if (!cancelled) setSavedProjects(Array.isArray(list) ? list : [])
-      } catch {
-        if (!cancelled) setSavedProjects([])
-      } finally {
-        if (!cancelled) setLoadingProjects(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  async function loadSavedProject(proyectoId) {
+  const loadProject = useCallback(async (id) => {
+    setLoadingProject(true)
     setSaveError('')
-    setSaveOk('')
-    setLoadingProjectId(proyectoId)
     try {
-      const response = await getProyectoOptimizacion(proyectoId)
+      const response = await getProyectoOptimizacion(id)
       const savedProject = response?.project
       if (!savedProject) {
         setSaveError('No se pudo cargar el proyecto.')
@@ -309,13 +78,49 @@ export default function PlanillaCortePage() {
         descripcion: savedProject.descripcion || '',
       })
       setOrders(mapOrdersFromApi(response.orders))
-      setSaveOk('Proyecto cargado desde el servidor.')
     } catch (err) {
       setSaveError(err.message || 'No se pudo cargar el proyecto.')
     } finally {
-      setLoadingProjectId(null)
+      setLoadingProject(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setCatalogLoading(true)
+      setCatalogError('')
+      try {
+        const catalog = await fetchPlanillaCatalogos()
+        if (!cancelled) {
+          setTableros(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
+          setCantos(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTableros([])
+          setCantos([])
+          setCatalogError(err.message || 'No se pudo cargar el catálogo.')
+        }
+      } finally {
+        if (!cancelled) setCatalogLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (editingId && Number.isFinite(editingId)) {
+      void loadProject(editingId)
+      return
+    }
+    setProject(null)
+    setProjectDraft(newProjectDraft())
+    setOrders([])
+    setLoadingProject(false)
+  }, [editingId, loadProject])
 
   function updateProjectDraft(key, value) {
     setProjectDraft((prev) => ({ ...prev, [key]: value }))
@@ -338,15 +143,16 @@ export default function PlanillaCortePage() {
   }
 
   function createOrder() {
-    if (!project) return
-    if (!orderDraft.codigo.trim()) return
-    const order = {
-      id: Date.now(),
-      codigo: orderDraft.codigo.trim(),
-      descripcion: orderDraft.descripcion.trim(),
-      detalles: [],
-    }
-    setOrders((prev) => [...prev, order])
+    if (!project || !orderDraft.codigo.trim()) return
+    setOrders((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        codigo: orderDraft.codigo.trim(),
+        descripcion: orderDraft.descripcion.trim(),
+        detalles: [],
+      },
+    ])
     setOrderDraft(newOrderDraft())
     setSaveError('')
     setSaveOk('')
@@ -385,7 +191,7 @@ export default function PlanillaCortePage() {
   function saveDetalles() {
     if (!activeOrder) return
     setOrders((prev) =>
-        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
+      prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
     )
     closeDetalleModal()
     setSaveError('')
@@ -418,7 +224,6 @@ export default function PlanillaCortePage() {
         })),
       })
       const savedProject = response?.project
-      const savedOrders = response?.orders || []
       if (savedProject) {
         setProject({
           id: savedProject.id,
@@ -426,442 +231,424 @@ export default function PlanillaCortePage() {
           descripcion: savedProject.descripcion || project.descripcion,
           creadoEn: savedProject.fechaCreacion || project.creadoEn,
         })
+        if (!isPersistedProjectId(project.id) && savedProject.id) {
+          navigate(`/app/planilla-corte/${savedProject.id}`, { replace: true })
+        }
       }
-      setOrders(mapOrdersFromApi(savedOrders))
-      try {
-        const list = await listProyectosOptimizacion()
-        setSavedProjects(Array.isArray(list) ? list : [])
-      } catch {
-        /* list refresh opcional */
-      }
-      setSaveOk(
-          isPersistedProjectId(project.id)
-              ? 'Proyecto actualizado correctamente en base de datos.'
-              : 'Proyecto, ordenes y detalles guardados correctamente en base de datos.',
-      )
+      setOrders(mapOrdersFromApi(response?.orders))
+      setSaveOk('Proyecto guardado correctamente.')
     } catch (err) {
-      setSaveError(err.message || 'No se pudo guardar la información en base de datos.')
+      setSaveError(err.message || 'No se pudo guardar.')
     } finally {
       setSaving(false)
     }
   }
 
+  if (loadingProject) {
+    return (
+      <div className="card pad">
+        <p className="muted">Cargando proyecto…</p>
+      </div>
+    )
+  }
+
   return (
-      <div className="space-y-6">
-        <div className="page__head">
-          <h1>Proyecto de corte</h1>
-          <p className="page__lead">
-            Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
-            captura sus detalles en la ventana emergente usando el formato de planilla de corte.
-          </p>
-        </div>
-
-        <div className="card pad">
-          <h2 className="card__title mb-4">Mis proyectos guardados</h2>
-          {loadingProjects ? (
-              <p className="muted">Cargando proyectos…</p>
-          ) : !savedProjects.length ? (
-              <p className="muted">Aun no tiene proyectos guardados en el servidor.</p>
-          ) : (
-              <div className="table-wrap" style={{ overflowX: 'auto' }}>
-                <table className="data-table" style={{ minWidth: '500px' }}>
-                  <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Descripcion</th>
-                    <th>Ordenes</th>
-                    <th>Acciones</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  {savedProjects.map((item) => (
-                      <tr key={item.id}>
-                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.nombre}
-                        </td>
-                        <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.descripcion || '-'}
-                        </td>
-                        <td>{item.cantidadOrdenes ?? 0}</td>
-                        <td>
-                          <button
-                              type="button"
-                              className="btn secondary"
-                              disabled={loadingProjectId === item.id}
-                              onClick={() => loadSavedProject(item.id)}
-                          >
-                            {loadingProjectId === item.id ? 'Cargando…' : 'Abrir'}
-                          </button>
-                        </td>
-                      </tr>
-                  ))}
-                  </tbody>
-                </table>
-              </div>
-          )}
-        </div>
-
-        <div className="card pad">
-          <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
-          <p className="muted small" style={{ marginBottom: '0.75rem' }}>
-            El cliente se asigna automaticamente con su sesion. Tableros y cantos se cargan del catalogo
-            registrado en Inventario.
-          </p>
-          {catalogLoading ? <p className="muted small">Cargando catálogo…</p> : null}
-          {catalogError ? <p className="form-error small">{catalogError}</p> : null}
-          {!catalogLoading && !tablerosKardex.length ? (
-              <p className="muted small">
-                No hay tableros registrados. En el portal de empleados: Inventario → Tableros.
-              </p>
-          ) : null}
-          {!catalogLoading && !cantosKardex.length ? (
-              <p className="muted small">
-                No hay cantos registrados; en el detalle se usan <strong>DELGADO</strong> y{' '}
-                <strong>GRUESO</strong> por defecto. En empleados: Inventario → Cantos.
-              </p>
-          ) : null}
-          <div className="material-grid" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <label className="field" style={{ flex: '1', minWidth: '200px' }}>
-              Nombre del proyecto
-              <input
-                  value={projectDraft.nombre}
-                  onChange={(e) => updateProjectDraft('nombre', e.target.value)}
-                  placeholder="Cocina Integral #204"
-              />
-            </label>
-            <label className="field span-2" style={{ flex: '2', minWidth: '250px' }}>
-              Descripcion
-              <input
-                  value={projectDraft.descripcion}
-                  onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
-                  placeholder="Notas generales del proyecto"
-              />
-            </label>
+    <div className="page-stack">
+      <header className="page__head">
+        <div className="page__head-row">
+          <div>
+            <p className="small mb-2">
+              <Link to="/app/proyectos" className="breadcrumb-link">
+                ← Proyectos
+              </Link>
+            </p>
+            <h1>{editingId ? 'Editar planilla de corte' : 'Nuevo proyecto'}</h1>
+            <p className="page__lead">
+              Defina el proyecto, agregue órdenes y capture el detalle de piezas. El cliente se asigna
+              automáticamente con su sesión.
+            </p>
           </div>
-          <div className="form-actions">
-            <button type="button" className="btn primary" onClick={createProject}>
-              {project ? 'Actualizar proyecto' : 'Crear proyecto'}
-            </button>
-          </div>
-          {project ? (
-              <span className="muted">
+        </div>
+      </header>
+
+      <section className="card pad">
+        <h2 className="card__title mb-4">Paso 1 · Proyecto</h2>
+        {catalogLoading ? <p className="muted small mb-3">Cargando catálogo…</p> : null}
+        {catalogError ? <p className="form-error small mb-3">{catalogError}</p> : null}
+        {!catalogLoading && !tableros.length ? (
+          <p className="muted small mb-3">
+            No hay tableros en catálogo (Inventario → Tableros en empleados).
+          </p>
+        ) : null}
+        <div className="form-row-2">
+          <label className="field">
+            <span>Nombre del proyecto</span>
+            <input
+              value={projectDraft.nombre}
+              onChange={(e) => updateProjectDraft('nombre', e.target.value)}
+              placeholder="Cocina Integral #204"
+            />
+          </label>
+          <label className="field">
+            <span>Descripción</span>
+            <input
+              value={projectDraft.descripcion}
+              onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
+              placeholder="Notas generales"
+            />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn primary" onClick={createProject}>
+            {project ? 'Actualizar borrador' : 'Activar proyecto'}
+          </button>
+        </div>
+        {project ? (
+          <p className="muted small mt-2">
             Proyecto activo: <strong>{project.nombre}</strong>
-          </span>
-          ) : null}
-          {saveError ? <p className="form-error">{saveError}</p> : null}
-          {saveOk ? <p className="form-ok">{saveOk}</p> : null}
-        </div>
+          </p>
+        ) : null}
+        {saveError ? <p className="form-error mt-2">{saveError}</p> : null}
+        {saveOk ? <p className="form-ok mt-2">{saveOk}</p> : null}
+      </section>
 
-        <div className="card planilla-preview-card">
-          <h2>Paso 2: Ordenes</h2>
-          {!project ? (
-              <p className="muted">Crea el proyecto para poder registrar ordenes.</p>
-          ) : (
+      <section className="card pad">
+        <h2 className="card__title mb-4">Paso 2 · Órdenes</h2>
+        {!project ? (
+          <p className="muted">Active el proyecto para registrar órdenes.</p>
+        ) : (
+          <>
+            <div className="form-row-2">
+              <label className="field">
+                <span>Código de orden</span>
+                <input
+                  value={orderDraft.codigo}
+                  onChange={(e) => updateOrderDraft('codigo', e.target.value)}
+                  placeholder="ORD-001"
+                />
+              </label>
+              <label className="field">
+                <span>Descripción</span>
+                <input
+                  value={orderDraft.descripcion}
+                  onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
+                  placeholder="Descripción de la orden"
+                />
+              </label>
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn primary" onClick={createOrder}>
+                Agregar orden
+              </button>
+            </div>
+
+            {!orders.length ? (
+              <p className="muted mt-4">Aún no hay órdenes.</p>
+            ) : (
               <>
-                <div className="material-grid" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <label className="field" style={{ flex: '1', minWidth: '200px' }}>
-                    Codigo de orden
-                    <input
-                        value={orderDraft.codigo}
-                        onChange={(e) => updateOrderDraft('codigo', e.target.value)}
-                        placeholder="ORD-001"
-                    />
-                  </label>
-                  <label className="field span-2" style={{ flex: '2', minWidth: '250px' }}>
-                    Descripcion
-                    <input
-                        value={orderDraft.descripcion}
-                        onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
-                        placeholder="Descripcion de la orden"
-                    />
-                  </label>
+                <div className="order-list md:hidden">
+                  {orders.map((order) => {
+                    const piezas = order.detalles.reduce((sum, d) => {
+                      const qty = Number(d.cantidad || 0)
+                      return Number.isFinite(qty) ? sum + qty : sum
+                    }, 0)
+                    return (
+                      <article key={order.id} className="order-card">
+                        <div className="order-card__head">
+                          <strong>{order.codigo}</strong>
+                          <span className="tag">{order.detalles.length} filas · {piezas} pzas</span>
+                        </div>
+                        <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
+                        <div className="order-card__actions">
+                          <button type="button" className="btn secondary" onClick={() => openDetalleModal(order)}>
+                            Detalle
+                          </button>
+                          <button type="button" className="btn secondary" onClick={() => removeOrder(order.id)}>
+                            Quitar
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
-                <div className="form-actions">
-                  <button type="button" className="btn primary" onClick={createOrder}>
-                    Agregar orden
-                  </button>
-                </div>
-                {!orders.length ? (
-                    <p className="muted">Aun no hay ordenes registradas.</p>
-                ) : (
-                    <div className="table-wrap" style={{ overflowX: 'auto' }}>
-                      <table className="data-table" style={{ minWidth: '600px' }}>
-                        <thead>
+
+                <div className="card card--table hidden md:block mt-4">
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
                         <tr>
                           <th>Orden</th>
-                          <th>Descripcion</th>
+                          <th>Descripción</th>
                           <th>Detalles</th>
                           <th>Piezas</th>
                           <th>Acciones</th>
                         </tr>
-                        </thead>
-                        <tbody>
+                      </thead>
+                      <tbody>
                         {orders.map((order) => {
-                          const piezasOrden = order.detalles.reduce((sum, detalle) => {
-                            const qty = Number(detalle.cantidad || 0)
+                          const piezas = order.detalles.reduce((sum, d) => {
+                            const qty = Number(d.cantidad || 0)
                             return Number.isFinite(qty) ? sum + qty : sum
                           }, 0)
                           return (
-                              <tr key={order.id}>
-                                <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {order.codigo}
-                                </td>
-                                <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {order.descripcion || '-'}
-                                </td>
-                                <td>{order.detalles.length}</td>
-                                <td>{piezasOrden}</td>
-                                <td>
-                                  <div className="planilla-inline-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                    <button
-                                        type="button"
-                                        className="btn secondary"
-                                        onClick={() => openDetalleModal(order)}
-                                    >
-                                      Gestionar detalle
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn secondary"
-                                        onClick={() => removeOrder(order.id)}
-                                    >
-                                      Quitar
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
+                            <tr key={order.id}>
+                              <td>{order.codigo}</td>
+                              <td className="max-w-xs truncate">{order.descripcion || '—'}</td>
+                              <td>{order.detalles.length}</td>
+                              <td>{piezas}</td>
+                              <td>
+                                <div className="planilla-inline-actions">
+                                  <button type="button" className="btn secondary" onClick={() => openDetalleModal(order)}>
+                                    Detalle
+                                  </button>
+                                  <button type="button" className="btn secondary" onClick={() => removeOrder(order.id)}>
+                                    Quitar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
                           )
                         })}
-                        </tbody>
-                      </table>
-                    </div>
-                )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </>
-          )}
-        </div>
+            )}
+          </>
+        )}
+      </section>
 
-        {activeOrder ? (
-            <div className="planilla-modal-backdrop" role="presentation" onClick={closeDetalleModal}>
-              <div className="planilla-modal card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: '95%', maxWidth: '1400px', maxHeight: '90vh', overflow: 'auto' }}>
-                <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <h2>Detalle de orden: {activeOrder.codigo}</h2>
-                  <button type="button" className="btn secondary" onClick={closeDetalleModal}>
-                    Cerrar
-                  </button>
-                </div>
-                <div className="planilla-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
-                  <button type="button" className="btn primary" onClick={addModalRow}>
-                    Agregar fila
-                  </button>
-                  <span className="muted">Filas: {modalRows.length}</span>
-                </div>
-
-                <div className="table-wrap planilla-wrap" style={{ overflowX: 'auto', marginTop: '1rem' }}>
-                  <table className="data-table planilla-table" style={{ minWidth: '1400px' }}>
-                    <thead>
-                    <tr>
-                      <th rowSpan={2}>Index</th>
-                      <th rowSpan={2}>Tablero</th>
-                      <th colSpan={3}>Piezas a cortar</th>
-                      <th colSpan={4}>Canto</th>
-                      <th colSpan={2}>Perforacion</th>
-                      <th colSpan={4}>Ranuras</th>
-                      <th rowSpan={2}>Observacion</th>
-                      <th rowSpan={2}>Acciones</th>
-                    </tr>
-                    <tr>
-                      <th>Cant.</th>
-                      <th>Largo (veta)</th>
-                      <th>Ancho</th>
-                      <th>L1</th>
-                      <th>L2</th>
-                      <th>A1</th>
-                      <th>A2</th>
-                      <th>Cant.</th>
-                      <th>Lado</th>
-                      <th>Lado</th>
-                      <th>Dist.</th>
-                      <th>Prof.</th>
-                      <th>Es.</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {modalRows.map((row, index) => (
-                        <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td style={{ minWidth: '150px' }}>
-                            <SearchableSelect
-                                value={row.tablero}
-                                onChange={(v) => updateModalRow(index, 'tablero', v)}
-                                options={tablerosKardex}
-                                placeholder="Tablero"
-                            />
-                          </td>
-                          <td>
-                            <input
-                                value={row.cantidad}
-                                onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
-                                inputMode="numeric"
-                                placeholder="1"
-                                style={{ width: '80px' }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                                value={row.largoVeta}
-                                onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
-                                placeholder="2000"
-                                style={{ width: '100px' }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                                value={row.ancho}
-                                onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
-                                placeholder="300"
-                                style={{ width: '100px' }}
-                            />
-                          </td>
-                          <td style={{ minWidth: '130px' }}>
-                            <SearchableSelect
-                                value={row.l1}
-                                onChange={(v) => updateModalRow(index, 'l1', v)}
-                                options={cantoOptions}
-                                placeholder="L1"
-                            />
-                          </td>
-                          <td style={{ minWidth: '130px' }}>
-                            <SearchableSelect
-                                value={row.l2}
-                                onChange={(v) => updateModalRow(index, 'l2', v)}
-                                options={cantoOptions}
-                                placeholder="L2"
-                            />
-                          </td>
-                          <td style={{ minWidth: '130px' }}>
-                            <SearchableSelect
-                                value={row.a1}
-                                onChange={(v) => updateModalRow(index, 'a1', v)}
-                                options={cantoOptions}
-                                placeholder="A1"
-                            />
-                          </td>
-                          <td style={{ minWidth: '130px' }}>
-                            <SearchableSelect
-                                value={row.a2}
-                                onChange={(v) => updateModalRow(index, 'a2', v)}
-                                options={cantoOptions}
-                                placeholder="A2"
-                            />
-                          </td>
-                          <td>
-                            <input
-                                value={row.perforacionCantidad}
-                                onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
-                                style={{ width: '70px' }}
-                            />
-                          </td>
-                          <td>
-                            <select
-                                value={row.perforacionLado1 || 'L1'}
-                                onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
-                                style={{ width: '70px' }}
-                            >
-                              <option value="L1">L1</option>
-                              <option value="L2">L2</option>
-                              <option value="A1">a1</option>
-                              <option value="A2">a2</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                                value={row.perforacionLado2 || 'L1'}
-                                onChange={(e) => updateModalRow(index, 'perforacionLado2', e.target.value)}
-                                style={{ width: '70px' }}
-                            >
-                              <option value="L1">L1</option>
-                              <option value="L2">L2</option>
-                              <option value="a1">a1</option>
-                              <option value="a2">a2</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                                value={row.ranuraDist || '10'}
-                                onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
-                                style={{ width: '70px' }}
-                            >
-                              <option value="10">10</option>
-                              <option value="15">15</option>
-                              <option value="18">18</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                                value={row.ranuraProf || '6'}
-                                onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
-                                style={{ width: '70px' }}
-                            >
-                              <option value="6">6</option>
-                              <option value="8">8</option>
-                              <option value="10">10</option>
-                            </select>
-                          </td>
-                          <td>
-                            <select
-                                value={row.ranuraEs || '4'}
-                                onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
-                                style={{ width: '70px' }}
-                            >
-                              <option value="4">4</option>
-                              <option value="7">7</option>
-                            </select>
-                          </td>
-                          <td>
-                            <input
-                                value={row.observacion}
-                                onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
-                                placeholder="Notas..."
-                                style={{ width: '120px' }}
-                            />
-                          </td>
-                          <td>
-                            <button
-                                type="button"
-                                className="btn secondary planilla-remove"
-                                onClick={() => removeModalRow(index)}
-                                disabled={modalRows.length === 1}
-                            >
-                              Quitar
-                            </button>
-                          </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
-                  <span className="muted">Guarda para actualizar el detalle de la orden.</span>
-                  <button type="button" className="btn primary" onClick={saveDetalles}>
-                    Guardar detalle
-                  </button>
-                </div>
-              </div>
+      {activeOrder ? (
+        <div className="planilla-modal-backdrop" role="presentation" onClick={closeDetalleModal}>
+          <div
+            className="planilla-modal card pad"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planilla-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="planilla-actions">
+              <h2 id="planilla-modal-title" className="card__title">
+                Orden {activeOrder.codigo}
+              </h2>
+              <button type="button" className="btn secondary" onClick={closeDetalleModal}>
+                Cerrar
+              </button>
             </div>
-        ) : null}
-
-        <div className="card planilla-preview-card">
-          <h2>Resumen del flujo</h2>
-          <p className="muted">
-            Ordenes: <strong>{totalOrdenes}</strong> | Detalles: <strong>{totalDetalles}</strong> |
-            Piezas: <strong>{totalPiezas}</strong>
-          </p>
-          <div className="form-actions">
-            <button type="button" className="btn primary" onClick={saveAllToDatabase} disabled={saving}>
-              {saving ? 'Guardando en BD…' : 'Guardar todo en base de datos'}
-            </button>
+            <div className="planilla-actions">
+              <button type="button" className="btn primary" onClick={addModalRow}>
+                Agregar fila
+              </button>
+              <span className="muted small">Filas: {modalRows.length}</span>
+            </div>
+            <div className="table-wrap planilla-wrap">
+              <table className="data-table planilla-table">
+                <thead>
+                  <tr>
+                    <th rowSpan={2}>#</th>
+                    <th rowSpan={2}>Tablero</th>
+                    <th colSpan={3}>Piezas</th>
+                    <th colSpan={4}>Canto</th>
+                    <th colSpan={3}>Perforación</th>
+                    <th colSpan={3}>Ranura</th>
+                    <th rowSpan={2}>Obs.</th>
+                    <th rowSpan={2} />
+                  </tr>
+                  <tr>
+                    <th>Cant.</th>
+                    <th>Largo</th>
+                    <th>Ancho</th>
+                    <th>L1</th>
+                    <th>L2</th>
+                    <th>A1</th>
+                    <th>A2</th>
+                    <th>Cant.</th>
+                    <th>Lado 1</th>
+                    <th>Lado 2</th>
+                    <th>Dist.</th>
+                    <th>Prof.</th>
+                    <th>Es.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modalRows.map((row, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <SearchableSelect
+                          value={row.tablero}
+                          onChange={(v) => updateModalRow(index, 'tablero', v)}
+                          options={tableros}
+                          placeholder="Tablero"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="planilla-input"
+                          value={row.cantidad}
+                          onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
+                          inputMode="numeric"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="planilla-input"
+                          value={row.largoVeta}
+                          onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="planilla-input"
+                          value={row.ancho}
+                          onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <SearchableSelect
+                          value={row.l1}
+                          onChange={(v) => updateModalRow(index, 'l1', v)}
+                          options={cantoOptions}
+                          placeholder="L1"
+                        />
+                      </td>
+                      <td>
+                        <SearchableSelect
+                          value={row.l2}
+                          onChange={(v) => updateModalRow(index, 'l2', v)}
+                          options={cantoOptions}
+                          placeholder="L2"
+                        />
+                      </td>
+                      <td>
+                        <SearchableSelect
+                          value={row.a1}
+                          onChange={(v) => updateModalRow(index, 'a1', v)}
+                          options={cantoOptions}
+                          placeholder="A1"
+                        />
+                      </td>
+                      <td>
+                        <SearchableSelect
+                          value={row.a2}
+                          onChange={(v) => updateModalRow(index, 'a2', v)}
+                          options={cantoOptions}
+                          placeholder="A2"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="planilla-input"
+                          value={row.perforacionCantidad}
+                          onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="planilla-select"
+                          value={row.perforacionLado1 || 'L1'}
+                          onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
+                        >
+                          <option value="L1">L1</option>
+                          <option value="L2">L2</option>
+                          <option value="A1">A1</option>
+                          <option value="A2">A2</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="planilla-select"
+                          value={row.perforacionLado2 || 'L1'}
+                          onChange={(e) => updateModalRow(index, 'perforacionLado2', e.target.value)}
+                        >
+                          <option value="L1">L1</option>
+                          <option value="L2">L2</option>
+                          <option value="A1">A1</option>
+                          <option value="A2">A2</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="planilla-select"
+                          value={row.ranuraDist || '10'}
+                          onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
+                        >
+                          <option value="10">10</option>
+                          <option value="15">15</option>
+                          <option value="18">18</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="planilla-select"
+                          value={row.ranuraProf || '6'}
+                          onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
+                        >
+                          <option value="6">6</option>
+                          <option value="8">8</option>
+                          <option value="10">10</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="planilla-select"
+                          value={row.ranuraEs || '4'}
+                          onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
+                        >
+                          <option value="4">4</option>
+                          <option value="7">7</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="planilla-input planilla-input--wide"
+                          value={row.observacion}
+                          onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn secondary planilla-remove"
+                          onClick={() => removeModalRow(index)}
+                          disabled={modalRows.length === 1}
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="planilla-actions">
+              <span className="muted small">Guarde para aplicar a la orden.</span>
+              <button type="button" className="btn primary" onClick={saveDetalles}>
+                Guardar detalle
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
+
+      <section className="card pad">
+        <h2 className="card__title mb-3">Resumen</h2>
+        <p className="muted">
+          Órdenes: <strong>{totalOrdenes}</strong> · Detalles: <strong>{totalDetalles}</strong> · Piezas:{' '}
+          <strong>{totalPiezas}</strong>
+        </p>
+        <div className="form-actions">
+          <button type="button" className="btn primary" onClick={() => void saveAllToDatabase()} disabled={saving}>
+            {saving ? 'Guardando…' : 'Guardar en servidor'}
+          </button>
+          {isPersistedProjectId(project?.id) ? (
+            <Link to="/app/proyectos" className="btn secondary">
+              Volver a proyectos
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    </div>
   )
 }

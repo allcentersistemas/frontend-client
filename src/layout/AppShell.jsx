@@ -18,7 +18,7 @@ export default function AppShell() {
   const [user, setUser] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const isOptActive = useMemo(
+  const isPlanillaRoute = useMemo(
     () => location.pathname.startsWith('/app/planilla-corte'),
     [location.pathname],
   )
@@ -164,12 +164,26 @@ export default function AppShell() {
             Optimizaciones
           </p>
           <NavLink
+            to="/app/proyectos"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              cn(
+                'rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                isActive
+                  ? 'bg-gradient-to-r from-amber-400/25 to-amber-600/15 text-amber-900 ring-1 ring-amber-400/30 dark:text-amber-50'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+              )
+            }
+          >
+            Proyectos
+          </NavLink>
+          <NavLink
             to="/app/planilla-corte"
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
               cn(
                 'rounded-xl px-3 py-2.5 text-sm font-medium transition',
-                isActive || isOptActive
+                isActive || isPlanillaRoute
                   ? 'bg-gradient-to-r from-amber-400/25 to-amber-600/15 text-amber-900 ring-1 ring-amber-400/30 dark:text-amber-50'
                   : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
               )

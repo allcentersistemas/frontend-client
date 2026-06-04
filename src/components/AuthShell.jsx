@@ -22,12 +22,12 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }) {
       </div>
 
       <div className={`relative z-10 w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
-        <div className="rounded-3xl border border-amber-400/15 bg-white/80 p-10 shadow-2xl shadow-amber-500/10 backdrop-blur-2xl dark:border-yellow-400/10 dark:bg-white/5 dark:shadow-yellow-500/10">
-          <div className="mb-10 flex flex-col items-center">
-            <div className="mb-6 flex h-44 w-44 items-center justify-center rounded-full border bg-yellow-300">
-              <img src={logo} alt="AllCenter" className="w-36 object-contain drop-shadow-2xl" />
+        <div className="rounded-3xl border border-amber-400/15 bg-white/80 p-6 shadow-2xl shadow-amber-500/10 backdrop-blur-2xl sm:p-10 dark:border-yellow-400/10 dark:bg-white/5 dark:shadow-yellow-500/10">
+          <div className="mb-8 flex flex-col items-center sm:mb-10">
+            <div className="mb-4 flex h-28 w-28 items-center justify-center rounded-full border bg-yellow-300 sm:mb-6 sm:h-44 sm:w-44">
+              <img src={logo} alt="AllCenter" className="w-24 object-contain drop-shadow-2xl sm:w-36" />
             </div>
-            <h1 className="text-4xl font-bold tracking-wide text-slate-900 dark:text-white">{title}</h1>
+            <h1 className="text-2xl font-bold tracking-wide text-slate-900 sm:text-4xl dark:text-white">{title}</h1>
             {subtitle ? (
               <p className="mt-3 text-center text-sm text-slate-600 dark:text-yellow-100/80">{subtitle}</p>
             ) : null}
