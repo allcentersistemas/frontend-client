@@ -540,56 +540,7 @@ export default function PlanillaCortePage() {
               </button>
               <span className="muted">Filas: {modalRows.length}</span>
             </div>
-            <div className="planilla-catalog-hint">
-              <p className="muted small" style={{ margin: 0 }}>
-                Catálogo: <strong>{tablerosKardex.length}</strong> tablero(s),{' '}
-                <strong>{cantoOptions.length}</strong> canto(s) para L1, L2, A1 y A2.
-              </p>
-              {catalogLoading ? (
-                <p className="muted small" style={{ marginTop: '0.5rem' }}>
-                  Cargando catálogo…
-                </p>
-              ) : null}
-              {catalogError ? (
-                <p className="form-error small" style={{ marginTop: '0.5rem' }}>
-                  {catalogError}
-                </p>
-              ) : null}
-              {!catalogLoading && cantoOptions.length > 0 ? (
-                <>
-                  <p className="muted small" style={{ margin: '0.5rem 0 0' }}>
-                    Cantos disponibles:
-                  </p>
-                  <div className="planilla-catalog-chips" role="list">
-                    {cantoOptions.map((c) => {
-                      const label = c.name || c.sku || '—'
-                      return (
-                        <span key={c.id ?? label} className="planilla-catalog-chip" role="listitem">
-                          {label}
-                        </span>
-                      )
-                    })}
-                  </div>
-                </>
-              ) : null}
-              {!catalogLoading && tablerosKardex.length > 0 ? (
-                <>
-                  <p className="muted small" style={{ margin: '0.5rem 0 0' }}>
-                    Tableros disponibles:
-                  </p>
-                  <div className="planilla-catalog-chips" role="list">
-                    {tablerosKardex.map((t) => {
-                      const label = t.name || t.sku || '—'
-                      return (
-                        <span key={t.id ?? label} className="planilla-catalog-chip" role="listitem">
-                          {label}
-                        </span>
-                      )
-                    })}
-                  </div>
-                </>
-              ) : null}
-            </div>
+
             <div className="table-wrap planilla-wrap">
               <table className="data-table planilla-table">
                 <thead>
