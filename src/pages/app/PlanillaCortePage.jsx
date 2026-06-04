@@ -5,8 +5,70 @@ import {
   listProyectosOptimizacion,
   saveProyectoCompleto,
 } from '../../api/orderApi'
-import { KardexMaterialSelect } from '../../components/planilla/KardexMaterialSelect'
 
+// ----------------------------------------------
+// 1. COMPONENTE DE SELECT CON BÚSQUEDA
+// ----------------------------------------------
+function SearchableSelect({ value, onChange, options, placeholder }) {
+  const [search, setSearch] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return options
+    return options.filter(opt =>
+        (opt.name || opt.sku || '').toLowerCase().includes(search.toLowerCase())
+    )
+  }, [options, search])
+
+  const selectedLabel = useMemo(() => {
+    const selected = options.find(opt => opt.id === value || opt.name === value)
+    return selected ? (selected.name || selected.sku || value) : placeholder || 'Seleccionar'
+  }, [options, value, placeholder])
+
+  return (
+      <div className="relative w-full min-w-[120px]">
+        <div
+            className="border rounded px-2 py-1 cursor-pointer bg-white truncate"
+            onClick={() => setIsOpen(!isOpen)}
+        >
+          {selectedLabel}
+        </div>
+        {isOpen && (
+            <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+              <input
+                  type="text"
+                  className="w-full p-1 border-b outline-none"
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+              />
+              {filteredOptions.length === 0 ? (
+                  <div className="p-2 text-gray-400">Sin resultados</div>
+              ) : (
+                  filteredOptions.map(opt => (
+                      <div
+                          key={opt.id || opt.name}
+                          className="p-2 hover:bg-gray-100 cursor-pointer truncate"
+                          onClick={() => {
+                            onChange(opt.id || opt.name)
+                            setIsOpen(false)
+                            setSearch('')
+                          }}
+                      >
+                        {opt.name || opt.sku}
+                      </div>
+                  ))
+              )}
+            </div>
+        )}
+      </div>
+  )
+}
+
+// ----------------------------------------------
+// 2. FUNCIONES AUXILIARES
+// ----------------------------------------------
 function newDetalle() {
   return {
     tablero: '',
@@ -29,10 +91,7 @@ function newDetalle() {
 }
 
 function newProjectDraft() {
-  return {
-    nombre: '',
-    descripcion: '',
-  }
+  return { nombre: '', descripcion: '' }
 }
 
 const CANTO_FALLBACK = [
@@ -41,10 +100,7 @@ const CANTO_FALLBACK = [
 ]
 
 function newOrderDraft() {
-  return {
-    codigo: '',
-    descripcion: '',
-  }
+  return { codigo: '', descripcion: '' }
 }
 
 function isPersistedProjectId(id) {
@@ -82,6 +138,9 @@ function mapOrdersFromApi(savedOrders) {
   }))
 }
 
+// ----------------------------------------------
+// 3. COMPONENTE PRINCIPAL
+// ----------------------------------------------
 export default function PlanillaCortePage() {
   const [projectDraft, setProjectDraft] = useState(newProjectDraft())
   const [project, setProject] = useState(null)
@@ -100,29 +159,8 @@ export default function PlanillaCortePage() {
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
 
-  // Estados para los buscadores
-  const [tableroSearchTerm, setTableroSearchTerm] = useState('')
-  const [cantoSearchTerm, setCantoSearchTerm] = useState('')
-
-  // Filtrar tableros según búsqueda
-  const filteredTableros = useMemo(() => {
-    if (!tableroSearchTerm.trim()) return tablerosKardex
-    return tablerosKardex.filter(tablero =>
-        tablero.name?.toLowerCase().includes(tableroSearchTerm.toLowerCase()) ||
-        tablero.sku?.toLowerCase().includes(tableroSearchTerm.toLowerCase())
-    )
-  }, [tablerosKardex, tableroSearchTerm])
-
   const cantoOptions = useMemo(() => {
-    let merged = [...cantosKardex]
-
-    // Filtrar cantos según búsqueda
-    if (cantoSearchTerm.trim()) {
-      merged = merged.filter(canto =>
-          String(canto.name || canto.sku || '').toLowerCase().includes(cantoSearchTerm.toLowerCase())
-      )
-    }
-
+    const merged = [...cantosKardex]
     for (const fb of CANTO_FALLBACK) {
       const key = fb.name.toUpperCase()
       if (!merged.some((o) => String(o.name || o.sku || '').toUpperCase() === key)) {
@@ -130,17 +168,17 @@ export default function PlanillaCortePage() {
       }
     }
     return merged
-  }, [cantosKardex, cantoSearchTerm])
+  }, [cantosKardex])
 
   const activeOrder = useMemo(
       () => orders.find((order) => order.id === activeOrderId) || null,
-      [orders, activeOrderId],
+      [orders, activeOrderId]
   )
 
   const totalOrdenes = orders.length
   const totalDetalles = useMemo(
       () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
-      [orders],
+      [orders]
   )
 
   const totalPiezas = useMemo(
@@ -152,11 +190,12 @@ export default function PlanillaCortePage() {
                     const qty = Number(detalle.cantidad || 0)
                     return Number.isFinite(qty) ? inner + qty : inner
                   }, 0),
-              0,
+              0
           ),
-      [orders],
+      [orders]
   )
 
+  // Cargar catálogos
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -172,17 +211,16 @@ export default function PlanillaCortePage() {
         if (!cancelled) {
           setTablerosKardex([])
           setCantosKardex([])
-          setCatalogError(err.message || 'No se pudo cargar el catálogo de tableros y cantos.')
+          setCatalogError(err.message || 'No se pudo cargar el catálogo.')
         }
       } finally {
         if (!cancelled) setCatalogLoading(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
+  // Cargar proyectos guardados
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -196,9 +234,7 @@ export default function PlanillaCortePage() {
         if (!cancelled) setLoadingProjects(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   async function loadSavedProject(proyectoId) {
@@ -208,10 +244,7 @@ export default function PlanillaCortePage() {
     try {
       const response = await getProyectoOptimizacion(proyectoId)
       const savedProject = response?.project
-      if (!savedProject) {
-        setSaveError('No se pudo cargar el proyecto.')
-        return
-      }
+      if (!savedProject) throw new Error('No se pudo cargar el proyecto.')
       setProject({
         id: savedProject.id,
         nombre: savedProject.nombre || '',
@@ -223,9 +256,9 @@ export default function PlanillaCortePage() {
         descripcion: savedProject.descripcion || '',
       })
       setOrders(mapOrdersFromApi(response.orders))
-      setSaveOk('Proyecto cargado desde el servidor.')
+      setSaveOk('Proyecto cargado correctamente.')
     } catch (err) {
-      setSaveError(err.message || 'No se pudo cargar el proyecto.')
+      setSaveError(err.message)
     } finally {
       setLoadingProjectId(null)
     }
@@ -262,8 +295,6 @@ export default function PlanillaCortePage() {
     }
     setOrders((prev) => [...prev, order])
     setOrderDraft(newOrderDraft())
-    setSaveError('')
-    setSaveOk('')
   }
 
   function removeOrder(orderId) {
@@ -299,11 +330,10 @@ export default function PlanillaCortePage() {
   function saveDetalles() {
     if (!activeOrder) return
     setOrders((prev) =>
-        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
+        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order))
     )
     closeDetalleModal()
-    setSaveError('')
-    setSaveOk('')
+    setSaveOk('Detalles guardados.')
   }
 
   async function saveAllToDatabase() {
@@ -342,520 +372,235 @@ export default function PlanillaCortePage() {
         })
       }
       setOrders(mapOrdersFromApi(savedOrders))
-      try {
-        const list = await listProyectosOptimizacion()
-        setSavedProjects(Array.isArray(list) ? list : [])
-      } catch {
-        /* list refresh opcional */
-      }
-      setSaveOk(
-          isPersistedProjectId(project.id)
-              ? 'Proyecto actualizado correctamente en base de datos.'
-              : 'Proyecto, ordenes y detalles guardados correctamente en base de datos.',
-      )
+      // Refrescar lista de proyectos
+      const list = await listProyectosOptimizacion()
+      setSavedProjects(Array.isArray(list) ? list : [])
+      setSaveOk('Proyecto guardado correctamente.')
     } catch (err) {
-      setSaveError(err.message || 'No se pudo guardar la información en base de datos.')
+      setSaveError(err.message || 'Error al guardar.')
     } finally {
       setSaving(false)
     }
   }
 
+  // ------------------------------------------------------------
+  // RENDER PRINCIPAL (Responsive con Tailwind)
+  // ------------------------------------------------------------
   return (
-      <div className="planilla-container">
-        <style jsx>{`
-        .planilla-container {
-          max-width: 100%;
-          overflow-x: auto;
-          padding: 1rem;
-        }
-        
-        @media (min-width: 768px) {
-          .planilla-container {
-            padding: 1.5rem;
-          }
-        }
-        
-        @media (min-width: 1024px) {
-          .planilla-container {
-            padding: 2rem;
-          }
-        }
-        
-        .responsive-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-        
-        @media (min-width: 768px) {
-          .responsive-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-          }
-        }
-        
-        .search-input {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 0.875rem;
-          margin-bottom: 0.5rem;
-        }
-        
-        .search-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-        
-        @media (max-width: 768px) {
-          .planilla-table {
-            font-size: 0.75rem;
-          }
-          
-          .planilla-table input,
-          .planilla-table select {
-            font-size: 0.75rem;
-            padding: 0.25rem;
-          }
-          
-          .btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-          }
-        }
-        
-        @media (max-width: 640px) {
-          .planilla-table th,
-          .planilla-table td {
-            padding: 0.5rem;
-          }
-          
-          .card {
-            padding: 1rem;
-          }
-          
-          .card__title {
-            font-size: 1.25rem;
-          }
-        }
-      `}</style>
+      <div className="p-4 md:p-6 space-y-6 max-w-full overflow-x-auto">
+        {/* Encabezado */}
+        <div className="border-b pb-2">
+          <h1 className="text-2xl font-bold">Proyecto de corte</h1>
+          <p className="text-gray-500 text-sm">
+            Flujo sugerido: primero crea el proyecto, luego agrega órdenes y sus detalles.
+          </p>
+        </div>
 
-        <div className="space-y-6">
-          <div className="page__head">
-            <h1>Proyecto de corte</h1>
-            <p className="page__lead">
-              Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
-              captura sus detalles en la ventana emergente usando el formato de planilla de corte.
-            </p>
+        {/* Proyectos guardados */}
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="text-lg font-semibold mb-2">Mis proyectos guardados</h2>
+          {loadingProjects ? (
+              <p className="text-gray-400">Cargando...</p>
+          ) : !savedProjects.length ? (
+              <p className="text-gray-400">No hay proyectos guardados.</p>
+          ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border text-sm">
+                  <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 text-left">Nombre</th>
+                    <th className="p-2 text-left">Descripción</th>
+                    <th className="p-2 text-left">Órdenes</th>
+                    <th className="p-2 text-left">Acciones</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {savedProjects.map((item) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="p-2 truncate max-w-[150px]">{item.nombre}</td>
+                        <td className="p-2 truncate max-w-[200px]">{item.descripcion || '-'}</td>
+                        <td className="p-2">{item.cantidadOrdenes ?? 0}</td>
+                        <td className="p-2">
+                          <button
+                              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                              disabled={loadingProjectId === item.id}
+                              onClick={() => loadSavedProject(item.id)}
+                          >
+                            {loadingProjectId === item.id ? 'Cargando…' : 'Abrir'}
+                          </button>
+                        </td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+          )}
+        </div>
+
+        {/* Paso 1: Proyecto */}
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="text-lg font-semibold mb-2">Paso 1: Proyecto</h2>
+          {catalogLoading && <p className="text-gray-400 text-sm">Cargando catálogo...</p>}
+          {catalogError && <p className="text-red-500 text-sm">{catalogError}</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+                className="border rounded p-2"
+                value={projectDraft.nombre}
+                onChange={(e) => updateProjectDraft('nombre', e.target.value)}
+                placeholder="Nombre del proyecto"
+            />
+            <input
+                className="border rounded p-2"
+                value={projectDraft.descripcion}
+                onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
+                placeholder="Descripción"
+            />
           </div>
+          <div className="mt-3">
+            <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={createProject}>
+              {project ? 'Actualizar proyecto' : 'Crear proyecto'}
+            </button>
+            {project && <span className="ml-3 text-sm text-gray-500">Activo: <strong>{project.nombre}</strong></span>}
+          </div>
+          {saveError && <p className="text-red-500 mt-2">{saveError}</p>}
+          {saveOk && <p className="text-green-600 mt-2">{saveOk}</p>}
+        </div>
 
-          <div className="card pad">
-            <h2 className="card__title mb-4">Mis proyectos guardados</h2>
-            {loadingProjects ? (
-                <p className="muted">Cargando proyectos…</p>
-            ) : !savedProjects.length ? (
-                <p className="muted">Aun no tiene proyectos guardados en el servidor.</p>
-            ) : (
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <thead>
+        {/* Paso 2: Órdenes */}
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="text-lg font-semibold mb-2">Paso 2: Órdenes</h2>
+          {!project ? (
+              <p className="text-gray-400">Crea el proyecto primero.</p>
+          ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <input
+                      className="border rounded p-2"
+                      value={orderDraft.codigo}
+                      onChange={(e) => updateOrderDraft('codigo', e.target.value)}
+                      placeholder="Código de orden"
+                  />
+                  <input
+                      className="border rounded p-2"
+                      value={orderDraft.descripcion}
+                      onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
+                      placeholder="Descripción"
+                  />
+                </div>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={createOrder}>
+                  Agregar orden
+                </button>
+                {orders.length === 0 ? (
+                    <p className="text-gray-400 mt-3">No hay órdenes aún.</p>
+                ) : (
+                    <div className="overflow-x-auto mt-3">
+                      <table className="min-w-full border text-sm">
+                        <thead className="bg-gray-100">
+                        <tr>
+                          <th className="p-2 text-left">Orden</th>
+                          <th className="p-2 text-left">Descripción</th>
+                          <th className="p-2 text-left">Detalles</th>
+                          <th className="p-2 text-left">Piezas</th>
+                          <th className="p-2 text-left">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {orders.map((order) => {
+                          const piezas = order.detalles.reduce((sum, d) => sum + (Number(d.cantidad) || 0), 0)
+                          return (
+                              <tr key={order.id} className="border-t">
+                                <td className="p-2 truncate max-w-[120px]">{order.codigo}</td>
+                                <td className="p-2 truncate max-w-[150px]">{order.descripcion || '-'}</td>
+                                <td className="p-2">{order.detalles.length}</td>
+                                <td className="p-2">{piezas}</td>
+                                <td className="p-2 space-x-2">
+                                  <button className="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onClick={() => openDetalleModal(order)}>
+                                    Detalle
+                                  </button>
+                                  <button className="px-2 py-1 bg-red-500 text-white rounded text-xs" onClick={() => removeOrder(order.id)}>
+                                    Quitar
+                                  </button>
+                                </td>
+                              </tr>
+                          )
+                        })}
+                        </tbody>
+                      </table>
+                    </div>
+                )}
+              </>
+          )}
+        </div>
+
+        {/* Modal de detalles (con SearchableSelect) */}
+        {activeOrder && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+              <div className="bg-white rounded shadow-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-xl font-bold">Detalle de orden: {activeOrder.codigo}</h2>
+                  <button className="px-3 py-1 bg-gray-300 rounded" onClick={closeDetalleModal}>Cerrar</button>
+                </div>
+                <div className="mb-3">
+                  <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm" onClick={addModalRow}>+ Agregar fila</button>
+                  <span className="ml-2 text-gray-500 text-sm">Filas: {modalRows.length}</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-[1200px] border text-sm">
+                    <thead className="bg-gray-100 text-xs">
                     <tr>
-                      <th>Nombre</th>
-                      <th>Descripcion</th>
-                      <th>Ordenes</th>
-                      <th>Acciones</th>
+                      <th className="p-1">#</th>
+                      <th className="p-1">Tablero</th>
+                      <th className="p-1">Cant.</th>
+                      <th className="p-1">Largo</th>
+                      <th className="p-1">Ancho</th>
+                      <th className="p-1">L1</th><th className="p-1">L2</th><th className="p-1">A1</th><th className="p-1">A2</th>
+                      <th className="p-1">Perf.Cant</th><th className="p-1">Perf.L1</th><th className="p-1">Perf.L2</th>
+                      <th className="p-1">Ran.Dist</th><th className="p-1">Ran.Prof</th><th className="p-1">Ran.Es</th>
+                      <th className="p-1">Observación</th>
+                      <th className="p-1">Acción</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {savedProjects.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.nombre}</td>
-                          <td>{item.descripcion || '-'}</td>
-                          <td>{item.cantidadOrdenes ?? 0}</td>
-                          <td>
-                            <button
-                                type="button"
-                                className="btn secondary"
-                                disabled={loadingProjectId === item.id}
-                                onClick={() => loadSavedProject(item.id)}
-                            >
-                              {loadingProjectId === item.id ? 'Cargando…' : 'Abrir'}
-                            </button>
-                          </td>
+                    {modalRows.map((row, idx) => (
+                        <tr key={idx} className="border-t">
+                          <td className="p-1 text-center">{idx+1}</td>
+                          <td className="p-1 min-w-[130px]"><SearchableSelect value={row.tablero} onChange={(v) => updateModalRow(idx, 'tablero', v)} options={tablerosKardex} placeholder="Tablero" /></td>
+                          <td className="p-1"><input className="w-16 border rounded p-1" value={row.cantidad} onChange={(e) => updateModalRow(idx, 'cantidad', e.target.value)} placeholder="1" /></td>
+                          <td className="p-1"><input className="w-20 border rounded p-1" value={row.largoVeta} onChange={(e) => updateModalRow(idx, 'largoVeta', e.target.value)} placeholder="Largo" /></td>
+                          <td className="p-1"><input className="w-20 border rounded p-1" value={row.ancho} onChange={(e) => updateModalRow(idx, 'ancho', e.target.value)} placeholder="Ancho" /></td>
+                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.l1} onChange={(v) => updateModalRow(idx, 'l1', v)} options={cantoOptions} placeholder="L1" /></td>
+                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.l2} onChange={(v) => updateModalRow(idx, 'l2', v)} options={cantoOptions} placeholder="L2" /></td>
+                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.a1} onChange={(v) => updateModalRow(idx, 'a1', v)} options={cantoOptions} placeholder="A1" /></td>
+                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.a2} onChange={(v) => updateModalRow(idx, 'a2', v)} options={cantoOptions} placeholder="A2" /></td>
+                          <td className="p-1"><input className="w-16 border rounded p-1" value={row.perforacionCantidad} onChange={(e) => updateModalRow(idx, 'perforacionCantidad', e.target.value)} /></td>
+                          <td className="p-1"><select className="border rounded p-1" value={row.perforacionLado1} onChange={(e) => updateModalRow(idx, 'perforacionLado1', e.target.value)}><option>L1</option><option>L2</option><option>A1</option><option>A2</option></select></td>
+                          <td className="p-1"><select className="border rounded p-1" value={row.perforacionLado2} onChange={(e) => updateModalRow(idx, 'perforacionLado2', e.target.value)}><option>L1</option><option>L2</option><option>A1</option><option>A2</option></select></td>
+                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraDist} onChange={(e) => updateModalRow(idx, 'ranuraDist', e.target.value)}><option>10</option><option>15</option><option>18</option></select></td>
+                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraProf} onChange={(e) => updateModalRow(idx, 'ranuraProf', e.target.value)}><option>6</option><option>8</option><option>10</option></select></td>
+                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraEs} onChange={(e) => updateModalRow(idx, 'ranuraEs', e.target.value)}><option>4</option><option>7</option></select></td>
+                          <td className="p-1"><input className="w-32 border rounded p-1" value={row.observacion} onChange={(e) => updateModalRow(idx, 'observacion', e.target.value)} placeholder="Nota" /></td>
+                          <td className="p-1"><button className="px-2 py-1 bg-red-400 text-white rounded text-xs" onClick={() => removeModalRow(idx)} disabled={modalRows.length===1}>Quitar</button></td>
                         </tr>
                     ))}
                     </tbody>
                   </table>
                 </div>
-            )}
-          </div>
-
-          <div className="card pad">
-            <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
-            <p className="muted small" style={{ marginBottom: '0.75rem' }}>
-              El cliente se asigna automaticamente con su sesion. Tableros y cantos se cargan del catalogo
-              registrado en Inventario.
-            </p>
-            {catalogLoading ? <p className="muted small">Cargando catálogo…</p> : null}
-            {catalogError ? <p className="form-error small">{catalogError}</p> : null}
-
-            <div className="responsive-grid">
-              <label className="field">
-                Nombre del proyecto
-                <input
-                    value={projectDraft.nombre}
-                    onChange={(e) => updateProjectDraft('nombre', e.target.value)}
-                    placeholder="Cocina Integral #204"
-                />
-              </label>
-              <label className="field">
-                Descripcion
-                <input
-                    value={projectDraft.descripcion}
-                    onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
-                    placeholder="Notas generales del proyecto"
-                />
-              </label>
-            </div>
-
-            <div className="form-actions">
-              <button type="button" className="btn primary" onClick={createProject}>
-                {project ? 'Actualizar proyecto' : 'Crear proyecto'}
-              </button>
-            </div>
-
-            {project ? (
-                <span className="muted">
-              Proyecto activo: <strong>{project.nombre}</strong>
-            </span>
-            ) : null}
-            {saveError ? <p className="form-error">{saveError}</p> : null}
-            {saveOk ? <p className="form-ok">{saveOk}</p> : null}
-          </div>
-
-          <div className="card planilla-preview-card">
-            <h2>Paso 2: Ordenes</h2>
-            {!project ? (
-                <p className="muted">Crea el proyecto para poder registrar ordenes.</p>
-            ) : (
-                <>
-                  <div className="responsive-grid">
-                    <label className="field">
-                      Codigo de orden
-                      <input
-                          value={orderDraft.codigo}
-                          onChange={(e) => updateOrderDraft('codigo', e.target.value)}
-                          placeholder="ORD-001"
-                      />
-                    </label>
-                    <label className="field">
-                      Descripcion
-                      <input
-                          value={orderDraft.descripcion}
-                          onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
-                          placeholder="Descripcion de la orden"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="form-actions">
-                    <button type="button" className="btn primary" onClick={createOrder}>
-                      Agregar orden
-                    </button>
-                  </div>
-
-                  {!orders.length ? (
-                      <p className="muted">Aun no hay ordenes registradas.</p>
-                  ) : (
-                      <div className="table-wrap">
-                        <table className="data-table">
-                          <thead>
-                          <tr>
-                            <th>Orden</th>
-                            <th>Descripcion</th>
-                            <th>Detalles</th>
-                            <th>Piezas</th>
-                            <th>Acciones</th>
-                          </tr>
-                          </thead>
-                          <tbody>
-                          {orders.map((order) => {
-                            const piezasOrden = order.detalles.reduce((sum, detalle) => {
-                              const qty = Number(detalle.cantidad || 0)
-                              return Number.isFinite(qty) ? sum + qty : sum
-                            }, 0)
-                            return (
-                                <tr key={order.id}>
-                                  <td>{order.codigo}</td>
-                                  <td>{order.descripcion || '-'}</td>
-                                  <td>{order.detalles.length}</td>
-                                  <td>{piezasOrden}</td>
-                                  <td>
-                                    <div className="planilla-inline-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                      <button
-                                          type="button"
-                                          className="btn secondary"
-                                          onClick={() => openDetalleModal(order)}
-                                      >
-                                        Gestionar detalle
-                                      </button>
-                                      <button
-                                          type="button"
-                                          className="btn secondary"
-                                          onClick={() => removeOrder(order.id)}
-                                      >
-                                        Quitar
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                            )
-                          })}
-                          </tbody>
-                        </table>
-                      </div>
-                  )}
-                </>
-            )}
-          </div>
-
-          {activeOrder ? (
-              <div className="planilla-modal-backdrop" role="presentation" onClick={closeDetalleModal}>
-                <div className="planilla-modal card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-                  <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <h2 style={{ margin: 0 }}>Detalle de orden: {activeOrder.codigo}</h2>
-                    <button type="button" className="btn secondary" onClick={closeDetalleModal}>
-                      Cerrar
-                    </button>
-                  </div>
-
-                  <div className="planilla-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
-                    <button type="button" className="btn primary" onClick={addModalRow}>
-                      Agregar fila
-                    </button>
-                    <span className="muted">Filas: {modalRows.length}</span>
-                  </div>
-
-                  <div className="table-wrap planilla-wrap" style={{ overflowX: 'auto' }}>
-                    <table className="data-table planilla-table" style={{ minWidth: '1200px' }}>
-                      <thead>
-                      <tr>
-                        <th rowSpan={2}>Index</th>
-                        <th rowSpan={2}>Tablero</th>
-                        <th colSpan={3}>Piezas a cortar</th>
-                        <th colSpan={4}>Canto</th>
-                        <th colSpan={2}>Perforacion</th>
-                        <th colSpan={3}>Ranuras</th>
-                        <th rowSpan={2}>Observacion</th>
-                        <th rowSpan={2}>Acciones</th>
-                      </tr>
-                      <tr>
-                        <th>Cant.</th>
-                        <th>Largo (veta)</th>
-                        <th>Ancho</th>
-                        <th>L1</th>
-                        <th>L2</th>
-                        <th>A1</th>
-                        <th>A2</th>
-                        <th>Cant.</th>
-                        <th>Lado</th>
-                        <th>Dist.</th>
-                        <th>Prof.</th>
-                        <th>Es.</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      {modalRows.map((row, index) => (
-                          <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td style={{ minWidth: '200px' }}>
-                              <input
-                                  type="text"
-                                  placeholder="Buscar tablero..."
-                                  value={tableroSearchTerm}
-                                  onChange={(e) => setTableroSearchTerm(e.target.value)}
-                                  className="search-input"
-                              />
-                              <KardexMaterialSelect
-                                  value={row.tablero}
-                                  onChange={(v) => updateModalRow(index, 'tablero', v)}
-                                  options={filteredTableros}
-                                  placeholder="Seleccionar tablero"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                  value={row.cantidad}
-                                  onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
-                                  inputMode="numeric"
-                                  placeholder="1"
-                                  style={{ width: '70px' }}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                  value={row.largoVeta}
-                                  onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
-                                  placeholder="2000"
-                                  style={{ width: '80px' }}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                  value={row.ancho}
-                                  onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
-                                  placeholder="300"
-                                  style={{ width: '80px' }}
-                              />
-                            </td>
-                            <td style={{ minWidth: '180px' }}>
-                              <input
-                                  type="text"
-                                  placeholder="Buscar canto..."
-                                  value={cantoSearchTerm}
-                                  onChange={(e) => setCantoSearchTerm(e.target.value)}
-                                  className="search-input"
-                              />
-                              <KardexMaterialSelect
-                                  value={row.l1}
-                                  onChange={(v) => updateModalRow(index, 'l1', v)}
-                                  options={cantoOptions}
-                                  placeholder="L1"
-                              />
-                            </td>
-                            <td>
-                              <KardexMaterialSelect
-                                  value={row.l2}
-                                  onChange={(v) => updateModalRow(index, 'l2', v)}
-                                  options={cantoOptions}
-                                  placeholder="L2"
-                              />
-                            </td>
-                            <td>
-                              <KardexMaterialSelect
-                                  value={row.a1}
-                                  onChange={(v) => updateModalRow(index, 'a1', v)}
-                                  options={cantoOptions}
-                                  placeholder="A1"
-                              />
-                            </td>
-                            <td>
-                              <KardexMaterialSelect
-                                  value={row.a2}
-                                  onChange={(v) => updateModalRow(index, 'a2', v)}
-                                  options={cantoOptions}
-                                  placeholder="A2"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                  value={row.perforacionCantidad}
-                                  onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
-                                  placeholder="Cant"
-                                  style={{ width: '60px' }}
-                              />
-                            </td>
-                            <td>
-                              <select
-                                  value={row.perforacionLado1 || 'L1'}
-                                  onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
-                                  style={{ width: '60px' }}
-                              >
-                                <option value="L1">L1</option>
-                                <option value="L2">L2</option>
-                                <option value="A1">a1</option>
-                                <option value="A2">a2</option>
-                              </select>
-                            </td>
-                            <td>
-                              <select
-                                  value={row.ranuraDist || '10'}
-                                  onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
-                                  style={{ width: '60px' }}
-                              >
-                                <option value="10">10</option>
-                                <option value="15">15</option>
-                                <option value="18">18</option>
-                              </select>
-                            </td>
-                            <td>
-                              <select
-                                  value={row.ranuraProf || '6'}
-                                  onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
-                                  style={{ width: '60px' }}
-                              >
-                                <option value="6">6</option>
-                                <option value="8">8</option>
-                                <option value="10">10</option>
-                              </select>
-                            </td>
-                            <td>
-                              <select
-                                  value={row.ranuraEs || '4'}
-                                  onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
-                                  style={{ width: '60px' }}
-                              >
-                                <option value="4">4</option>
-                                <option value="7">7</option>
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                  value={row.observacion}
-                                  onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
-                                  placeholder="Notas..."
-                                  style={{ width: '120px' }}
-                              />
-                            </td>
-                            <td>
-                              <button
-                                  type="button"
-                                  className="btn secondary planilla-remove"
-                                  onClick={() => removeModalRow(index)}
-                                  disabled={modalRows.length === 1}
-                                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                              >
-                                Quitar
-                              </button>
-                            </td>
-                          </tr>
-                      ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
-                    <span className="muted">Guarda para actualizar el detalle de la orden.</span>
-                    <button type="button" className="btn primary" onClick={saveDetalles}>
-                      Guardar detalle
-                    </button>
-                  </div>
+                <div className="mt-3 text-right">
+                  <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={saveDetalles}>Guardar detalle</button>
                 </div>
               </div>
-          ) : null}
-
-          <div className="card planilla-preview-card">
-            <h2>Resumen del flujo</h2>
-            <div className="responsive-grid" style={{ marginBottom: '1rem' }}>
-              <p className="muted">
-                <strong>Ordenes:</strong> {totalOrdenes}
-              </p>
-              <p className="muted">
-                <strong>Detalles:</strong> {totalDetalles}
-              </p>
-              <p className="muted">
-                <strong>Piezas:</strong> {totalPiezas}
-              </p>
             </div>
+        )}
 
-            <div className="form-actions">
-              <button type="button" className="btn primary" onClick={saveAllToDatabase} disabled={saving}>
-                {saving ? 'Guardando en BD…' : 'Guardar todo en base de datos'}
-              </button>
-            </div>
-          </div>
+        {/* Resumen y guardado final */}
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="text-lg font-semibold">Resumen</h2>
+          <p className="text-sm text-gray-600">
+            Órdenes: {totalOrdenes} | Detalles: {totalDetalles} | Piezas: {totalPiezas}
+          </p>
+          <button className="mt-3 px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50" onClick={saveAllToDatabase} disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar todo en BD'}
+          </button>
         </div>
       </div>
   )
