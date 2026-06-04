@@ -7,7 +7,7 @@ import {
 } from '../../api/orderApi'
 
 // ----------------------------------------------
-// 1. COMPONENTE DE SELECT CON BÚSQUEDA
+// SELECT CON BÚSQUEDA (reemplaza a KardexMaterialSelect)
 // ----------------------------------------------
 function SearchableSelect({ value, onChange, options, placeholder }) {
   const [search, setSearch] = useState('')
@@ -26,35 +26,77 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
   }, [options, value, placeholder])
 
   return (
-      <div className="relative w-full min-w-[120px]">
+      <div className="searchable-select" style={{ position: 'relative', minWidth: '120px' }}>
         <div
-            className="border rounded px-2 py-1 cursor-pointer bg-white truncate"
+            className="select-trigger"
             onClick={() => setIsOpen(!isOpen)}
+            style={{
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              padding: '6px 8px',
+              cursor: 'pointer',
+              backgroundColor: 'white',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
         >
           {selectedLabel}
         </div>
         {isOpen && (
-            <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+            <div
+                className="select-dropdown"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  zIndex: 1000,
+                  maxHeight: '250px',
+                  overflowY: 'auto'
+                }}
+            >
               <input
                   type="text"
-                  className="w-full p-1 border-b outline-none"
+                  className="select-search"
                   placeholder="Buscar..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    border: 'none',
+                    borderBottom: '1px solid #eee',
+                    outline: 'none'
+                  }}
                   autoFocus
               />
               {filteredOptions.length === 0 ? (
-                  <div className="p-2 text-gray-400">Sin resultados</div>
+                  <div style={{ padding: '8px', color: '#999' }}>Sin resultados</div>
               ) : (
                   filteredOptions.map(opt => (
                       <div
                           key={opt.id || opt.name}
-                          className="p-2 hover:bg-gray-100 cursor-pointer truncate"
+                          className="select-option"
                           onClick={() => {
                             onChange(opt.id || opt.name)
                             setIsOpen(false)
                             setSearch('')
                           }}
+                          style={{
+                            padding: '8px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                       >
                         {opt.name || opt.sku}
                       </div>
@@ -67,7 +109,7 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
 }
 
 // ----------------------------------------------
-// 2. FUNCIONES AUXILIARES
+// FUNCIONES AUXILIARES (igual que antes)
 // ----------------------------------------------
 function newDetalle() {
   return {
@@ -91,7 +133,10 @@ function newDetalle() {
 }
 
 function newProjectDraft() {
-  return { nombre: '', descripcion: '' }
+  return {
+    nombre: '',
+    descripcion: '',
+  }
 }
 
 const CANTO_FALLBACK = [
@@ -100,7 +145,10 @@ const CANTO_FALLBACK = [
 ]
 
 function newOrderDraft() {
-  return { codigo: '', descripcion: '' }
+  return {
+    codigo: '',
+    descripcion: '',
+  }
 }
 
 function isPersistedProjectId(id) {
@@ -139,7 +187,7 @@ function mapOrdersFromApi(savedOrders) {
 }
 
 // ----------------------------------------------
-// 3. COMPONENTE PRINCIPAL
+// COMPONENTE PRINCIPAL
 // ----------------------------------------------
 export default function PlanillaCortePage() {
   const [projectDraft, setProjectDraft] = useState(newProjectDraft())
@@ -172,13 +220,13 @@ export default function PlanillaCortePage() {
 
   const activeOrder = useMemo(
       () => orders.find((order) => order.id === activeOrderId) || null,
-      [orders, activeOrderId]
+      [orders, activeOrderId],
   )
 
   const totalOrdenes = orders.length
   const totalDetalles = useMemo(
       () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
-      [orders]
+      [orders],
   )
 
   const totalPiezas = useMemo(
@@ -190,12 +238,11 @@ export default function PlanillaCortePage() {
                     const qty = Number(detalle.cantidad || 0)
                     return Number.isFinite(qty) ? inner + qty : inner
                   }, 0),
-              0
+              0,
           ),
-      [orders]
+      [orders],
   )
 
-  // Cargar catálogos
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -211,16 +258,17 @@ export default function PlanillaCortePage() {
         if (!cancelled) {
           setTablerosKardex([])
           setCantosKardex([])
-          setCatalogError(err.message || 'No se pudo cargar el catálogo.')
+          setCatalogError(err.message || 'No se pudo cargar el catálogo de tableros y cantos.')
         }
       } finally {
         if (!cancelled) setCatalogLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // Cargar proyectos guardados
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -234,7 +282,9 @@ export default function PlanillaCortePage() {
         if (!cancelled) setLoadingProjects(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function loadSavedProject(proyectoId) {
@@ -244,7 +294,10 @@ export default function PlanillaCortePage() {
     try {
       const response = await getProyectoOptimizacion(proyectoId)
       const savedProject = response?.project
-      if (!savedProject) throw new Error('No se pudo cargar el proyecto.')
+      if (!savedProject) {
+        setSaveError('No se pudo cargar el proyecto.')
+        return
+      }
       setProject({
         id: savedProject.id,
         nombre: savedProject.nombre || '',
@@ -256,9 +309,9 @@ export default function PlanillaCortePage() {
         descripcion: savedProject.descripcion || '',
       })
       setOrders(mapOrdersFromApi(response.orders))
-      setSaveOk('Proyecto cargado correctamente.')
+      setSaveOk('Proyecto cargado desde el servidor.')
     } catch (err) {
-      setSaveError(err.message)
+      setSaveError(err.message || 'No se pudo cargar el proyecto.')
     } finally {
       setLoadingProjectId(null)
     }
@@ -295,6 +348,8 @@ export default function PlanillaCortePage() {
     }
     setOrders((prev) => [...prev, order])
     setOrderDraft(newOrderDraft())
+    setSaveError('')
+    setSaveOk('')
   }
 
   function removeOrder(orderId) {
@@ -330,10 +385,11 @@ export default function PlanillaCortePage() {
   function saveDetalles() {
     if (!activeOrder) return
     setOrders((prev) =>
-        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order))
+        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
     )
     closeDetalleModal()
-    setSaveOk('Detalles guardados.')
+    setSaveError('')
+    setSaveOk('')
   }
 
   async function saveAllToDatabase() {
@@ -372,57 +428,65 @@ export default function PlanillaCortePage() {
         })
       }
       setOrders(mapOrdersFromApi(savedOrders))
-      // Refrescar lista de proyectos
-      const list = await listProyectosOptimizacion()
-      setSavedProjects(Array.isArray(list) ? list : [])
-      setSaveOk('Proyecto guardado correctamente.')
+      try {
+        const list = await listProyectosOptimizacion()
+        setSavedProjects(Array.isArray(list) ? list : [])
+      } catch {
+        /* list refresh opcional */
+      }
+      setSaveOk(
+          isPersistedProjectId(project.id)
+              ? 'Proyecto actualizado correctamente en base de datos.'
+              : 'Proyecto, ordenes y detalles guardados correctamente en base de datos.',
+      )
     } catch (err) {
-      setSaveError(err.message || 'Error al guardar.')
+      setSaveError(err.message || 'No se pudo guardar la información en base de datos.')
     } finally {
       setSaving(false)
     }
   }
 
-  // ------------------------------------------------------------
-  // RENDER PRINCIPAL (Responsive con Tailwind)
-  // ------------------------------------------------------------
   return (
-      <div className="p-4 md:p-6 space-y-6 max-w-full overflow-x-auto">
-        {/* Encabezado */}
-        <div className="border-b pb-2">
-          <h1 className="text-2xl font-bold">Proyecto de corte</h1>
-          <p className="text-gray-500 text-sm">
-            Flujo sugerido: primero crea el proyecto, luego agrega órdenes y sus detalles.
+      <div className="space-y-6">
+        <div className="page__head">
+          <h1>Proyecto de corte</h1>
+          <p className="page__lead">
+            Flujo sugerido: primero crea el proyecto, luego agrega una o varias ordenes, y finalmente
+            captura sus detalles en la ventana emergente usando el formato de planilla de corte.
           </p>
         </div>
 
-        {/* Proyectos guardados */}
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-semibold mb-2">Mis proyectos guardados</h2>
+        <div className="card pad">
+          <h2 className="card__title mb-4">Mis proyectos guardados</h2>
           {loadingProjects ? (
-              <p className="text-gray-400">Cargando...</p>
+              <p className="muted">Cargando proyectos…</p>
           ) : !savedProjects.length ? (
-              <p className="text-gray-400">No hay proyectos guardados.</p>
+              <p className="muted">Aun no tiene proyectos guardados en el servidor.</p>
           ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border text-sm">
-                  <thead className="bg-gray-100">
+              <div className="table-wrap" style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ minWidth: '500px' }}>
+                  <thead>
                   <tr>
-                    <th className="p-2 text-left">Nombre</th>
-                    <th className="p-2 text-left">Descripción</th>
-                    <th className="p-2 text-left">Órdenes</th>
-                    <th className="p-2 text-left">Acciones</th>
+                    <th>Nombre</th>
+                    <th>Descripcion</th>
+                    <th>Ordenes</th>
+                    <th>Acciones</th>
                   </tr>
                   </thead>
                   <tbody>
                   {savedProjects.map((item) => (
-                      <tr key={item.id} className="border-t">
-                        <td className="p-2 truncate max-w-[150px]">{item.nombre}</td>
-                        <td className="p-2 truncate max-w-[200px]">{item.descripcion || '-'}</td>
-                        <td className="p-2">{item.cantidadOrdenes ?? 0}</td>
-                        <td className="p-2">
+                      <tr key={item.id}>
+                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.nombre}
+                        </td>
+                        <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.descripcion || '-'}
+                        </td>
+                        <td>{item.cantidadOrdenes ?? 0}</td>
+                        <td>
                           <button
-                              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                              type="button"
+                              className="btn secondary"
                               disabled={loadingProjectId === item.id}
                               onClick={() => loadSavedProject(item.id)}
                           >
@@ -437,89 +501,133 @@ export default function PlanillaCortePage() {
           )}
         </div>
 
-        {/* Paso 1: Proyecto */}
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-semibold mb-2">Paso 1: Proyecto</h2>
-          {catalogLoading && <p className="text-gray-400 text-sm">Cargando catálogo...</p>}
-          {catalogError && <p className="text-red-500 text-sm">{catalogError}</p>}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-                className="border rounded p-2"
-                value={projectDraft.nombre}
-                onChange={(e) => updateProjectDraft('nombre', e.target.value)}
-                placeholder="Nombre del proyecto"
-            />
-            <input
-                className="border rounded p-2"
-                value={projectDraft.descripcion}
-                onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
-                placeholder="Descripción"
-            />
+        <div className="card pad">
+          <h2 className="card__title mb-4">Paso 1: Proyecto</h2>
+          <p className="muted small" style={{ marginBottom: '0.75rem' }}>
+            El cliente se asigna automaticamente con su sesion. Tableros y cantos se cargan del catalogo
+            registrado en Inventario.
+          </p>
+          {catalogLoading ? <p className="muted small">Cargando catálogo…</p> : null}
+          {catalogError ? <p className="form-error small">{catalogError}</p> : null}
+          {!catalogLoading && !tablerosKardex.length ? (
+              <p className="muted small">
+                No hay tableros registrados. En el portal de empleados: Inventario → Tableros.
+              </p>
+          ) : null}
+          {!catalogLoading && !cantosKardex.length ? (
+              <p className="muted small">
+                No hay cantos registrados; en el detalle se usan <strong>DELGADO</strong> y{' '}
+                <strong>GRUESO</strong> por defecto. En empleados: Inventario → Cantos.
+              </p>
+          ) : null}
+          <div className="material-grid" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <label className="field" style={{ flex: '1', minWidth: '200px' }}>
+              Nombre del proyecto
+              <input
+                  value={projectDraft.nombre}
+                  onChange={(e) => updateProjectDraft('nombre', e.target.value)}
+                  placeholder="Cocina Integral #204"
+              />
+            </label>
+            <label className="field span-2" style={{ flex: '2', minWidth: '250px' }}>
+              Descripcion
+              <input
+                  value={projectDraft.descripcion}
+                  onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
+                  placeholder="Notas generales del proyecto"
+              />
+            </label>
           </div>
-          <div className="mt-3">
-            <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={createProject}>
+          <div className="form-actions">
+            <button type="button" className="btn primary" onClick={createProject}>
               {project ? 'Actualizar proyecto' : 'Crear proyecto'}
             </button>
-            {project && <span className="ml-3 text-sm text-gray-500">Activo: <strong>{project.nombre}</strong></span>}
           </div>
-          {saveError && <p className="text-red-500 mt-2">{saveError}</p>}
-          {saveOk && <p className="text-green-600 mt-2">{saveOk}</p>}
+          {project ? (
+              <span className="muted">
+            Proyecto activo: <strong>{project.nombre}</strong>
+          </span>
+          ) : null}
+          {saveError ? <p className="form-error">{saveError}</p> : null}
+          {saveOk ? <p className="form-ok">{saveOk}</p> : null}
         </div>
 
-        {/* Paso 2: Órdenes */}
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-semibold mb-2">Paso 2: Órdenes</h2>
+        <div className="card planilla-preview-card">
+          <h2>Paso 2: Ordenes</h2>
           {!project ? (
-              <p className="text-gray-400">Crea el proyecto primero.</p>
+              <p className="muted">Crea el proyecto para poder registrar ordenes.</p>
           ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                  <input
-                      className="border rounded p-2"
-                      value={orderDraft.codigo}
-                      onChange={(e) => updateOrderDraft('codigo', e.target.value)}
-                      placeholder="Código de orden"
-                  />
-                  <input
-                      className="border rounded p-2"
-                      value={orderDraft.descripcion}
-                      onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
-                      placeholder="Descripción"
-                  />
+                <div className="material-grid" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <label className="field" style={{ flex: '1', minWidth: '200px' }}>
+                    Codigo de orden
+                    <input
+                        value={orderDraft.codigo}
+                        onChange={(e) => updateOrderDraft('codigo', e.target.value)}
+                        placeholder="ORD-001"
+                    />
+                  </label>
+                  <label className="field span-2" style={{ flex: '2', minWidth: '250px' }}>
+                    Descripcion
+                    <input
+                        value={orderDraft.descripcion}
+                        onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
+                        placeholder="Descripcion de la orden"
+                    />
+                  </label>
                 </div>
-                <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={createOrder}>
-                  Agregar orden
-                </button>
-                {orders.length === 0 ? (
-                    <p className="text-gray-400 mt-3">No hay órdenes aún.</p>
+                <div className="form-actions">
+                  <button type="button" className="btn primary" onClick={createOrder}>
+                    Agregar orden
+                  </button>
+                </div>
+                {!orders.length ? (
+                    <p className="muted">Aun no hay ordenes registradas.</p>
                 ) : (
-                    <div className="overflow-x-auto mt-3">
-                      <table className="min-w-full border text-sm">
-                        <thead className="bg-gray-100">
+                    <div className="table-wrap" style={{ overflowX: 'auto' }}>
+                      <table className="data-table" style={{ minWidth: '600px' }}>
+                        <thead>
                         <tr>
-                          <th className="p-2 text-left">Orden</th>
-                          <th className="p-2 text-left">Descripción</th>
-                          <th className="p-2 text-left">Detalles</th>
-                          <th className="p-2 text-left">Piezas</th>
-                          <th className="p-2 text-left">Acciones</th>
+                          <th>Orden</th>
+                          <th>Descripcion</th>
+                          <th>Detalles</th>
+                          <th>Piezas</th>
+                          <th>Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
                         {orders.map((order) => {
-                          const piezas = order.detalles.reduce((sum, d) => sum + (Number(d.cantidad) || 0), 0)
+                          const piezasOrden = order.detalles.reduce((sum, detalle) => {
+                            const qty = Number(detalle.cantidad || 0)
+                            return Number.isFinite(qty) ? sum + qty : sum
+                          }, 0)
                           return (
-                              <tr key={order.id} className="border-t">
-                                <td className="p-2 truncate max-w-[120px]">{order.codigo}</td>
-                                <td className="p-2 truncate max-w-[150px]">{order.descripcion || '-'}</td>
-                                <td className="p-2">{order.detalles.length}</td>
-                                <td className="p-2">{piezas}</td>
-                                <td className="p-2 space-x-2">
-                                  <button className="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onClick={() => openDetalleModal(order)}>
-                                    Detalle
-                                  </button>
-                                  <button className="px-2 py-1 bg-red-500 text-white rounded text-xs" onClick={() => removeOrder(order.id)}>
-                                    Quitar
-                                  </button>
+                              <tr key={order.id}>
+                                <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {order.codigo}
+                                </td>
+                                <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {order.descripcion || '-'}
+                                </td>
+                                <td>{order.detalles.length}</td>
+                                <td>{piezasOrden}</td>
+                                <td>
+                                  <div className="planilla-inline-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className="btn secondary"
+                                        onClick={() => openDetalleModal(order)}
+                                    >
+                                      Gestionar detalle
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn secondary"
+                                        onClick={() => removeOrder(order.id)}
+                                    >
+                                      Quitar
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                           )
@@ -532,75 +640,227 @@ export default function PlanillaCortePage() {
           )}
         </div>
 
-        {/* Modal de detalles (con SearchableSelect) */}
-        {activeOrder && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-              <div className="bg-white rounded shadow-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-xl font-bold">Detalle de orden: {activeOrder.codigo}</h2>
-                  <button className="px-3 py-1 bg-gray-300 rounded" onClick={closeDetalleModal}>Cerrar</button>
+        {activeOrder ? (
+            <div className="planilla-modal-backdrop" role="presentation" onClick={closeDetalleModal}>
+              <div className="planilla-modal card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: '95%', maxWidth: '1400px', maxHeight: '90vh', overflow: 'auto' }}>
+                <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <h2>Detalle de orden: {activeOrder.codigo}</h2>
+                  <button type="button" className="btn secondary" onClick={closeDetalleModal}>
+                    Cerrar
+                  </button>
                 </div>
-                <div className="mb-3">
-                  <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm" onClick={addModalRow}>+ Agregar fila</button>
-                  <span className="ml-2 text-gray-500 text-sm">Filas: {modalRows.length}</span>
+                <div className="planilla-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+                  <button type="button" className="btn primary" onClick={addModalRow}>
+                    Agregar fila
+                  </button>
+                  <span className="muted">Filas: {modalRows.length}</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-[1200px] border text-sm">
-                    <thead className="bg-gray-100 text-xs">
+
+                <div className="table-wrap planilla-wrap" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                  <table className="data-table planilla-table" style={{ minWidth: '1400px' }}>
+                    <thead>
                     <tr>
-                      <th className="p-1">#</th>
-                      <th className="p-1">Tablero</th>
-                      <th className="p-1">Cant.</th>
-                      <th className="p-1">Largo</th>
-                      <th className="p-1">Ancho</th>
-                      <th className="p-1">L1</th><th className="p-1">L2</th><th className="p-1">A1</th><th className="p-1">A2</th>
-                      <th className="p-1">Perf.Cant</th><th className="p-1">Perf.L1</th><th className="p-1">Perf.L2</th>
-                      <th className="p-1">Ran.Dist</th><th className="p-1">Ran.Prof</th><th className="p-1">Ran.Es</th>
-                      <th className="p-1">Observación</th>
-                      <th className="p-1">Acción</th>
+                      <th rowSpan={2}>Index</th>
+                      <th rowSpan={2}>Tablero</th>
+                      <th colSpan={3}>Piezas a cortar</th>
+                      <th colSpan={4}>Canto</th>
+                      <th colSpan={2}>Perforacion</th>
+                      <th colSpan={4}>Ranuras</th>
+                      <th rowSpan={2}>Observacion</th>
+                      <th rowSpan={2}>Acciones</th>
+                    </tr>
+                    <tr>
+                      <th>Cant.</th>
+                      <th>Largo (veta)</th>
+                      <th>Ancho</th>
+                      <th>L1</th>
+                      <th>L2</th>
+                      <th>A1</th>
+                      <th>A2</th>
+                      <th>Cant.</th>
+                      <th>Lado</th>
+                      <th>Lado</th>
+                      <th>Dist.</th>
+                      <th>Prof.</th>
+                      <th>Es.</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {modalRows.map((row, idx) => (
-                        <tr key={idx} className="border-t">
-                          <td className="p-1 text-center">{idx+1}</td>
-                          <td className="p-1 min-w-[130px]"><SearchableSelect value={row.tablero} onChange={(v) => updateModalRow(idx, 'tablero', v)} options={tablerosKardex} placeholder="Tablero" /></td>
-                          <td className="p-1"><input className="w-16 border rounded p-1" value={row.cantidad} onChange={(e) => updateModalRow(idx, 'cantidad', e.target.value)} placeholder="1" /></td>
-                          <td className="p-1"><input className="w-20 border rounded p-1" value={row.largoVeta} onChange={(e) => updateModalRow(idx, 'largoVeta', e.target.value)} placeholder="Largo" /></td>
-                          <td className="p-1"><input className="w-20 border rounded p-1" value={row.ancho} onChange={(e) => updateModalRow(idx, 'ancho', e.target.value)} placeholder="Ancho" /></td>
-                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.l1} onChange={(v) => updateModalRow(idx, 'l1', v)} options={cantoOptions} placeholder="L1" /></td>
-                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.l2} onChange={(v) => updateModalRow(idx, 'l2', v)} options={cantoOptions} placeholder="L2" /></td>
-                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.a1} onChange={(v) => updateModalRow(idx, 'a1', v)} options={cantoOptions} placeholder="A1" /></td>
-                          <td className="p-1 min-w-[100px]"><SearchableSelect value={row.a2} onChange={(v) => updateModalRow(idx, 'a2', v)} options={cantoOptions} placeholder="A2" /></td>
-                          <td className="p-1"><input className="w-16 border rounded p-1" value={row.perforacionCantidad} onChange={(e) => updateModalRow(idx, 'perforacionCantidad', e.target.value)} /></td>
-                          <td className="p-1"><select className="border rounded p-1" value={row.perforacionLado1} onChange={(e) => updateModalRow(idx, 'perforacionLado1', e.target.value)}><option>L1</option><option>L2</option><option>A1</option><option>A2</option></select></td>
-                          <td className="p-1"><select className="border rounded p-1" value={row.perforacionLado2} onChange={(e) => updateModalRow(idx, 'perforacionLado2', e.target.value)}><option>L1</option><option>L2</option><option>A1</option><option>A2</option></select></td>
-                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraDist} onChange={(e) => updateModalRow(idx, 'ranuraDist', e.target.value)}><option>10</option><option>15</option><option>18</option></select></td>
-                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraProf} onChange={(e) => updateModalRow(idx, 'ranuraProf', e.target.value)}><option>6</option><option>8</option><option>10</option></select></td>
-                          <td className="p-1"><select className="border rounded p-1" value={row.ranuraEs} onChange={(e) => updateModalRow(idx, 'ranuraEs', e.target.value)}><option>4</option><option>7</option></select></td>
-                          <td className="p-1"><input className="w-32 border rounded p-1" value={row.observacion} onChange={(e) => updateModalRow(idx, 'observacion', e.target.value)} placeholder="Nota" /></td>
-                          <td className="p-1"><button className="px-2 py-1 bg-red-400 text-white rounded text-xs" onClick={() => removeModalRow(idx)} disabled={modalRows.length===1}>Quitar</button></td>
+                    {modalRows.map((row, index) => (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td style={{ minWidth: '150px' }}>
+                            <SearchableSelect
+                                value={row.tablero}
+                                onChange={(v) => updateModalRow(index, 'tablero', v)}
+                                options={tablerosKardex}
+                                placeholder="Tablero"
+                            />
+                          </td>
+                          <td>
+                            <input
+                                value={row.cantidad}
+                                onChange={(e) => updateModalRow(index, 'cantidad', e.target.value)}
+                                inputMode="numeric"
+                                placeholder="1"
+                                style={{ width: '80px' }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                                value={row.largoVeta}
+                                onChange={(e) => updateModalRow(index, 'largoVeta', e.target.value)}
+                                placeholder="2000"
+                                style={{ width: '100px' }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                                value={row.ancho}
+                                onChange={(e) => updateModalRow(index, 'ancho', e.target.value)}
+                                placeholder="300"
+                                style={{ width: '100px' }}
+                            />
+                          </td>
+                          <td style={{ minWidth: '130px' }}>
+                            <SearchableSelect
+                                value={row.l1}
+                                onChange={(v) => updateModalRow(index, 'l1', v)}
+                                options={cantoOptions}
+                                placeholder="L1"
+                            />
+                          </td>
+                          <td style={{ minWidth: '130px' }}>
+                            <SearchableSelect
+                                value={row.l2}
+                                onChange={(v) => updateModalRow(index, 'l2', v)}
+                                options={cantoOptions}
+                                placeholder="L2"
+                            />
+                          </td>
+                          <td style={{ minWidth: '130px' }}>
+                            <SearchableSelect
+                                value={row.a1}
+                                onChange={(v) => updateModalRow(index, 'a1', v)}
+                                options={cantoOptions}
+                                placeholder="A1"
+                            />
+                          </td>
+                          <td style={{ minWidth: '130px' }}>
+                            <SearchableSelect
+                                value={row.a2}
+                                onChange={(v) => updateModalRow(index, 'a2', v)}
+                                options={cantoOptions}
+                                placeholder="A2"
+                            />
+                          </td>
+                          <td>
+                            <input
+                                value={row.perforacionCantidad}
+                                onChange={(e) => updateModalRow(index, 'perforacionCantidad', e.target.value)}
+                                style={{ width: '70px' }}
+                            />
+                          </td>
+                          <td>
+                            <select
+                                value={row.perforacionLado1 || 'L1'}
+                                onChange={(e) => updateModalRow(index, 'perforacionLado1', e.target.value)}
+                                style={{ width: '70px' }}
+                            >
+                              <option value="L1">L1</option>
+                              <option value="L2">L2</option>
+                              <option value="A1">a1</option>
+                              <option value="A2">a2</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                                value={row.perforacionLado2 || 'L1'}
+                                onChange={(e) => updateModalRow(index, 'perforacionLado2', e.target.value)}
+                                style={{ width: '70px' }}
+                            >
+                              <option value="L1">L1</option>
+                              <option value="L2">L2</option>
+                              <option value="a1">a1</option>
+                              <option value="a2">a2</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                                value={row.ranuraDist || '10'}
+                                onChange={(e) => updateModalRow(index, 'ranuraDist', e.target.value)}
+                                style={{ width: '70px' }}
+                            >
+                              <option value="10">10</option>
+                              <option value="15">15</option>
+                              <option value="18">18</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                                value={row.ranuraProf || '6'}
+                                onChange={(e) => updateModalRow(index, 'ranuraProf', e.target.value)}
+                                style={{ width: '70px' }}
+                            >
+                              <option value="6">6</option>
+                              <option value="8">8</option>
+                              <option value="10">10</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                                value={row.ranuraEs || '4'}
+                                onChange={(e) => updateModalRow(index, 'ranuraEs', e.target.value)}
+                                style={{ width: '70px' }}
+                            >
+                              <option value="4">4</option>
+                              <option value="7">7</option>
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                                value={row.observacion}
+                                onChange={(e) => updateModalRow(index, 'observacion', e.target.value)}
+                                placeholder="Notas..."
+                                style={{ width: '120px' }}
+                            />
+                          </td>
+                          <td>
+                            <button
+                                type="button"
+                                className="btn secondary planilla-remove"
+                                onClick={() => removeModalRow(index)}
+                                disabled={modalRows.length === 1}
+                            >
+                              Quitar
+                            </button>
+                          </td>
                         </tr>
                     ))}
                     </tbody>
                   </table>
                 </div>
-                <div className="mt-3 text-right">
-                  <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={saveDetalles}>Guardar detalle</button>
+                <div className="planilla-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+                  <span className="muted">Guarda para actualizar el detalle de la orden.</span>
+                  <button type="button" className="btn primary" onClick={saveDetalles}>
+                    Guardar detalle
+                  </button>
                 </div>
               </div>
             </div>
-        )}
+        ) : null}
 
-        {/* Resumen y guardado final */}
-        <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-semibold">Resumen</h2>
-          <p className="text-sm text-gray-600">
-            Órdenes: {totalOrdenes} | Detalles: {totalDetalles} | Piezas: {totalPiezas}
+        <div className="card planilla-preview-card">
+          <h2>Resumen del flujo</h2>
+          <p className="muted">
+            Ordenes: <strong>{totalOrdenes}</strong> | Detalles: <strong>{totalDetalles}</strong> |
+            Piezas: <strong>{totalPiezas}</strong>
           </p>
-          <button className="mt-3 px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50" onClick={saveAllToDatabase} disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar todo en BD'}
-          </button>
+          <div className="form-actions">
+            <button type="button" className="btn primary" onClick={saveAllToDatabase} disabled={saving}>
+              {saving ? 'Guardando en BD…' : 'Guardar todo en base de datos'}
+            </button>
+          </div>
         </div>
       </div>
   )
