@@ -1,10 +1,13 @@
+export const VETA_NO = '0-No'
+export const VETA_LONGITUD = '1-Longitud'
+
 export function newDetalle() {
   return {
     tablero: '',
     cantidad: '',
     largoVeta: '',
     ancho: '',
-    veta: '',
+    vetaLongitud: false,
     l1: '',
     l2: '',
     a1: '',
@@ -38,13 +41,23 @@ export function isPersistedProjectId(id) {
   return Number.isFinite(n) && n > 0 && n < 1_000_000_000_000
 }
 
+export function vetaToPayload(checked) {
+  return checked ? VETA_LONGITUD : VETA_NO
+}
+
+export function vetaFromApi(value) {
+  if (!value) return false
+  const v = String(value).trim()
+  return v === VETA_LONGITUD || v.startsWith('1-') || v === '1'
+}
+
 export function mapDetalleFromApi(detalle) {
   return {
     tablero: detalle.tablero || '',
     cantidad: detalle.cantidad || '',
     largoVeta: detalle.largoVeta || '',
     ancho: detalle.ancho || '',
-    veta: detalle.veta || '',
+    vetaLongitud: vetaFromApi(detalle.veta),
     l1: detalle.l1 || '',
     l2: detalle.l2 || '',
     a1: detalle.a1 || '',
@@ -57,6 +70,28 @@ export function mapDetalleFromApi(detalle) {
     ranuraEs: detalle.ranuraEs || '',
     observado: Boolean(detalle.observado),
     observacion: detalle.observacion || '',
+  }
+}
+
+export function mapDetalleToApiPayload(row) {
+  return {
+    tablero: row.tablero,
+    cantidad: row.cantidad,
+    largoVeta: row.largoVeta,
+    ancho: row.ancho,
+    veta: vetaToPayload(Boolean(row.vetaLongitud)),
+    l1: row.l1,
+    l2: row.l2,
+    a1: row.a1,
+    a2: row.a2,
+    perforacionCantidad: row.perforacionCantidad,
+    perforacionLado1: row.perforacionLado1,
+    perforacionLado2: row.perforacionLado2,
+    ranuraDist: row.ranuraDist,
+    ranuraProf: row.ranuraProf,
+    ranuraEs: row.ranuraEs,
+    observado: Boolean(row.observado),
+    observacion: row.observacion,
   }
 }
 
