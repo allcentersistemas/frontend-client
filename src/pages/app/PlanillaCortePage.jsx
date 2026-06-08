@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fetchPlanillaCatalogos, getProyectoOptimizacion, saveProyectoCompleto } from '../../api/orderApi'
+import { PlanillaDetalleModal } from '../../components/planilla/PlanillaDetalleModal'
 import {
   isPersistedProjectId,
   mapDetalleToApiPayload,
@@ -10,313 +11,6 @@ import {
   newOrderDraft,
   newProjectDraft,
 } from '../../planilla/helpers'
-
-// Componente Modal mejorado integrado directamente
-function PlanillaDetalleModal({
-                                order,
-                                rows,
-                                tableros,
-                                cantoOptions,
-                                onClose,
-                                onSave,
-                                onAddRow,
-                                onUpdateRow,
-                                onRemoveRow,
-                              }) {
-  const [searchTerm, setSearchTerm] = useState('')
-
-  return (
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Overlay oscuro */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose}></div>
-
-        {/* Modal - más ancho para tabla completa */}
-        <div className="relative min-h-screen flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Detalle de orden</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Orden: <span className="font-medium text-blue-600">{order?.codigo}</span>
-                  {order?.descripcion && (
-                      <span className="ml-2 text-gray-500">- {order.descripcion}</span>
-                  )}
-                </p>
-              </div>
-              <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Cuerpo del modal con scroll */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-
-              {/* Botón agregar pieza */}
-              <div className="mb-6">
-                <button
-                    onClick={onAddRow}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Agregar pieza
-                </button>
-              </div>
-
-              {/* Tabla de piezas - VERSIÓN COMPLETA Y LEGIBLE */}
-              <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tablero
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cant.
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Largo (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ancho (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Veta
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      L1 (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      L2 (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      A1 (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      A2 (cm)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Canto Lado 1
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Canto Lado 2
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                  {rows.length === 0 ? (
-                      <tr>
-                        <td colSpan="12" className="px-4 py-8 text-center text-gray-500">
-                          <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          No hay piezas agregadas. Haga clic en "Agregar pieza" para comenzar.
-                        </td>
-                      </tr>
-                  ) : (
-                      rows.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                            {/* Tablero */}
-                            <td className="px-4 py-3">
-                              <input
-                                  type="text"
-                                  value={row.tablero || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'tablero', e.target.value)}
-                                  placeholder="Buscar tablero..."
-                                  className="w-40 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  list={`tableros-${idx}`}
-                              />
-                              <datalist id={`tableros-${idx}`}>
-                                {tableros.map(t => (
-                                    <option key={t.id} value={t.nombre} />
-                                ))}
-                              </datalist>
-                            </td>
-
-                            {/* Cantidad */}
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.cantidad || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'cantidad', e.target.value)}
-                                  className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  min="1"
-                                  step="1"
-                              />
-                            </td>
-
-                            {/* Largo */}
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.largo || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'largo', e.target.value)}
-                                  className="w-24 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-
-                            {/* Ancho */}
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.ancho || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'ancho', e.target.value)}
-                                  className="w-24 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-
-                            {/* Veta */}
-                            <td className="px-4 py-3">
-                              <select
-                                  value={row.veta || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'veta', e.target.value)}
-                                  className="w-24 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value="">Seleccionar</option>
-                                <option value="horizontal">Horizontal</option>
-                                <option value="vertical">Vertical</option>
-                              </select>
-                            </td>
-
-                            {/* Medidas L1, L2, A1, A2 */}
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.l1 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'l1', e.target.value)}
-                                  className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.l2 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'l2', e.target.value)}
-                                  className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.a1 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'a1', e.target.value)}
-                                  className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <input
-                                  type="number"
-                                  value={row.a2 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'a2', e.target.value)}
-                                  className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  step="0.1"
-                                  placeholder="cm"
-                              />
-                            </td>
-
-                            {/* Cantidad de cantos */}
-                            <td className="px-4 py-3">
-                              <select
-                                  value={row.cantidadLado1 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'cantidadLado1', e.target.value)}
-                                  className="w-32 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value="">Seleccionar canto</option>
-                                {cantoOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-4 py-3">
-                              <select
-                                  value={row.cantidadLado2 || ''}
-                                  onChange={(e) => onUpdateRow(idx, 'cantidadLado2', e.target.value)}
-                                  className="w-32 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value="">Seleccionar canto</option>
-                                {cantoOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </option>
-                                ))}
-                              </select>
-                            </td>
-
-                            {/* Acciones */}
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                  onClick={() => onRemoveRow(idx)}
-                                  className="text-red-600 hover:text-red-800 transition-colors"
-                                  title="Eliminar pieza"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </td>
-                          </tr>
-                      ))
-                  )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Nota informativa */}
-              <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-                <div className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-blue-800">
-                    Los cambios se aplican a la orden al guardar el detalle. Complete toda la información necesaria antes de guardar.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer con botones */}
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-white">
-              <button
-                  onClick={onClose}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                  onClick={onSave}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm"
-              >
-                Guardar detalle
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-  )
-}
 
 export default function PlanillaCortePage() {
   const { projectId: projectIdParam } = useParams()
@@ -502,8 +196,7 @@ export default function PlanillaCortePage() {
     )
     closeDetalleModal()
     setSaveError('')
-    setSaveOk('Guardado localmente. Recuerde guardar en servidor.')
-    setTimeout(() => setSaveOk(''), 3000)
+    setSaveOk('')
   }
 
   async function saveAllToDatabase() {
@@ -544,11 +237,9 @@ export default function PlanillaCortePage() {
         }
       }
       setOrders(mapOrdersFromApi(response?.orders))
-      setSaveOk('Proyecto guardado correctamente en el servidor.')
-      setTimeout(() => setSaveOk(''), 3000)
+      setSaveOk('Proyecto guardado correctamente.')
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar.')
-      setTimeout(() => setSaveError(''), 5000)
     } finally {
       setSaving(false)
     }
@@ -712,6 +403,7 @@ export default function PlanillaCortePage() {
                         <p className="text-gray-500">Aún no hay órdenes.</p>
                       </div>
                   ) : (
+                      /* Tabla de órdenes - siempre visible */
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
