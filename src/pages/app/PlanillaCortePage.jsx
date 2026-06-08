@@ -507,6 +507,14 @@ export default function PlanillaCortePage() {
                         />
                       </td>
                       <td>
+                        <input
+                            type="checkbox"
+                            className="planilla-input"
+                            checked={row.veta === true}  // o algún valor booleano que corresponda
+                            onChange={(e) => updateModalRow(index, 'veta', e.target.checked)}
+                        />
+                      </td>
+                      <td>
                         <SearchableSelect
                           value={row.l1}
                           onChange={(v) => updateModalRow(index, 'l1', v)}
