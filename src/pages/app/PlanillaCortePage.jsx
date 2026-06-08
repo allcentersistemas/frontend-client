@@ -35,27 +35,27 @@ export default function PlanillaCortePage() {
   const cantoOptions = useMemo(() => mergeCantoOptions(cantos), [cantos])
 
   const activeOrder = useMemo(
-    () => orders.find((order) => order.id === activeOrderId) || null,
-    [orders, activeOrderId],
+      () => orders.find((order) => order.id === activeOrderId) || null,
+      [orders, activeOrderId],
   )
 
   const totalOrdenes = orders.length
   const totalDetalles = useMemo(
-    () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
-    [orders],
+      () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
+      [orders],
   )
   const totalPiezas = useMemo(
-    () =>
-      orders.reduce(
-        (sum, order) =>
-          sum +
-          order.detalles.reduce((inner, detalle) => {
-            const qty = Number(detalle.cantidad || 0)
-            return Number.isFinite(qty) ? inner + qty : inner
-          }, 0),
-        0,
-      ),
-    [orders],
+      () =>
+          orders.reduce(
+              (sum, order) =>
+                  sum +
+                  order.detalles.reduce((inner, detalle) => {
+                    const qty = Number(detalle.cantidad || 0)
+                    return Number.isFinite(qty) ? inner + qty : inner
+                  }, 0),
+              0,
+          ),
+      [orders],
   )
 
   const loadProject = useCallback(async (id) => {
@@ -192,7 +192,7 @@ export default function PlanillaCortePage() {
   function saveDetalles() {
     if (!activeOrder) return
     setOrders((prev) =>
-      prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
+        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
     )
     closeDetalleModal()
     setSaveError('')
@@ -247,210 +247,265 @@ export default function PlanillaCortePage() {
 
   if (loadingProject) {
     return (
-      <div className="card pad">
-        <p className="muted">Cargando proyecto…</p>
-      </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando proyecto…</p>
+          </div>
+        </div>
     )
   }
 
   return (
-    <div className="page-stack">
-      <header className="page__head">
-        <div className="page__head-row">
-          <div>
-            <p className="small mb-2">
-              <Link to="/app/proyectos" className="breadcrumb-link">
-                ← Proyectos
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="mb-4">
+              <Link to="/app/proyectos" className="text-blue-600 hover:text-blue-800 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver a proyectos
               </Link>
-            </p>
-            <h1>{editingId ? 'Editar planilla de corte' : 'Nuevo proyecto'}</h1>
-            <p className="page__lead">
-              Defina el proyecto, agregue órdenes y capture el detalle de piezas. El cliente se asigna
-              automáticamente con su sesión.
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {editingId ? 'Editar planilla de corte' : 'Nuevo proyecto'}
+            </h1>
+            <p className="text-gray-600">
+              Defina el proyecto, agregue órdenes y capture el detalle de piezas. El cliente se asigna automáticamente con su sesión.
             </p>
           </div>
-        </div>
-      </header>
 
-      <section className="card pad">
-        <h2 className="card__title mb-4">Paso 1 · Proyecto</h2>
-        {catalogLoading ? <p className="muted small mb-3">Cargando catálogo…</p> : null}
-        {catalogError ? <p className="form-error small mb-3">{catalogError}</p> : null}
-        {!catalogLoading && !tableros.length ? (
-          <p className="muted small mb-3">
-            No hay tableros en catálogo (Inventario → Tableros en empleados).
-          </p>
-        ) : null}
-        <div className="form-row-2">
-          <label className="field">
-            <span>Nombre del proyecto</span>
-            <input
-              value={projectDraft.nombre}
-              onChange={(e) => updateProjectDraft('nombre', e.target.value)}
-              placeholder="Cocina Integral #204"
-            />
-          </label>
-          <label className="field">
-            <span>Descripción</span>
-            <input
-              value={projectDraft.descripcion}
-              onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
-              placeholder="Notas generales"
-            />
-          </label>
-        </div>
-        <div className="form-actions">
-          <button type="button" className="btn primary" onClick={createProject}>
-            {project ? 'Actualizar borrador' : 'Activar proyecto'}
-          </button>
-        </div>
-        {project ? (
-          <p className="muted small mt-2">
-            Proyecto activo: <strong>{project.nombre}</strong>
-          </p>
-        ) : null}
-        {saveError ? <p className="form-error mt-2">{saveError}</p> : null}
-        {saveOk ? <p className="form-ok mt-2">{saveOk}</p> : null}
-      </section>
+          {/* Paso 1: Proyecto */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Paso 1 · Proyecto</h2>
 
-      <section className="card pad">
-        <h2 className="card__title mb-4">Paso 2 · Órdenes</h2>
-        {!project ? (
-          <p className="muted">Active el proyecto para registrar órdenes.</p>
-        ) : (
-          <>
-            <div className="form-row-2">
-              <label className="field">
-                <span>Código de orden</span>
-                <input
-                  value={orderDraft.codigo}
-                  onChange={(e) => updateOrderDraft('codigo', e.target.value)}
-                  placeholder="ORD-001"
-                />
-              </label>
-              <label className="field">
-                <span>Descripción</span>
-                <input
-                  value={orderDraft.descripcion}
-                  onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
-                  placeholder="Descripción de la orden"
-                />
-              </label>
-            </div>
-            <div className="form-actions">
-              <button type="button" className="btn primary" onClick={createOrder}>
-                Agregar orden
-              </button>
-            </div>
-
-            {!orders.length ? (
-              <p className="muted mt-4">Aún no hay órdenes.</p>
-            ) : (
-              <>
-                <div className="order-list md:hidden">
-                  {orders.map((order) => {
-                    const piezas = order.detalles.reduce((sum, d) => {
-                      const qty = Number(d.cantidad || 0)
-                      return Number.isFinite(qty) ? sum + qty : sum
-                    }, 0)
-                    return (
-                      <article key={order.id} className="order-card">
-                        <div className="order-card__head">
-                          <strong>{order.codigo}</strong>
-                          <span className="tag">{order.detalles.length} filas · {piezas} pzas</span>
-                        </div>
-                        <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
-                        <div className="order-card__actions">
-                          <button type="button" className="btn secondary" onClick={() => openDetalleModal(order)}>
-                            Detalle
-                          </button>
-                          <button type="button" className="btn secondary" onClick={() => removeOrder(order.id)}>
-                            Quitar
-                          </button>
-                        </div>
-                      </article>
-                    )
-                  })}
+            {catalogLoading && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-700">Cargando catálogo…</p>
                 </div>
-
-                <div className="card card--table hidden md:block mt-4">
-                  <div className="table-wrap">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Orden</th>
-                          <th>Descripción</th>
-                          <th>Detalles</th>
-                          <th>Piezas</th>
-                          <th>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((order) => {
-                          const piezas = order.detalles.reduce((sum, d) => {
-                            const qty = Number(d.cantidad || 0)
-                            return Number.isFinite(qty) ? sum + qty : sum
-                          }, 0)
-                          return (
-                            <tr key={order.id}>
-                              <td>{order.codigo}</td>
-                              <td className="max-w-xs truncate">{order.descripcion || '—'}</td>
-                              <td>{order.detalles.length}</td>
-                              <td>{piezas}</td>
-                              <td>
-                                <div className="planilla-inline-actions">
-                                  <button type="button" className="btn secondary" onClick={() => openDetalleModal(order)}>
-                                    Detalle
-                                  </button>
-                                  <button type="button" className="btn secondary" onClick={() => removeOrder(order.id)}>
-                                    Quitar
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
             )}
-          </>
-        )}
-      </section>
 
-      {activeOrder ? (
-        <PlanillaDetalleModal
-          order={activeOrder}
-          rows={modalRows}
-          tableros={tableros}
-          cantoOptions={cantoOptions}
-          onClose={closeDetalleModal}
-          onSave={saveDetalles}
-          onAddRow={addModalRow}
-          onUpdateRow={updateModalRow}
-          onRemoveRow={removeModalRow}
-        />
-      ) : null}
+            {catalogError && (
+                <div className="mb-4 p-3 bg-red-50 rounded-md">
+                  <p className="text-sm text-red-700">{catalogError}</p>
+                </div>
+            )}
 
-      <section className="card pad">
-        <h2 className="card__title mb-3">Resumen</h2>
-        <p className="muted">
-          Órdenes: <strong>{totalOrdenes}</strong> · Detalles: <strong>{totalDetalles}</strong> · Piezas:{' '}
-          <strong>{totalPiezas}</strong>
-        </p>
-        <div className="form-actions">
-          <button type="button" className="btn primary" onClick={() => void saveAllToDatabase()} disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar en servidor'}
-          </button>
-          {isPersistedProjectId(project?.id) ? (
-            <Link to="/app/proyectos" className="btn secondary">
-              Volver a proyectos
-            </Link>
-          ) : null}
+            {!catalogLoading && !tableros.length && (
+                <div className="mb-4 p-3 bg-yellow-50 rounded-md">
+                  <p className="text-sm text-yellow-700">No hay tableros en catálogo (Inventario → Tableros en empleados).</p>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre del proyecto
+                </label>
+                <input
+                    type="text"
+                    value={projectDraft.nombre}
+                    onChange={(e) => updateProjectDraft('nombre', e.target.value)}
+                    placeholder="Cocina Integral #204"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción
+                </label>
+                <input
+                    type="text"
+                    value={projectDraft.descripcion}
+                    onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
+                    placeholder="Notas generales"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={createProject}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {project ? 'Actualizar borrador' : 'Activar proyecto'}
+            </button>
+
+            {project && (
+                <p className="mt-3 text-sm text-gray-600">
+                  Proyecto activo: <strong className="text-gray-900">{project.nombre}</strong>
+                </p>
+            )}
+
+            {saveError && (
+                <div className="mt-3 p-3 bg-red-50 rounded-md">
+                  <p className="text-sm text-red-700">{saveError}</p>
+                </div>
+            )}
+
+            {saveOk && (
+                <div className="mt-3 p-3 bg-green-50 rounded-md">
+                  <p className="text-sm text-green-700">{saveOk}</p>
+                </div>
+            )}
+          </div>
+
+          {/* Paso 2: Órdenes */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Paso 2 · Órdenes</h2>
+
+            {!project ? (
+                <div className="p-4 bg-yellow-50 rounded-md">
+                  <p className="text-yellow-700">Active el proyecto para registrar órdenes.</p>
+                </div>
+            ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Código de orden
+                      </label>
+                      <input
+                          type="text"
+                          value={orderDraft.codigo}
+                          onChange={(e) => updateOrderDraft('codigo', e.target.value)}
+                          placeholder="ORD-001"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción
+                      </label>
+                      <input
+                          type="text"
+                          value={orderDraft.descripcion}
+                          onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
+                          placeholder="Descripción de la orden"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                      type="button"
+                      onClick={createOrder}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors mb-6"
+                  >
+                    + Agregar orden
+                  </button>
+
+                  {!orders.length ? (
+                      <div className="p-8 text-center border-2 border-dashed border-gray-300 rounded-md">
+                        <p className="text-gray-500">Aún no hay órdenes.</p>
+                      </div>
+                  ) : (
+                      /* Tabla de órdenes - siempre visible */
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orden</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detalles</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Piezas</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                          </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                          {orders.map((order) => {
+                            const piezas = order.detalles.reduce((sum, d) => {
+                              const qty = Number(d.cantidad || 0)
+                              return Number.isFinite(qty) ? sum + qty : sum
+                            }, 0)
+                            return (
+                                <tr key={order.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.codigo}</td>
+                                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{order.descripcion || '—'}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.detalles.length}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{piezas}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div className="flex gap-2">
+                                      <button
+                                          type="button"
+                                          onClick={() => openDetalleModal(order)}
+                                          className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                                      >
+                                        Ver detalle
+                                      </button>
+                                      <button
+                                          type="button"
+                                          onClick={() => removeOrder(order.id)}
+                                          className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                                      >
+                                        Quitar
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                            )
+                          })}
+                          </tbody>
+                        </table>
+                      </div>
+                  )}
+                </>
+            )}
+          </div>
+
+          {/* Modal de Detalle */}
+          {activeOrder && (
+              <PlanillaDetalleModal
+                  order={activeOrder}
+                  rows={modalRows}
+                  tableros={tableros}
+                  cantoOptions={cantoOptions}
+                  onClose={closeDetalleModal}
+                  onSave={saveDetalles}
+                  onAddRow={addModalRow}
+                  onUpdateRow={updateModalRow}
+                  onRemoveRow={removeModalRow}
+              />
+          )}
+
+          {/* Resumen y guardado */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resumen</h2>
+            <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-200">
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Órdenes</p>
+                <p className="text-2xl font-bold text-gray-900">{totalOrdenes}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Detalles</p>
+                <p className="text-2xl font-bold text-gray-900">{totalDetalles}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Piezas</p>
+                <p className="text-2xl font-bold text-gray-900">{totalPiezas}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                  type="button"
+                  onClick={() => void saveAllToDatabase()}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Guardando…' : 'Guardar en servidor'}
+              </button>
+              {isPersistedProjectId(project?.id) && (
+                  <Link to="/app/proyectos" className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                    Volver a proyectos
+                  </Link>
+              )}
+            </div>
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
   )
 }
