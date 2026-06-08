@@ -13,6 +13,10 @@
   @apply mx-auto w-full max-w-[1280px] min-w-0 px-4 pb-20 pt-6 sm:px-6 lg:px-8;
 }
 
+.app-shell-page--focus {
+  @apply max-w-none px-3 pb-6 pt-4 sm:px-5 lg:px-8 lg:pt-6;
+}
+
 .page-stack {
   @apply flex min-w-0 flex-col gap-6;
 }
@@ -449,4 +453,115 @@
 
 label.field {
   @apply text-xs font-medium tracking-wide text-slate-600 uppercase dark:text-slate-400;
+}
+
+/* Pantalla dedicada de detalle de orden */
+.planilla-detalle-page {
+  @apply flex min-h-[calc(100svh-5rem)] flex-col gap-0 rounded-2xl border border-slate-200/80 bg-white/95 shadow-xl dark:border-white/10 dark:bg-slate-950/90;
+}
+
+.planilla-detalle-page__header {
+  @apply border-b border-slate-200/80 px-4 py-4 sm:px-6 dark:border-white/10;
+}
+
+.planilla-detalle-page__header-top {
+  @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+}
+
+.planilla-back-link {
+  @apply inline-flex items-center gap-1 text-sm font-medium text-amber-700 transition hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200;
+}
+
+.planilla-detalle-page__project {
+  @apply rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-black/30 dark:text-slate-400;
+}
+
+.planilla-detalle-page__header-main {
+  @apply flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between;
+}
+
+.planilla-detalle-page__title {
+  @apply text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl dark:text-white;
+}
+
+.planilla-detalle-page__stats {
+  @apply flex flex-wrap gap-2;
+}
+
+.planilla-detalle-page__toolbar {
+  @apply flex flex-col gap-3 border-b border-slate-200/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/[0.06];
+}
+
+.planilla-detalle-page__body {
+  @apply min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6;
+}
+
+.planilla-detalle-page__footer {
+  @apply sticky bottom-0 flex flex-col gap-3 border-t border-slate-200/80 bg-slate-50/95 px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-end sm:px-6 dark:border-white/10 dark:bg-slate-950/95;
+}
+
+/* Pasos del wizard planilla */
+.planilla-steps {
+  @apply mt-6 flex flex-wrap items-center gap-2 sm:gap-3;
+}
+
+.planilla-step {
+  @apply inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-sm dark:border-white/10 dark:bg-black/20;
+}
+
+.planilla-step--active {
+  @apply border-amber-400/40 bg-amber-50/80 ring-1 ring-amber-400/25 dark:bg-amber-400/10;
+}
+
+.planilla-step--done {
+  @apply border-emerald-400/30 bg-emerald-50/60 dark:bg-emerald-400/10;
+}
+
+.planilla-step__num {
+  @apply flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-200;
+}
+
+.planilla-step--active .planilla-step__num {
+  @apply bg-amber-400 text-slate-950;
+}
+
+.planilla-step--done .planilla-step__num {
+  @apply bg-emerald-500 text-white;
+}
+
+.planilla-step__label {
+  @apply font-medium text-slate-700 dark:text-slate-300;
+}
+
+.planilla-steps__line {
+  @apply hidden h-px w-6 bg-slate-300 sm:block dark:bg-white/15;
+}
+
+.planilla-summary-grid {
+  @apply grid grid-cols-3 gap-3;
+}
+
+.planilla-summary-stat {
+  @apply rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-center dark:border-white/10 dark:bg-black/20;
+}
+
+.planilla-summary-stat__label {
+  @apply block text-xs text-slate-500 uppercase;
+}
+
+.planilla-summary-stat__value {
+  @apply mt-1 block text-2xl font-semibold text-slate-900 dark:text-white;
+}
+
+/* Inicio */
+.home-card__step {
+  @apply inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-400/20 text-xs font-bold text-amber-800 dark:text-amber-200;
+}
+
+.home-flow-list {
+  @apply m-0 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-400;
+}
+
+.planilla-input--full {
+  @apply max-w-none;
 }

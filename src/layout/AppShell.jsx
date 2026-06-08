@@ -23,6 +23,11 @@ export default function AppShell() {
     [location.pathname],
   )
 
+  const isPlanillaDetalleRoute = useMemo(
+    () => /\/orden\//.test(location.pathname),
+    [location.pathname],
+  )
+
   const refreshUser = useCallback(async (accessToken) => {
     const me = await clientFetchMe(accessToken)
     setUser(me)
@@ -87,7 +92,8 @@ export default function AppShell() {
   return (
     <div
       className={cn(
-        'relative min-h-svh lg:grid lg:min-h-screen lg:grid-cols-[280px_1fr]',
+        'relative min-h-svh lg:grid lg:min-h-screen',
+        isPlanillaDetalleRoute ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_1fr]',
         menuOpen && 'max-lg:overflow-hidden',
       )}
     >
@@ -106,7 +112,9 @@ export default function AppShell() {
         >
           {menuOpen ? 'Cerrar' : 'Menú'}
         </button>
-        <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">Portal cliente</p>
+        <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+          {isPlanillaDetalleRoute ? 'Detalle de orden' : 'Portal cliente'}
+        </p>
       </header>
 
       {menuOpen ? (
@@ -122,6 +130,7 @@ export default function AppShell() {
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-[min(88vw,300px)] flex-col border-r border-slate-200/80 bg-white/90 px-4 py-6 shadow-xl backdrop-blur-2xl transition-transform max-lg:pt-[4.5rem] dark:border-white/[0.08] dark:bg-slate-950/70 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
           menuOpen ? 'translate-x-0' : 'max-lg:-translate-x-full',
+          isPlanillaDetalleRoute && 'hidden lg:hidden',
         )}
       >
         <div className="mb-8 flex items-center gap-3">
@@ -207,8 +216,8 @@ export default function AppShell() {
         </div>
       </aside>
 
-      <main className="min-w-0 pt-[3.75rem] lg:col-start-2 lg:pt-0">
-        <div className="app-shell-page">
+      <main className={cn('min-w-0 pt-[3.75rem] lg:col-start-2 lg:pt-0', isPlanillaDetalleRoute && 'lg:col-start-1')}>
+        <div className={cn('app-shell-page', isPlanillaDetalleRoute && 'app-shell-page--focus')}>
           <Outlet context={{ user, refreshUser }} />
         </div>
       </main>

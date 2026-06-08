@@ -1,5 +1,20 @@
 import { Link, useOutletContext } from 'react-router-dom'
 
+const shortcuts = [
+  {
+    to: '/app/proyectos',
+    title: 'Mis proyectos',
+    desc: 'Ver, buscar y abrir proyectos guardados de su cuenta.',
+    step: '1',
+  },
+  {
+    to: '/app/planilla-corte',
+    title: 'Nuevo proyecto',
+    desc: 'Crear proyecto, órdenes y capturar el detalle de piezas.',
+    step: '2',
+  },
+]
+
 export default function Inicio() {
   const { user } = useOutletContext()
   const name = user?.razonSocial || user?.displayName || user?.email
@@ -9,21 +24,29 @@ export default function Inicio() {
       <header className="page__head">
         <h1>Inicio</h1>
         <p className="page__lead">
-          Hola{name ? `, ${name}` : ''}. Gestione sus proyectos de optimización y capture la planilla de
-          corte desde el menú lateral.
+          Hola{name ? `, ${name}` : ''}. Desde aquí gestiona sus optimizaciones: revise proyectos
+          existentes o cree una planilla de corte nueva.
         </p>
       </header>
 
       <div className="quick-links">
-        <Link to="/app/proyectos" className="quick-link card pad">
-          <h2 className="card__title">Proyectos</h2>
-          <p className="muted small mt-2">Ver y abrir los proyectos guardados de su cuenta.</p>
-        </Link>
-        <Link to="/app/planilla-corte" className="quick-link card pad">
-          <h2 className="card__title">Nuevo proyecto</h2>
-          <p className="muted small mt-2">Crear proyecto, órdenes y detalle de piezas.</p>
-        </Link>
+        {shortcuts.map((item) => (
+          <Link key={item.to} to={item.to} className="quick-link card pad">
+            <span className="home-card__step">{item.step}</span>
+            <h2 className="card__title mt-3">{item.title}</h2>
+            <p className="muted small mt-2">{item.desc}</p>
+          </Link>
+        ))}
       </div>
+
+      <section className="card pad">
+        <h2 className="card__title">Flujo recomendado</h2>
+        <ol className="home-flow-list mt-4">
+          <li>Active un proyecto con nombre y descripción.</li>
+          <li>Agregue órdenes; al crear una irá al editor de piezas en pantalla completa.</li>
+          <li>Complete la tabla de detalle y guarde el proyecto en el servidor.</li>
+        </ol>
+      </section>
     </div>
   )
 }

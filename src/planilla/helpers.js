@@ -115,6 +115,21 @@ export function mergeCantoOptions(cantosKardex) {
   return merged
 }
 
+export function planillaBasePath(project) {
+  if (project && isPersistedProjectId(project.id)) {
+    return `/app/planilla-corte/${project.id}`
+  }
+  return '/app/planilla-corte'
+}
+
+export function planillaOrderDetallePath(project, orderId) {
+  const base =
+    project && isPersistedProjectId(project.id)
+      ? `/app/planilla-corte/${project.id}`
+      : '/app/planilla-corte/nuevo'
+  return `${base}/orden/${orderId}`
+}
+
 export function formatProjectDate(value) {
   if (!value) return '—'
   try {

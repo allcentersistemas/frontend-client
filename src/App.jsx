@@ -7,7 +7,9 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import RootRedirect from './pages/RootRedirect.jsx'
 import Inicio from './pages/app/Inicio.jsx'
 import ProyectosPage from './pages/app/ProyectosPage.jsx'
+import PlanillaLayout from './layout/PlanillaLayout.jsx'
 import PlanillaCortePage from './pages/app/PlanillaCortePage.jsx'
+import PlanillaOrdenDetallePage from './pages/app/PlanillaOrdenDetallePage.jsx'
 
 /** Despliegue en raíz (/) vs subruta (/portal/). */
 const atRoot = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') === ''
@@ -40,8 +42,11 @@ export default function App() {
         <Route path="/app" element={<AppShell />}>
           <Route index element={<Inicio />} />
           <Route path="proyectos" element={<ProyectosPage />} />
-          <Route path="planilla-corte" element={<PlanillaCortePage />} />
-          <Route path="planilla-corte/:projectId" element={<PlanillaCortePage />} />
+          <Route path="planilla-corte" element={<PlanillaLayout />}>
+            <Route index element={<PlanillaCortePage />} />
+            <Route path=":projectId" element={<PlanillaCortePage />} />
+            <Route path=":projectId/orden/:orderId" element={<PlanillaOrdenDetallePage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>

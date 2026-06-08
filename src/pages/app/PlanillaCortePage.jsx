@@ -1,511 +1,307 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { fetchPlanillaCatalogos, getProyectoOptimizacion, saveProyectoCompleto } from '../../api/orderApi'
-import { PlanillaDetalleModal } from '../../components/planilla/PlanillaDetalleModal'
-import {
-  isPersistedProjectId,
-  mapDetalleToApiPayload,
-  mapOrdersFromApi,
-  mergeCantoOptions,
-  newDetalle,
-  newOrderDraft,
-  newProjectDraft,
-} from '../../planilla/helpers'
+import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
+import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
+
+function StepBadge({ step, label, active, done }) {
+  return (
+    <div
+      className={`planilla-step ${active ? 'planilla-step--active' : ''} ${done ? 'planilla-step--done' : ''}`}
+    >
+      <span className="planilla-step__num">{step}</span>
+      <span className="planilla-step__label">{label}</span>
+    </div>
+  )
+}
+
+function orderPiezas(order) {
+  return order.detalles.reduce((sum, d) => {
+    const qty = Number(d.cantidad || 0)
+    return Number.isFinite(qty) ? sum + qty : sum
+  }, 0)
+}
 
 export default function PlanillaCortePage() {
-  const { projectId: projectIdParam } = useParams()
+  const { projectId } = useParams()
   const navigate = useNavigate()
-  const editingId = projectIdParam && projectIdParam !== 'nuevo' ? Number(projectIdParam) : null
+  const editingId = projectId && projectId !== 'nuevo' ? Number(projectId) : null
 
-  const [projectDraft, setProjectDraft] = useState(newProjectDraft())
-  const [project, setProject] = useState(null)
-  const [orderDraft, setOrderDraft] = useState(newOrderDraft())
-  const [orders, setOrders] = useState([])
-  const [loadingProject, setLoadingProject] = useState(Boolean(editingId))
-  const [activeOrderId, setActiveOrderId] = useState(null)
-  const [modalRows, setModalRows] = useState([newDetalle()])
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState('')
-  const [saveOk, setSaveOk] = useState('')
-  const [tableros, setTableros] = useState([])
-  const [cantos, setCantos] = useState([])
-  const [catalogLoading, setCatalogLoading] = useState(true)
-  const [catalogError, setCatalogError] = useState('')
+  const {
+    project,
+    projectDraft,
+    orderDraft,
+    orders,
+    loadingProject,
+    saving,
+    saveError,
+    saveOk,
+    catalogLoading,
+    catalogError,
+    tableros,
+    updateProjectDraft,
+    activateProject,
+    updateOrderDraft,
+    addOrder,
+    removeOrder,
+    saveAllToDatabase,
+  } = usePlanillaDraft()
 
-  const cantoOptions = useMemo(() => mergeCantoOptions(cantos), [cantos])
-
-  const activeOrder = useMemo(
-      () => orders.find((order) => order.id === activeOrderId) || null,
-      [orders, activeOrderId],
-  )
-
-  const totalOrdenes = orders.length
   const totalDetalles = useMemo(
-      () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
-      [orders],
+    () => orders.reduce((sum, order) => sum + order.detalles.length, 0),
+    [orders],
   )
   const totalPiezas = useMemo(
-      () =>
-          orders.reduce(
-              (sum, order) =>
-                  sum +
-                  order.detalles.reduce((inner, detalle) => {
-                    const qty = Number(detalle.cantidad || 0)
-                    return Number.isFinite(qty) ? inner + qty : inner
-                  }, 0),
-              0,
-          ),
-      [orders],
+    () => orders.reduce((sum, order) => sum + orderPiezas(order), 0),
+    [orders],
   )
 
-  const loadProject = useCallback(async (id) => {
-    setLoadingProject(true)
-    setSaveError('')
-    try {
-      const response = await getProyectoOptimizacion(id)
-      const savedProject = response?.project
-      if (!savedProject) {
-        setSaveError('No se pudo cargar el proyecto.')
-        return
-      }
-      setProject({
-        id: savedProject.id,
-        nombre: savedProject.nombre || '',
-        descripcion: savedProject.descripcion || '',
-        creadoEn: savedProject.fechaCreacion,
-      })
-      setProjectDraft({
-        nombre: savedProject.nombre || '',
-        descripcion: savedProject.descripcion || '',
-      })
-      setOrders(mapOrdersFromApi(response.orders))
-    } catch (err) {
-      setSaveError(err.message || 'No se pudo cargar el proyecto.')
-    } finally {
-      setLoadingProject(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setCatalogLoading(true)
-      setCatalogError('')
-      try {
-        const catalog = await fetchPlanillaCatalogos()
-        if (!cancelled) {
-          setTableros(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
-          setCantos(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setTableros([])
-          setCantos([])
-          setCatalogError(err.message || 'No se pudo cargar el catálogo.')
-        }
-      } finally {
-        if (!cancelled) setCatalogLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (editingId && Number.isFinite(editingId)) {
-      void loadProject(editingId)
-      return
-    }
-    setProject(null)
-    setProjectDraft(newProjectDraft())
-    setOrders([])
-    setLoadingProject(false)
-  }, [editingId, loadProject])
-
-  function updateProjectDraft(key, value) {
-    setProjectDraft((prev) => ({ ...prev, [key]: value }))
+  function handleActivateProject() {
+    activateProject()
   }
 
-  function createProject() {
-    if (!projectDraft.nombre.trim()) return
-    const persistedId = project?.id && isPersistedProjectId(project.id) ? project.id : Date.now()
-    setProject({
-      ...projectDraft,
-      id: persistedId,
-      creadoEn: project?.creadoEn || new Date().toISOString(),
-    })
-    setSaveError('')
-    setSaveOk('')
-  }
-
-  function updateOrderDraft(key, value) {
-    setOrderDraft((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function createOrder() {
-    if (!project || !orderDraft.codigo.trim()) return
-    setOrders((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        codigo: orderDraft.codigo.trim(),
-        descripcion: orderDraft.descripcion.trim(),
-        detalles: [],
-      },
-    ])
-    setOrderDraft(newOrderDraft())
-    setSaveError('')
-    setSaveOk('')
-  }
-
-  function removeOrder(orderId) {
-    setOrders((prev) => prev.filter((order) => order.id !== orderId))
-    if (activeOrderId === orderId) {
-      setActiveOrderId(null)
-      setModalRows([newDetalle()])
+  function handleAddOrder() {
+    const order = addOrder()
+    if (order && project) {
+      navigate(planillaOrderDetallePath(project, order.id))
     }
   }
 
-  function openDetalleModal(order) {
-    setActiveOrderId(order.id)
-    setModalRows(order.detalles.length ? order.detalles : [newDetalle()])
-  }
-
-  function closeDetalleModal() {
-    setActiveOrderId(null)
-    setModalRows([newDetalle()])
-  }
-
-  function addModalRow() {
-    setModalRows((prev) => [...prev, newDetalle()])
-  }
-
-  function removeModalRow(index) {
-    setModalRows((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function updateModalRow(index, key, value) {
-    setModalRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
-  }
-
-  function saveDetalles() {
-    if (!activeOrder) return
-    setOrders((prev) =>
-        prev.map((order) => (order.id === activeOrder.id ? { ...order, detalles: modalRows } : order)),
-    )
-    closeDetalleModal()
-    setSaveError('')
-    setSaveOk('')
-  }
-
-  async function saveAllToDatabase() {
-    if (!project) {
-      setSaveError('Primero debe crear el proyecto.')
-      return
-    }
-    if (!orders.length) {
-      setSaveError('Debe agregar al menos una orden.')
-      return
-    }
-    setSaveError('')
-    setSaveOk('')
-    setSaving(true)
-    try {
-      const response = await saveProyectoCompleto({
-        projectId: isPersistedProjectId(project.id) ? project.id : null,
-        project: {
-          nombre: project.nombre,
-          descripcion: project.descripcion,
-        },
-        orders: orders.map((order) => ({
-          codigo: order.codigo,
-          descripcion: order.descripcion,
-          detalles: order.detalles.map(mapDetalleToApiPayload),
-        })),
-      })
-      const savedProject = response?.project
-      if (savedProject) {
-        setProject({
-          id: savedProject.id,
-          nombre: savedProject.nombre || project.nombre,
-          descripcion: savedProject.descripcion || project.descripcion,
-          creadoEn: savedProject.fechaCreacion || project.creadoEn,
-        })
-        if (!isPersistedProjectId(project.id) && savedProject.id) {
-          navigate(`/app/planilla-corte/${savedProject.id}`, { replace: true })
-        }
-      }
-      setOrders(mapOrdersFromApi(response?.orders))
-      setSaveOk('Proyecto guardado correctamente.')
-    } catch (err) {
-      setSaveError(err.message || 'No se pudo guardar.')
-    } finally {
-      setSaving(false)
-    }
+  function openDetalle(order) {
+    if (!project) return
+    navigate(planillaOrderDetallePath(project, order.id))
   }
 
   if (loadingProject) {
     return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando proyecto…</p>
-          </div>
+      <div className="page-stack">
+        <div className="card pad flex items-center gap-4">
+          <div className="app-loading__spinner h-8 w-8" aria-hidden />
+          <p className="muted">Cargando proyecto…</p>
         </div>
+      </div>
     )
   }
 
+  const step1Done = Boolean(project)
+  const step2Active = Boolean(project)
+
   return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="mb-4">
-              <Link to="/app/proyectos" className="text-blue-600 hover:text-blue-800 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Volver a proyectos
+    <div className="page-stack">
+      <header className="page__head">
+        <div className="page__head-row">
+          <div>
+            <p className="small mb-2">
+              <Link to="/app/proyectos" className="breadcrumb-link">
+                ← Proyectos
               </Link>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {editingId ? 'Editar planilla de corte' : 'Nuevo proyecto'}
-            </h1>
-            <p className="text-gray-600">
-              Defina el proyecto, agregue órdenes y capture el detalle de piezas. El cliente se asigna automáticamente con su sesión.
+            </p>
+            <h1>{editingId ? 'Editar planilla de corte' : 'Nuevo proyecto'}</h1>
+            <p className="page__lead">
+              Configure el proyecto, agregue órdenes y capture el detalle de piezas en pantalla
+              dedicada.
             </p>
           </div>
+        </div>
 
-          {/* Paso 1: Proyecto */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Paso 1 · Proyecto</h2>
+        <div className="planilla-steps" aria-label="Pasos del flujo">
+          <StepBadge step={1} label="Proyecto" active={!step1Done} done={step1Done} />
+          <span className="planilla-steps__line" aria-hidden />
+          <StepBadge step={2} label="Órdenes" active={step1Done && !orders.length} done={orders.length > 0} />
+          <span className="planilla-steps__line" aria-hidden />
+          <StepBadge step={3} label="Guardar" active={false} done={Boolean(saveOk)} />
+        </div>
+      </header>
 
-            {catalogLoading && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-md">
-                  <p className="text-sm text-blue-700">Cargando catálogo…</p>
-                </div>
-            )}
+      <section className="card pad">
+        <h2 className="card__title mb-4">Paso 1 · Proyecto</h2>
 
-            {catalogError && (
-                <div className="mb-4 p-3 bg-red-50 rounded-md">
-                  <p className="text-sm text-red-700">{catalogError}</p>
-                </div>
-            )}
+        {catalogLoading ? <p className="muted small mb-3">Cargando catálogo…</p> : null}
+        {catalogError ? <p className="form-error small mb-3">{catalogError}</p> : null}
+        {!catalogLoading && !tableros.length ? (
+          <p className="form-hint mb-3">
+            No hay tableros en catálogo. Solicite el alta en Inventario → Tableros (empleados).
+          </p>
+        ) : null}
 
-            {!catalogLoading && !tableros.length && (
-                <div className="mb-4 p-3 bg-yellow-50 rounded-md">
-                  <p className="text-sm text-yellow-700">No hay tableros en catálogo (Inventario → Tableros en empleados).</p>
-                </div>
-            )}
+        <div className="form-row-2">
+          <label className="field">
+            <span>Nombre del proyecto</span>
+            <input
+              value={projectDraft.nombre}
+              onChange={(e) => updateProjectDraft('nombre', e.target.value)}
+              placeholder="Cocina Integral #204"
+            />
+          </label>
+          <label className="field">
+            <span>Descripción</span>
+            <input
+              value={projectDraft.descripcion}
+              onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
+              placeholder="Notas generales"
+            />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn--primary" onClick={handleActivateProject}>
+            {project ? 'Actualizar borrador' : 'Activar proyecto'}
+          </button>
+        </div>
+        {project ? (
+          <p className="muted small mt-2">
+            Proyecto activo: <strong>{project.nombre}</strong>
+          </p>
+        ) : null}
+      </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del proyecto
-                </label>
+      <section className="card pad">
+        <h2 className="card__title mb-4">Paso 2 · Órdenes</h2>
+
+        {!project ? (
+          <p className="muted">Active el proyecto para registrar órdenes.</p>
+        ) : (
+          <>
+            <div className="form-row-2">
+              <label className="field">
+                <span>Código de orden</span>
                 <input
-                    type="text"
-                    value={projectDraft.nombre}
-                    onChange={(e) => updateProjectDraft('nombre', e.target.value)}
-                    placeholder="Cocina Integral #204"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={orderDraft.codigo}
+                  onChange={(e) => updateOrderDraft('codigo', e.target.value)}
+                  placeholder="ORD-001"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
+              </label>
+              <label className="field">
+                <span>Descripción</span>
                 <input
-                    type="text"
-                    value={projectDraft.descripcion}
-                    onChange={(e) => updateProjectDraft('descripcion', e.target.value)}
-                    placeholder="Notas generales"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={orderDraft.descripcion}
+                  onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
+                  placeholder="Descripción de la orden"
                 />
-              </div>
+              </label>
             </div>
-
-            <button
-                type="button"
-                onClick={createProject}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              {project ? 'Actualizar borrador' : 'Activar proyecto'}
-            </button>
-
-            {project && (
-                <p className="mt-3 text-sm text-gray-600">
-                  Proyecto activo: <strong className="text-gray-900">{project.nombre}</strong>
-                </p>
-            )}
-
-            {saveError && (
-                <div className="mt-3 p-3 bg-red-50 rounded-md">
-                  <p className="text-sm text-red-700">{saveError}</p>
-                </div>
-            )}
-
-            {saveOk && (
-                <div className="mt-3 p-3 bg-green-50 rounded-md">
-                  <p className="text-sm text-green-700">{saveOk}</p>
-                </div>
-            )}
-          </div>
-
-          {/* Paso 2: Órdenes */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Paso 2 · Órdenes</h2>
-
-            {!project ? (
-                <div className="p-4 bg-yellow-50 rounded-md">
-                  <p className="text-yellow-700">Active el proyecto para registrar órdenes.</p>
-                </div>
-            ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Código de orden
-                      </label>
-                      <input
-                          type="text"
-                          value={orderDraft.codigo}
-                          onChange={(e) => updateOrderDraft('codigo', e.target.value)}
-                          placeholder="ORD-001"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Descripción
-                      </label>
-                      <input
-                          type="text"
-                          value={orderDraft.descripcion}
-                          onChange={(e) => updateOrderDraft('descripcion', e.target.value)}
-                          placeholder="Descripción de la orden"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                      type="button"
-                      onClick={createOrder}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors mb-6"
-                  >
-                    + Agregar orden
-                  </button>
-
-                  {!orders.length ? (
-                      <div className="p-8 text-center border-2 border-dashed border-gray-300 rounded-md">
-                        <p className="text-gray-500">Aún no hay órdenes.</p>
-                      </div>
-                  ) : (
-                      /* Tabla de órdenes - siempre visible */
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orden</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detalles</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Piezas</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                          </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                          {orders.map((order) => {
-                            const piezas = order.detalles.reduce((sum, d) => {
-                              const qty = Number(d.cantidad || 0)
-                              return Number.isFinite(qty) ? sum + qty : sum
-                            }, 0)
-                            return (
-                                <tr key={order.id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.codigo}</td>
-                                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{order.descripcion || '—'}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.detalles.length}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{piezas}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <div className="flex gap-2">
-                                      <button
-                                          type="button"
-                                          onClick={() => openDetalleModal(order)}
-                                          className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-                                      >
-                                        Ver detalle
-                                      </button>
-                                      <button
-                                          type="button"
-                                          onClick={() => removeOrder(order.id)}
-                                          className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
-                                      >
-                                        Quitar
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                            )
-                          })}
-                          </tbody>
-                        </table>
-                      </div>
-                  )}
-                </>
-            )}
-          </div>
-
-          {/* Modal de Detalle */}
-          {activeOrder && (
-              <PlanillaDetalleModal
-                  order={activeOrder}
-                  rows={modalRows}
-                  tableros={tableros}
-                  cantoOptions={cantoOptions}
-                  onClose={closeDetalleModal}
-                  onSave={saveDetalles}
-                  onAddRow={addModalRow}
-                  onUpdateRow={updateModalRow}
-                  onRemoveRow={removeModalRow}
-              />
-          )}
-
-          {/* Resumen y guardado */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resumen</h2>
-            <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-200">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Órdenes</p>
-                <p className="text-2xl font-bold text-gray-900">{totalOrdenes}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Detalles</p>
-                <p className="text-2xl font-bold text-gray-900">{totalDetalles}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Piezas</p>
-                <p className="text-2xl font-bold text-gray-900">{totalPiezas}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
+            <div className="form-actions">
               <button
-                  type="button"
-                  onClick={() => void saveAllToDatabase()}
-                  disabled={saving}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                type="button"
+                className="btn btn--primary"
+                onClick={handleAddOrder}
+                disabled={!orderDraft.codigo.trim()}
               >
-                {saving ? 'Guardando…' : 'Guardar en servidor'}
+                Agregar orden y capturar detalle
               </button>
-              {isPersistedProjectId(project?.id) && (
-                  <Link to="/app/proyectos" className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                    Volver a proyectos
-                  </Link>
-              )}
             </div>
+
+            {!orders.length ? (
+              <div className="empty-state card pad mt-4 border border-dashed border-slate-200 dark:border-white/10">
+                <p className="muted">Aún no hay órdenes. Al agregar una, irá directo al editor de piezas.</p>
+              </div>
+            ) : (
+              <>
+                <div className="order-list md:hidden">
+                  {orders.map((order) => (
+                    <article key={order.id} className="order-card">
+                      <div className="order-card__head">
+                        <strong>{order.codigo}</strong>
+                        <span className="tag">
+                          {order.detalles.length} filas · {orderPiezas(order)} pzas
+                        </span>
+                      </div>
+                      <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
+                      <div className="order-card__actions">
+                        <button type="button" className="btn btn--primary" onClick={() => openDetalle(order)}>
+                          {order.detalles.length ? 'Editar detalle' : 'Capturar detalle'}
+                        </button>
+                        <button type="button" className="btn btn--ghost" onClick={() => removeOrder(order.id)}>
+                          Quitar
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="card card--table hidden md:block mt-4">
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Orden</th>
+                          <th>Descripción</th>
+                          <th>Detalles</th>
+                          <th>Piezas</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id}>
+                            <td className="font-medium">{order.codigo}</td>
+                            <td className="max-w-xs truncate">{order.descripcion || '—'}</td>
+                            <td>{order.detalles.length}</td>
+                            <td>{orderPiezas(order)}</td>
+                            <td>
+                              <div className="planilla-inline-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn--primary"
+                                  onClick={() => openDetalle(order)}
+                                >
+                                  {order.detalles.length ? 'Editar detalle' : 'Capturar detalle'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost"
+                                  onClick={() => removeOrder(order.id)}
+                                >
+                                  Quitar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </section>
+
+      <section className="card pad">
+        <h2 className="card__title mb-3">Resumen y guardado</h2>
+        <div className="planilla-summary-grid mb-4">
+          <div className="planilla-summary-stat">
+            <span className="planilla-summary-stat__label">Órdenes</span>
+            <strong className="planilla-summary-stat__value">{orders.length}</strong>
+          </div>
+          <div className="planilla-summary-stat">
+            <span className="planilla-summary-stat__label">Detalles</span>
+            <strong className="planilla-summary-stat__value">{totalDetalles}</strong>
+          </div>
+          <div className="planilla-summary-stat">
+            <span className="planilla-summary-stat__label">Piezas</span>
+            <strong className="planilla-summary-stat__value">{totalPiezas}</strong>
           </div>
         </div>
-      </div>
+
+        {saveError ? <p className="form-error mb-3">{saveError}</p> : null}
+        {saveOk ? <p className="form-ok mb-3">{saveOk}</p> : null}
+
+        <div className="form-actions">
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => void saveAllToDatabase()}
+            disabled={saving || !step2Active}
+          >
+            {saving ? 'Guardando…' : 'Guardar en servidor'}
+          </button>
+          {isPersistedProjectId(project?.id) ? (
+            <Link to="/app/proyectos" className="btn btn--ghost">
+              Volver a proyectos
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    </div>
   )
 }
