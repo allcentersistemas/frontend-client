@@ -219,7 +219,7 @@ export function PlanillaDetalleEditor({
   )
 
   return (
-    <div className="planilla-detalle-page">
+    <div className="planilla-detalle-page h-screen flex flex-col">
       <header className="planilla-detalle-page__header">
         <div className="planilla-detalle-page__header-top">
           {backHref ? (
