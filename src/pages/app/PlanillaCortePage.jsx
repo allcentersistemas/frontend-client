@@ -195,27 +195,7 @@ export default function PlanillaCortePage() {
               </div>
             ) : (
               <>
-                <div className="order-list md:hidden">
-                  {orders.map((order) => (
-                    <article key={order.id} className="order-card">
-                      <div className="order-card__head">
-                        <strong>{order.codigo}</strong>
-                        <span className="tag">
-                          {order.detalles.length} filas · {orderPiezas(order)} pzas
-                        </span>
-                      </div>
-                      <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
-                      <div className="order-card__actions">
-                        <button type="button" className="btn btn--primary" onClick={() => openDetalle(order)}>
-                          {order.detalles.length ? 'Editar detalle' : 'Capturar detalle'}
-                        </button>
-                        <button type="button" className="btn btn--ghost" onClick={() => removeOrder(order.id)}>
-                          Quitar
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+
 
                 <div className="card card--table hidden md:block mt-4">
                   <div className="table-wrap">
