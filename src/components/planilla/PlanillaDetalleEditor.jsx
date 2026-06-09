@@ -6,7 +6,7 @@ const LADO_OPTIONS = ['L1', 'L2', 'A1', 'A2']
 
 function VetaCheckbox({ checked, onChange }) {
   return (
-    <label className="planilla-veta" title={checked}>
+    <label className="planilla-veta" title={checked ? '1-Longitud' : '0-No'}>
       <input
         type="checkbox"
         className="planilla-veta__input"
@@ -14,7 +14,7 @@ function VetaCheckbox({ checked, onChange }) {
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="planilla-veta__box" aria-hidden />
-      <span className="planilla-veta__text">{checked ? '1-Longitud' : '0-No'}</span>
+      <span className="planilla-veta__text">{checked}</span>
     </label>
   )
 }
