@@ -6,7 +6,7 @@ const LADO_OPTIONS = ['L1', 'L2', 'A1', 'A2']
 
 function VetaCheckbox({ checked, onChange }) {
   return (
-    <label className="planilla-veta" title={checked ? '1-Longitud' : '0-No'}>
+    <label className="planilla-veta" title={checked}>
       <input
         type="checkbox"
         className="planilla-veta__input"
@@ -98,7 +98,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             />
           </Field>
           <div className="planilla-field planilla-field--veta">
-            <span>Veta en longitud</span>
+            <span>Veta</span>
             <VetaCheckbox
               checked={Boolean(row.vetaLongitud)}
               onChange={(v) => onUpdate('vetaLongitud', v)}
@@ -257,10 +257,6 @@ export function PlanillaDetalleEditor({
         <button type="button" className="btn btn--primary" onClick={onAddRow}>
           + Agregar pieza
         </button>
-        <p className="planilla-modal__hint muted small">
-          Complete cada pieza en su tarjeta. La veta se guarda como{' '}
-          <code className="code-inline">0-No</code> o <code className="code-inline">1-Longitud</code>.
-        </p>
       </div>
 
       <div className="planilla-detalle-page__body">
