@@ -184,7 +184,7 @@ export default function AppShell() {
               )
             }
           >
-            Proyectos
+            Mis proyectos
           </NavLink>
           <NavLink
             to="/app/planilla-corte"

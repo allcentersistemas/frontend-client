@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listProyectosOptimizacion } from '../../api/orderApi'
-import { formatEstado, formatProjectDate } from '../../planilla/helpers'
+import {
+  ESTADOS_PROYECTO,
+  emptyProyectoFilters,
+  filterProyectosClientSide,
+  formatEstadoProyecto,
+  formatProyectoDate,
+} from '../../planilla/proyectoListUtils'
 
 export default function ProyectosPage() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState(emptyProyectoFilters())
+  const [applied, setApplied] = useState(emptyProyectoFilters())
 
   const loadProjects = useCallback(async () => {
     setLoading(true)
@@ -27,14 +34,21 @@ export default function ProyectosPage() {
     void loadProjects()
   }, [loadProjects])
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return projects
-    return projects.filter((p) => {
-      const hay = `${p.nombre || ''} ${p.descripcion || ''} ${p.estado || ''}`.toLowerCase()
-      return hay.includes(q)
-    })
-  }, [projects, query])
+  const filtered = useMemo(
+    () => filterProyectosClientSide(projects, applied),
+    [projects, applied],
+  )
+
+  function applyFilters(e) {
+    e.preventDefault()
+    setApplied({ ...filters })
+  }
+
+  function resetFilters() {
+    const empty = emptyProyectoFilters()
+    setFilters(empty)
+    setApplied(empty)
+  }
 
   return (
     <div className="page-stack">
@@ -43,7 +57,7 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Proyectos enviados a ventas. Una vez guardados en el servidor ya no pueden editarse.
+              Solo los proyectos de su cuenta. Una vez enviados a ventas ya no puede editarlos.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -52,18 +66,55 @@ export default function ProyectosPage() {
         </div>
       </header>
 
-      <section className="card pad toolbar toolbar--wrap">
-        <label className="field" style={{ flex: '1 1 220px', margin: 0 }}>
-          <span>Buscar</span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nombre, descripción o estado"
-          />
-        </label>
-        <button type="button" className="btn btn--ghost" disabled={loading} onClick={() => void loadProjects()}>
-          Actualizar
-        </button>
+      <section className="card pad">
+        <form onSubmit={applyFilters} className="toolbar toolbar--wrap">
+          <label className="field" style={{ flex: '1 1 160px', margin: 0 }}>
+            <span>Estado</span>
+            <select
+              value={filters.estado}
+              onChange={(e) => setFilters((f) => ({ ...f, estado: e.target.value }))}
+            >
+              {ESTADOS_PROYECTO.map((o) => (
+                <option key={o.value || 'all'} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field" style={{ flex: '1 1 180px', margin: 0 }}>
+            <span>Nombre</span>
+            <input
+              value={filters.nombre}
+              onChange={(e) => setFilters((f) => ({ ...f, nombre: e.target.value }))}
+              placeholder="Buscar proyecto"
+            />
+          </label>
+          <label className="field" style={{ flex: '0 1 150px', margin: 0 }}>
+            <span>Desde</span>
+            <input
+              type="date"
+              value={filters.fechaDesde}
+              onChange={(e) => setFilters((f) => ({ ...f, fechaDesde: e.target.value }))}
+            />
+          </label>
+          <label className="field" style={{ flex: '0 1 150px', margin: 0 }}>
+            <span>Hasta</span>
+            <input
+              type="date"
+              value={filters.fechaHasta}
+              onChange={(e) => setFilters((f) => ({ ...f, fechaHasta: e.target.value }))}
+            />
+          </label>
+          <button type="submit" className="btn btn--primary">
+            Filtrar
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={resetFilters}>
+            Limpiar
+          </button>
+          <button type="button" className="btn btn--ghost" disabled={loading} onClick={() => void loadProjects()}>
+            Actualizar
+          </button>
+        </form>
       </section>
 
       {error ? <p className="form-error px-1">{error}</p> : null}
@@ -76,11 +127,11 @@ export default function ProyectosPage() {
         <div className="card pad empty-state">
           <h2 className="card__title">Sin proyectos</h2>
           <p className="muted mt-2">
-            {query.trim()
-              ? 'No hay proyectos que coincidan con la búsqueda.'
+            {applied.nombre || applied.estado || applied.fechaDesde || applied.fechaHasta
+              ? 'No hay proyectos que coincidan con los filtros.'
               : 'Aún no tiene proyectos enviados.'}
           </p>
-          {!query.trim() ? (
+          {!applied.nombre && !applied.estado && !applied.fechaDesde && !applied.fechaHasta ? (
             <Link to="/app/planilla-corte" className="btn btn--primary mt-4">
               Crear proyecto
             </Link>
@@ -93,10 +144,12 @@ export default function ProyectosPage() {
               <article key={p.id} className="project-card">
                 <div className="project-card__head">
                   <h3 className="project-card__title">{p.nombre}</h3>
-                  <span className="tag">{formatEstado(p.estado)}</span>
+                  <span className="tag">{formatEstadoProyecto(p.estado)}</span>
                 </div>
                 <p className="project-card__desc">{p.descripcion || 'Sin descripción'}</p>
-                <p className="small muted">{formatProjectDate(p.fechaCreacion)} · {p.cantidadOrdenes ?? 0} órdenes</p>
+                <p className="small muted">
+                  {formatProyectoDate(p.fechaCreacion)} · {p.cantidadOrdenes ?? 0} órdenes
+                </p>
                 <div className="project-card__actions">
                   <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--primary">
                     Ver detalle
@@ -124,11 +177,11 @@ export default function ProyectosPage() {
                     <tr key={p.id}>
                       <td className="font-medium">{p.nombre}</td>
                       <td>
-                        <span className="tag">{formatEstado(p.estado)}</span>
+                        <span className="tag">{formatEstadoProyecto(p.estado)}</span>
                       </td>
                       <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
                       <td>{p.cantidadOrdenes ?? 0}</td>
-                      <td className="small whitespace-nowrap">{formatProjectDate(p.fechaCreacion)}</td>
+                      <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
                       <td>
                         <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--ghost">
                           Ver detalle

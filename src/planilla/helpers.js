@@ -132,7 +132,7 @@ export function planillaOrderDetallePath(project, orderId) {
 
 export function formatEstado(value) {
   const map = {
-    ENVIADO: 'Enviado',
+    ENVIADO: 'Enviando',
     EN_ATENCION: 'En atención',
     COTIZADO: 'Cotizado',
   }
