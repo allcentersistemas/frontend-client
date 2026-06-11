@@ -62,6 +62,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
   const [cantos, setCantos] = useState([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
+  const [projectEditable, setProjectEditable] = useState(true)
+  const [projectEstado, setProjectEstado] = useState('')
 
   const cantoOptions = useMemo(() => mergeCantoOptions(cantos), [cantos])
   const basePath = useMemo(() => planillaBasePath(project), [project])
@@ -93,7 +95,11 @@ export function PlanillaDraftProvider({ projectKey, children }) {
           nombre: savedProject.nombre || '',
           descripcion: savedProject.descripcion || '',
           creadoEn: savedProject.fechaCreacion,
+          estado: savedProject.estado || 'ENVIADO',
         }
+        const editable = savedProject.editable !== false
+        setProjectEditable(editable)
+        setProjectEstado(savedProject.estado || 'ENVIADO')
         const nextDraft = {
           nombre: savedProject.nombre || '',
           descripcion: savedProject.descripcion || '',
@@ -158,9 +164,9 @@ export function PlanillaDraftProvider({ projectKey, children }) {
   }, [persistedId, projectKey, loadProject])
 
   useEffect(() => {
-    if (loadingProject) return
+    if (loadingProject || !projectEditable) return
     persistDraft(project, projectDraft, orders)
-  }, [project, projectDraft, orders, loadingProject, persistDraft])
+  }, [project, projectDraft, orders, loadingProject, projectEditable, persistDraft])
 
   const updateProjectDraft = useCallback((key, value) => {
     setProjectDraft((prev) => ({ ...prev, [key]: value }))
@@ -219,12 +225,16 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       setSaveError('Debe agregar al menos una orden.')
       return false
     }
+    if ((persistedId && !projectEditable) || (project && isPersistedProjectId(project.id) && !projectEditable)) {
+      setSaveError('Este proyecto ya fue enviado y no puede modificarse.')
+      return false
+    }
     setSaveError('')
     setSaveOk('')
     setSaving(true)
     try {
       const response = await saveProyectoCompleto({
-        projectId: isPersistedProjectId(project.id) ? project.id : null,
+        projectId: null,
         project: {
           nombre: project.nombre,
           descripcion: project.descripcion,
@@ -243,17 +253,21 @@ export function PlanillaDraftProvider({ projectKey, children }) {
           nombre: savedProject.nombre || project.nombre,
           descripcion: savedProject.descripcion || project.descripcion,
           creadoEn: savedProject.fechaCreacion || project.creadoEn,
+          estado: savedProject.estado || 'ENVIADO',
         }
         setProject(nextProject)
+        setProjectEditable(false)
+        setProjectEstado(savedProject.estado || 'ENVIADO')
         setOrders(nextOrders)
         persistDraft(nextProject, projectDraft, nextOrders)
-        if (!isPersistedProjectId(project.id) && savedProject.id) {
+        sessionStorage.removeItem(DRAFT_STORAGE_KEY)
+        if (savedProject.id) {
           navigate(`/app/planilla-corte/${savedProject.id}`, { replace: true })
         }
       } else {
         setOrders(nextOrders)
       }
-      setSaveOk('Proyecto guardado correctamente.')
+      setSaveOk('Proyecto enviado correctamente. Ventas lo revisará pronto.')
       return true
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar.')
@@ -279,6 +293,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       cantoOptions,
       catalogLoading,
       catalogError,
+      projectEditable,
+      projectEstado,
       basePath,
       setSaveError,
       setSaveOk,
@@ -305,6 +321,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       cantoOptions,
       catalogLoading,
       catalogError,
+      projectEditable,
+      projectEstado,
       basePath,
       updateProjectDraft,
       activateProject,

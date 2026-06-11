@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listProyectosOptimizacion } from '../../api/orderApi'
-import { formatProjectDate } from '../../planilla/helpers'
+import { formatEstado, formatProjectDate } from '../../planilla/helpers'
 
 export default function ProyectosPage() {
   const [projects, setProjects] = useState([])
@@ -31,7 +31,7 @@ export default function ProyectosPage() {
     const q = query.trim().toLowerCase()
     if (!q) return projects
     return projects.filter((p) => {
-      const hay = `${p.nombre || ''} ${p.descripcion || ''}`.toLowerCase()
+      const hay = `${p.nombre || ''} ${p.descripcion || ''} ${p.estado || ''}`.toLowerCase()
       return hay.includes(q)
     })
   }, [projects, query])
@@ -43,8 +43,7 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Proyectos de optimización de su cuenta. Abra uno para editar la planilla de corte o cree
-              uno nuevo.
+              Proyectos enviados a ventas. Una vez guardados en el servidor ya no pueden editarse.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -59,7 +58,7 @@ export default function ProyectosPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nombre o descripción"
+            placeholder="Nombre, descripción o estado"
           />
         </label>
         <button type="button" className="btn btn--ghost" disabled={loading} onClick={() => void loadProjects()}>
@@ -79,7 +78,7 @@ export default function ProyectosPage() {
           <p className="muted mt-2">
             {query.trim()
               ? 'No hay proyectos que coincidan con la búsqueda.'
-              : 'Aún no tiene proyectos guardados.'}
+              : 'Aún no tiene proyectos enviados.'}
           </p>
           {!query.trim() ? (
             <Link to="/app/planilla-corte" className="btn btn--primary mt-4">
@@ -94,13 +93,13 @@ export default function ProyectosPage() {
               <article key={p.id} className="project-card">
                 <div className="project-card__head">
                   <h3 className="project-card__title">{p.nombre}</h3>
-                  <span className="tag">{p.cantidadOrdenes ?? 0} órdenes</span>
+                  <span className="tag">{formatEstado(p.estado)}</span>
                 </div>
                 <p className="project-card__desc">{p.descripcion || 'Sin descripción'}</p>
-                <p className="small muted">{formatProjectDate(p.fechaCreacion)}</p>
+                <p className="small muted">{formatProjectDate(p.fechaCreacion)} · {p.cantidadOrdenes ?? 0} órdenes</p>
                 <div className="project-card__actions">
                   <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--primary">
-                    Abrir planilla
+                    Ver detalle
                   </Link>
                 </div>
               </article>
@@ -113,9 +112,10 @@ export default function ProyectosPage() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
+                    <th>Estado</th>
                     <th>Descripción</th>
                     <th>Órdenes</th>
-                    <th>Creado</th>
+                    <th>Enviado</th>
                     <th />
                   </tr>
                 </thead>
@@ -123,12 +123,15 @@ export default function ProyectosPage() {
                   {filtered.map((p) => (
                     <tr key={p.id}>
                       <td className="font-medium">{p.nombre}</td>
+                      <td>
+                        <span className="tag">{formatEstado(p.estado)}</span>
+                      </td>
                       <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
                       <td>{p.cantidadOrdenes ?? 0}</td>
                       <td className="small whitespace-nowrap">{formatProjectDate(p.fechaCreacion)}</td>
                       <td>
                         <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--ghost">
-                          Abrir planilla
+                          Ver detalle
                         </Link>
                       </td>
                     </tr>

@@ -130,6 +130,15 @@ export function planillaOrderDetallePath(project, orderId) {
   return `${base}/orden/${orderId}`
 }
 
+export function formatEstado(value) {
+  const map = {
+    ENVIADO: 'Enviado',
+    EN_ATENCION: 'En atención',
+    COTIZADO: 'Cotizado',
+  }
+  return map[value] || value || '—'
+}
+
 export function formatProjectDate(value) {
   if (!value) return '—'
   try {

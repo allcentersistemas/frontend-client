@@ -4,17 +4,18 @@ import { SearchableSelect } from './SearchableSelect'
 
 const LADO_OPTIONS = ['L1', 'L2', 'A1', 'A2']
 
-function VetaCheckbox({ checked, onChange }) {
+function VetaCheckbox({ checked, onChange, disabled = false }) {
   return (
     <label className="planilla-veta" title={checked ? '1-Longitud' : '0-No'}>
       <input
         type="checkbox"
         className="planilla-veta__input"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="planilla-veta__box" aria-hidden />
-      <span className="planilla-veta__text">{checked}</span>
+      <span className="planilla-veta__text">{checked ? '1-Longitud' : '0-No'}</span>
     </label>
   )
 }
@@ -40,7 +41,7 @@ function Field({ label, children, wide = false }) {
   )
 }
 
-function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRemove, canRemove }) {
+function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRemove, canRemove, readOnly }) {
   return (
     <article className="planilla-row-card">
       <div className="planilla-row-card__head">
@@ -52,13 +53,14 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
           type="button"
           className="btn btn--ghost planilla-row-card__remove"
           onClick={onRemove}
-          disabled={!canRemove}
+          disabled={!canRemove || readOnly}
           aria-label={`Quitar pieza ${index + 1}`}
         >
           Quitar
         </button>
       </div>
 
+      <fieldset disabled={readOnly} className="planilla-row-card__fieldset">
       <div className="planilla-row-card__section planilla-row-card__section--material">
         <h4 className="planilla-row-card__section-title">Material y medidas</h4>
         <div className="planilla-row-card__grid planilla-row-card__grid--material">
@@ -192,6 +194,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
           placeholder="Notas opcionales de la pieza"
         />
       </Field>
+      </fieldset>
     </article>
   )
 }
@@ -203,6 +206,7 @@ export function PlanillaDetalleEditor({
   rows,
   tableros,
   cantoOptions,
+  readOnly = false,
   onBack,
   onSave,
   onAddRow,
@@ -254,9 +258,13 @@ export function PlanillaDetalleEditor({
       </header>
 
       <div className="planilla-detalle-page__toolbar">
-        <button type="button" className="btn btn--primary" onClick={onAddRow}>
-          + Agregar pieza
-        </button>
+        {!readOnly ? (
+          <button type="button" className="btn btn--primary" onClick={onAddRow}>
+            + Agregar pieza
+          </button>
+        ) : (
+          <span className="tag tag--ok">Solo lectura</span>
+        )}
       </div>
 
       <div className="planilla-detalle-page__body">
@@ -268,27 +276,24 @@ export function PlanillaDetalleEditor({
               index={index}
               tableros={tableros}
               cantoOptions={cantoOptions}
-              onUpdate={(key, value) => onUpdateRow(index, key, value)}
-              onRemove={() => onRemoveRow(index)}
+              onUpdate={readOnly ? () => {} : (key, value) => onUpdateRow(index, key, value)}
+              onRemove={readOnly ? () => {} : () => onRemoveRow(index)}
               canRemove={rows.length > 1}
+              readOnly={readOnly}
             />
           ))}
         </div>
       </div>
 
       <footer className="planilla-detalle-page__footer">
-        {backHref ? (
-          <Link to={backHref} className="btn btn--ghost" onClick={onBack}>
-            Cancelar
-          </Link>
-        ) : (
-          <button type="button" className="btn btn--ghost" onClick={onBack}>
-            Cancelar
-          </button>
-        )}
-        <button type="button" className="btn btn--primary" onClick={onSave}>
-          Guardar detalle
+        <button type="button" className="btn btn--ghost" onClick={onBack}>
+          {readOnly ? 'Cerrar' : 'Cancelar'}
         </button>
+        {!readOnly ? (
+          <button type="button" className="btn btn--primary" onClick={onSave}>
+            Guardar detalle
+          </button>
+        ) : null}
       </footer>
     </div>
   )
