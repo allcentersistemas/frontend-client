@@ -153,7 +153,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
                 value={row.ranuraDist || 'NA'}
                 onChange={(e) => onUpdate('ranuraDist', e.target.value)}
               >
-                <option value="NA">6</option>
+                <option value="NA">NA</option>
                 <option value="10">10</option>
                 <option value="15">15</option>
                 <option value="18">18</option>
@@ -177,7 +177,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
                 value={row.ranuraEs || 'NA'}
                 onChange={(e) => onUpdate('ranuraEs', e.target.value)}
               >
-                <option value="NA">6</option>
+                <option value="NA">NA</option>
                 <option value="4">4</option>
                 <option value="7">7</option>
               </select>
