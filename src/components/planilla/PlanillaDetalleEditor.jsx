@@ -22,7 +22,7 @@ function VetaCheckbox({ checked, onChange, disabled = false }) {
 
 function LadoSelect({ value, onChange }) {
   return (
-    <select className="planilla-select" value={value || 'L1'} onChange={(e) => onChange(e.target.value)}>
+    <select className="planilla-select" value={value || 'NA'} onChange={(e) => onChange(e.target.value)}>
       {LADO_OPTIONS.map((opt) => (
         <option key={opt} value={opt}>
           {opt}
@@ -150,7 +150,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             <Field label="Distancia">
               <select
                 className="planilla-select planilla-select--block"
-                value={row.ranuraDist || '10'}
+                value={row.ranuraDist || 'NA'}
                 onChange={(e) => onUpdate('ranuraDist', e.target.value)}
               >
                 <option value="NA">6</option>
@@ -162,7 +162,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             <Field label="Profundidad">
               <select
                 className="planilla-select planilla-select--block"
-                value={row.ranuraProf || '6'}
+                value={row.ranuraProf || 'NA'}
                 onChange={(e) => onUpdate('ranuraProf', e.target.value)}
               >
                 <option value="NA">NA</option>
@@ -174,7 +174,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             <Field label="Espesor">
               <select
                 className="planilla-select planilla-select--block"
-                value={row.ranuraEs || '4'}
+                value={row.ranuraEs || 'NA'}
                 onChange={(e) => onUpdate('ranuraEs', e.target.value)}
               >
                 <option value="NA">6</option>
