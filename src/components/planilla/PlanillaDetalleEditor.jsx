@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import { SearchableSelect } from './SearchableSelect'
 
 const LADO_OPTIONS = ['NA','L1', 'L2', 'A1', 'A2']
@@ -205,13 +204,11 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
 export function PlanillaDetalleEditor({
   order,
   projectName,
-  backHref,
   rows,
   tableros,
   cantoOptions,
   readOnly = false,
-  splitMode = false,
-  onBack,
+  onClose,
   onSave,
   onAddRow,
   onUpdateRow,
@@ -227,40 +224,39 @@ export function PlanillaDetalleEditor({
   )
 
   return (
-    <div className={`planilla-detalle-page${splitMode ? ' planilla-detalle-page--split' : ''}`}>
-      <header className="planilla-detalle-page__header">
-        <div className="planilla-detalle-page__header-main">
-          <div className="min-w-0">
-            {backHref ? (
-              <Link to={backHref} className="planilla-back-link" onClick={onBack}>
-                {splitMode ? '← Cerrar panel' : '← Volver a la planilla'}
-              </Link>
-            ) : (
-              <button type="button" className="planilla-back-link" onClick={onBack}>
-                {splitMode ? '← Cerrar panel' : '← Volver a la planilla'}
-              </button>
-            )}
-            <p className="planilla-modal__eyebrow mt-2">
-              Detalle de orden
-              {projectName ? ` · ${projectName}` : ''}
-            </p>
-            <h1 className="planilla-detalle-page__title">{order.codigo}</h1>
-            {order.descripcion ? (
-              <p className="planilla-modal__subtitle">{order.descripcion}</p>
-            ) : null}
-          </div>
-          <div className="planilla-detalle-page__stats">
-            <span className="planilla-stat">
-              <strong>{rows.length}</strong> filas
-            </span>
-            <span className="planilla-stat">
-              <strong>{totalPiezas}</strong> piezas
-            </span>
-          </div>
+    <>
+      <header className="planilla-modal__header">
+        <div className="min-w-0 flex-1">
+          <p className="planilla-modal__eyebrow">
+            Detalle de orden
+            {projectName ? ` · ${projectName}` : ''}
+          </p>
+          <h1 id="planilla-orden-title" className="planilla-modal__title">
+            {order.codigo}
+          </h1>
+          {order.descripcion ? (
+            <p className="planilla-modal__subtitle">{order.descripcion}</p>
+          ) : null}
+        </div>
+        <div className="planilla-modal__header-meta">
+          <span className="planilla-stat">
+            <strong>{rows.length}</strong> filas
+          </span>
+          <span className="planilla-stat">
+            <strong>{totalPiezas}</strong> piezas
+          </span>
+          <button
+            type="button"
+            className="planilla-modal__close"
+            onClick={onClose}
+            aria-label="Cerrar ventana"
+          >
+            ×
+          </button>
         </div>
       </header>
 
-      <div className="planilla-detalle-page__toolbar">
+      <div className="planilla-modal__toolbar">
         {!readOnly ? (
           <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
             + Agregar pieza
@@ -270,8 +266,8 @@ export function PlanillaDetalleEditor({
         )}
       </div>
 
-      <div className="planilla-detalle-page__body">
-        <div className="planilla-row-cards">
+      <div className="planilla-modal__body">
+        <div className="planilla-row-cards planilla-row-cards--modal">
           {rows.map((row, index) => (
             <PlanillaRowEditor
               key={index}
@@ -288,8 +284,8 @@ export function PlanillaDetalleEditor({
         </div>
       </div>
 
-      <footer className="planilla-detalle-page__footer">
-        <button type="button" className="btn btn--ghost" onClick={onBack}>
+      <footer className="planilla-modal__footer planilla-modal__footer--end">
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
           {readOnly ? 'Cerrar' : 'Cancelar'}
         </button>
         {!readOnly ? (
@@ -298,6 +294,6 @@ export function PlanillaDetalleEditor({
           </button>
         ) : null}
       </footer>
-    </div>
+    </>
   )
 }

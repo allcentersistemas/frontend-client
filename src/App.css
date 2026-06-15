@@ -173,11 +173,45 @@
 }
 
 .planilla-modal-backdrop {
-  @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4 dark:bg-black/60;
+  @apply fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/55 p-3 backdrop-blur-sm sm:p-5 dark:bg-black/65;
 }
 
 .planilla-modal {
-  @apply flex max-h-[96svh] w-full max-w-[min(100%,1400px)] flex-col overflow-hidden rounded-t-2xl border border-slate-200/80 bg-white/95 shadow-2xl sm:max-h-[92svh] sm:rounded-2xl dark:border-white/10 dark:bg-slate-950/95;
+  @apply flex max-h-[96svh] w-full max-w-[min(100%,1400px)] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-2xl dark:border-white/10 dark:bg-slate-950/95;
+}
+
+.planilla-modal--detalle {
+  @apply max-h-[94svh] w-full max-w-[min(96vw,1600px)];
+}
+
+.planilla-modal__body {
+  @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.planilla-modal__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.planilla-modal__body::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300 dark:bg-slate-600;
+}
+
+.planilla-modal__close {
+  @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-xl leading-none text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 dark:border-white/10 dark:bg-black/30 dark:text-slate-400 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white;
+}
+
+.planilla-modal__footer--end {
+  @apply justify-end;
+}
+
+.planilla-row-cards--modal {
+  @apply mx-auto max-w-none gap-4;
+}
+
+.planilla-row-cards--modal .planilla-row-card__grid--material {
+  @apply sm:grid-cols-3 lg:grid-cols-6;
 }
 
 .planilla-modal__header {
@@ -432,7 +466,11 @@
 
 @media (max-width: 640px) {
   .planilla-modal {
-    @apply max-h-[100svh] rounded-none border-0;
+    @apply max-h-[100svh] rounded-xl;
+  }
+
+  .planilla-modal--detalle {
+    @apply max-h-[98svh] rounded-xl;
   }
 
   .planilla-table {
