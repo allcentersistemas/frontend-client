@@ -141,6 +141,9 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             <Field label="Lado 1">
               <LadoSelect value={row.perforacionLado1} onChange={(v) => onUpdate('perforacionLado1', v)} />
             </Field>
+            <Field label="Lado 2">
+              <LadoSelect value={row.perforacionLado2} onChange={(v) => onUpdate('perforacionLado2', v)} />
+            </Field>
           </div>
         </div>
 
@@ -207,6 +210,7 @@ export function PlanillaDetalleEditor({
   tableros,
   cantoOptions,
   readOnly = false,
+  splitMode = false,
   onBack,
   onSave,
   onAddRow,
@@ -223,24 +227,23 @@ export function PlanillaDetalleEditor({
   )
 
   return (
-    <div className="planilla-detalle-page">
+    <div className={`planilla-detalle-page${splitMode ? ' planilla-detalle-page--split' : ''}`}>
       <header className="planilla-detalle-page__header">
-        <div className="planilla-detalle-page__header-top">
-          {backHref ? (
-            <Link to={backHref} className="planilla-back-link" onClick={onBack}>
-              ← Volver a la planilla
-            </Link>
-          ) : (
-            <button type="button" className="planilla-back-link" onClick={onBack}>
-              ← Volver a la planilla
-            </button>
-          )}
-          {projectName ? <span className="planilla-detalle-page__project">{projectName}</span> : null}
-        </div>
-
         <div className="planilla-detalle-page__header-main">
-          <div>
-            <p className="planilla-modal__eyebrow">Detalle de orden</p>
+          <div className="min-w-0">
+            {backHref ? (
+              <Link to={backHref} className="planilla-back-link" onClick={onBack}>
+                {splitMode ? '← Cerrar panel' : '← Volver a la planilla'}
+              </Link>
+            ) : (
+              <button type="button" className="planilla-back-link" onClick={onBack}>
+                {splitMode ? '← Cerrar panel' : '← Volver a la planilla'}
+              </button>
+            )}
+            <p className="planilla-modal__eyebrow mt-2">
+              Detalle de orden
+              {projectName ? ` · ${projectName}` : ''}
+            </p>
             <h1 className="planilla-detalle-page__title">{order.codigo}</h1>
             {order.descripcion ? (
               <p className="planilla-modal__subtitle">{order.descripcion}</p>
@@ -259,7 +262,7 @@ export function PlanillaDetalleEditor({
 
       <div className="planilla-detalle-page__toolbar">
         {!readOnly ? (
-          <button type="button" className="btn btn--primary" onClick={onAddRow}>
+          <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
             + Agregar pieza
           </button>
         ) : (

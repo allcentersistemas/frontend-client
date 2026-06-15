@@ -89,22 +89,32 @@ export default function PlanillaCortePage() {
   return (
     <div className={`planilla-split${panelOpen ? ' planilla-split--open' : ''}`}>
       <div className="planilla-split__main">
-        <div className="page-stack">
-          <header className="page__head">
+        <div className={`page-stack${panelOpen ? ' page-stack--compact' : ''}`}>
+          <header className={`page__head${panelOpen ? ' page__head--compact' : ''}`}>
             <div className="page__head-row">
-              <div>
-                <p className="small mb-2">
-                  <Link to="/app/proyectos" className="breadcrumb-link">
-                    ← Proyectos
-                  </Link>
-                </p>
-                <h1>{readOnly ? 'Consultar proyecto' : editingId ? 'Planilla de corte' : 'Nuevo proyecto'}</h1>
-                <p className="page__lead">
-                  {readOnly
-                    ? 'Proyecto enviado a ventas. Puede revisar el detalle pero no modificarlo.'
-                    : 'Configure el proyecto a la izquierda y capture piezas en el panel derecho.'}
-                </p>
-                {projectEstado ? (
+              <div className="min-w-0">
+                {!panelOpen ? (
+                  <p className="small mb-2">
+                    <Link to="/app/proyectos" className="breadcrumb-link">
+                      ← Proyectos
+                    </Link>
+                  </p>
+                ) : null}
+                <h1 className={panelOpen ? 'text-lg sm:text-xl' : undefined}>
+                  {readOnly ? 'Consultar proyecto' : editingId ? 'Planilla de corte' : 'Nuevo proyecto'}
+                </h1>
+                {!panelOpen ? (
+                  <p className="page__lead">
+                    {readOnly
+                      ? 'Proyecto enviado a ventas. Puede revisar el detalle pero no modificarlo.'
+                      : 'Configure el proyecto y las órdenes; capture piezas en el panel derecho.'}
+                  </p>
+                ) : (
+                  <p className="small muted mt-1">
+                    {project?.nombre || 'Sin nombre'} · {orders.length} órdenes · {totalPiezas} piezas
+                  </p>
+                )}
+                {projectEstado && !panelOpen ? (
                   <p className="small mt-2">
                     Estado: <span className="tag">{formatEstado(projectEstado)}</span>
                   </p>
@@ -112,7 +122,7 @@ export default function PlanillaCortePage() {
               </div>
             </div>
 
-            {!readOnly ? (
+            {!readOnly && !panelOpen ? (
               <div className="planilla-steps" aria-label="Pasos del flujo">
                 <StepBadge step={1} label="Proyecto" active={!step1Done} done={step1Done} />
                 <span className="planilla-steps__line" aria-hidden />
@@ -124,8 +134,8 @@ export default function PlanillaCortePage() {
           </header>
 
           {!readOnly ? (
-            <section className="card pad">
-              <h2 className="card__title mb-4">Paso 1 · Proyecto</h2>
+            <section className={`card pad${panelOpen ? ' card--compact' : ''}`}>
+              <h2 className="card__title mb-3">{panelOpen ? 'Proyecto' : 'Paso 1 · Proyecto'}</h2>
               {catalogLoading ? <p className="muted small mb-3">Cargando catálogo…</p> : null}
               {catalogError ? <p className="form-error small mb-3">{catalogError}</p> : null}
               <div className="form-row-2">
@@ -154,8 +164,8 @@ export default function PlanillaCortePage() {
             </section>
           ) : null}
 
-          <section className="card pad">
-            <h2 className="card__title mb-4">{readOnly ? 'Órdenes' : 'Paso 2 · Órdenes'}</h2>
+          <section className={`card pad${panelOpen ? ' card--compact' : ''}`}>
+            <h2 className="card__title mb-3">{readOnly ? 'Órdenes' : panelOpen ? 'Órdenes' : 'Paso 2 · Órdenes'}</h2>
             {!project ? (
               <p className="muted">Active el proyecto para registrar órdenes.</p>
             ) : (
@@ -183,7 +193,7 @@ export default function PlanillaCortePage() {
                     <div className="form-actions">
                       <button
                         type="button"
-                        className="btn btn--primary"
+                        className="btn btn--primary btn--sm"
                         onClick={handleAddOrder}
                         disabled={!orderDraft.codigo.trim()}
                       >
@@ -210,8 +220,18 @@ export default function PlanillaCortePage() {
                         </div>
                         <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
                         <div className="order-card__actions">
-                          <button type="button" className="btn btn--primary" onClick={() => openDetalle(order)}>
-                            {readOnly ? 'Ver detalle' : order.detalles.length ? 'Editar detalle' : 'Capturar detalle'}
+                          <button
+                            type="button"
+                            className={`btn btn--sm ${String(order.id) === String(orderId) ? 'btn--primary' : 'btn--ghost'}`}
+                            onClick={() => openDetalle(order)}
+                          >
+                            {String(order.id) === String(orderId)
+                              ? 'Editando…'
+                              : readOnly
+                                ? 'Ver detalle'
+                                : order.detalles.length
+                                  ? 'Editar'
+                                  : 'Capturar'}
                           </button>
                           {!readOnly ? (
                             <button type="button" className="btn btn--ghost" onClick={() => removeOrder(order.id)}>
@@ -227,7 +247,7 @@ export default function PlanillaCortePage() {
             )}
           </section>
 
-          {!readOnly ? (
+          {!readOnly && !panelOpen ? (
             <section className="card pad">
               <h2 className="card__title mb-3">Resumen y envío</h2>
               <div className="planilla-summary-grid mb-4">
@@ -261,7 +281,7 @@ export default function PlanillaCortePage() {
         </div>
       </div>
 
-      {panelOpen ? <PlanillaOrdenDetallePanel orderId={orderId} readOnly={readOnly} /> : null}
+      {panelOpen ? <PlanillaOrdenDetallePanel orderId={orderId} readOnly={readOnly} splitMode /> : null}
     </div>
   )
 }

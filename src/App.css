@@ -19,11 +19,11 @@
 }
 
 .planilla-split {
-  @apply flex min-h-[calc(100svh-4.5rem)] w-full flex-col lg:min-h-[calc(100svh-2rem)] lg:flex-row lg:gap-0;
+  @apply flex min-h-[calc(100svh-4.5rem)] w-full flex-col lg:min-h-[calc(100svh-2rem)] lg:flex-row lg:items-stretch lg:gap-0;
 }
 
 .planilla-split--open .planilla-split__main {
-  @apply lg:w-1/2 lg:max-w-[50%] lg:border-r lg:border-slate-200/80 dark:lg:border-white/10;
+  @apply lg:w-[min(42%,480px)] lg:max-w-[480px] lg:shrink-0 lg:border-r lg:border-slate-200/80 dark:lg:border-white/10;
 }
 
 .planilla-split__main {
@@ -31,15 +31,47 @@
 }
 
 .planilla-split__panel {
-  @apply min-h-0 w-full shrink-0 overflow-hidden lg:w-1/2 lg:max-w-[50%];
+  @apply flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden;
 }
 
 .planilla-split__panel .planilla-detalle-page {
-  @apply min-h-full rounded-none border-0 lg:min-h-[calc(100svh-2.5rem)] lg:rounded-2xl lg:border lg:border-slate-200/80 dark:lg:border-white/10;
+  @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 shadow-none;
+}
+
+.planilla-split__panel .planilla-detalle-page--split {
+  @apply bg-white/95 dark:bg-slate-950/95;
 }
 
 .order-card--active {
-  @apply border-amber-400/50 bg-amber-50/50 ring-1 ring-amber-400/25 dark:bg-amber-400/10;
+  @apply border-amber-400/60 bg-amber-50/70 ring-2 ring-amber-400/30 dark:border-amber-400/40 dark:bg-amber-400/10;
+}
+
+.page-stack--compact {
+  @apply gap-3;
+}
+
+.page__head--compact {
+  @apply mb-0;
+}
+
+.card--compact {
+  @apply !p-3 sm:!p-4;
+}
+
+.card--compact .card__title {
+  @apply mb-2 text-sm;
+}
+
+.planilla-split--open .order-list {
+  @apply mt-2 gap-2;
+}
+
+.planilla-split--open .order-card {
+  @apply p-3;
+}
+
+.planilla-split--open .order-card__actions {
+  @apply mt-2;
 }
 
 .page-stack {
@@ -483,7 +515,11 @@ label.field {
 }
 
 .planilla-detalle-page__header {
-  @apply shrink-0 border-b border-slate-200/80 bg-gradient-to-r from-amber-50/90 via-white to-slate-50/80 px-4 py-4 sm:px-6 dark:border-white/10 dark:from-amber-400/10 dark:via-slate-950 dark:to-slate-900/80;
+  @apply shrink-0 border-b border-slate-200/80 bg-gradient-to-r from-amber-50/90 via-white to-slate-50/80 px-4 py-3 sm:px-5 dark:border-white/10 dark:from-amber-400/10 dark:via-slate-950 dark:to-slate-900/80;
+}
+
+.planilla-detalle-page--split .planilla-detalle-page__header {
+  @apply py-3;
 }
 
 .planilla-detalle-page__header-top {
@@ -491,7 +527,7 @@ label.field {
 }
 
 .planilla-back-link {
-  @apply inline-flex items-center gap-1 text-sm font-medium text-amber-700 transition hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200;
+  @apply inline-flex items-center gap-1 border-0 bg-transparent p-0 text-sm font-medium text-amber-700 transition hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200;
 }
 
 .planilla-detalle-page__project {
@@ -499,23 +535,27 @@ label.field {
 }
 
 .planilla-detalle-page__header-main {
-  @apply flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between;
+  @apply flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between;
 }
 
 .planilla-detalle-page__title {
-  @apply text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl dark:text-white;
+  @apply text-lg font-semibold tracking-tight text-slate-900 sm:text-xl dark:text-white;
+}
+
+.planilla-detalle-page--split .planilla-detalle-page__title {
+  @apply text-lg;
 }
 
 .planilla-detalle-page__stats {
-  @apply flex flex-wrap gap-2;
+  @apply flex shrink-0 flex-wrap gap-2;
 }
 
 .planilla-detalle-page__toolbar {
-  @apply shrink-0 flex flex-col gap-2 border-b border-slate-200/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/[0.06];
+  @apply shrink-0 border-b border-slate-200/60 px-4 py-2.5 sm:px-5 dark:border-white/[0.06];
 }
 
 .planilla-detalle-page__body {
-  @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6;
+  @apply min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-5;
   scrollbar-width: thin;
   scrollbar-color: rgb(203 213 225) transparent;
 }
@@ -530,6 +570,42 @@ label.field {
 
 .planilla-row-cards {
   @apply mx-auto flex w-full max-w-5xl flex-col gap-4;
+}
+
+.planilla-detalle-page--split .planilla-row-cards {
+  @apply max-w-none gap-3;
+}
+
+.planilla-detalle-page--split .planilla-row-card {
+  @apply p-3;
+}
+
+.planilla-detalle-page--split .planilla-row-card__grid--material {
+  @apply grid-cols-2;
+}
+
+.planilla-detalle-page--split .planilla-field--wide {
+  @apply col-span-2;
+}
+
+.planilla-detalle-page--split .planilla-field--veta {
+  @apply col-span-2 sm:col-span-1;
+}
+
+.planilla-detalle-page--split .planilla-row-card__grid--4 {
+  @apply grid-cols-2;
+}
+
+.planilla-detalle-page--split .planilla-row-card__sections-inline {
+  @apply grid-cols-1;
+}
+
+.planilla-detalle-page--split .planilla-row-card__grid--3 {
+  @apply grid-cols-2 sm:grid-cols-3;
+}
+
+.planilla-detalle-page--split .planilla-row-card__section {
+  @apply mb-3 p-2.5;
 }
 
 .planilla-row-card__head-left {
@@ -569,7 +645,7 @@ label.field {
 }
 
 .planilla-detalle-page__footer {
-  @apply shrink-0 flex flex-col gap-3 border-t border-slate-200/80 bg-white/95 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-6 dark:border-white/10 dark:bg-slate-950/95;
+  @apply shrink-0 flex flex-col gap-2 border-t border-slate-200/80 bg-white/95 px-3 py-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-5 dark:border-white/10 dark:bg-slate-950/95;
 }
 
 /* Pasos del wizard planilla */

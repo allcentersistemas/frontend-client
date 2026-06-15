@@ -4,7 +4,7 @@ import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalle
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
 
-export function PlanillaOrdenDetallePanel({ orderId, readOnly = false }) {
+export function PlanillaOrdenDetallePanel({ orderId, readOnly = false, splitMode = false }) {
   const navigate = useNavigate()
   const {
     project,
@@ -59,6 +59,7 @@ export function PlanillaOrdenDetallePanel({ orderId, readOnly = false }) {
         tableros={tableros}
         cantoOptions={cantoOptions}
         readOnly={readOnly}
+        splitMode={splitMode}
         onBack={closePanel}
         onSave={handleSave}
         onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
