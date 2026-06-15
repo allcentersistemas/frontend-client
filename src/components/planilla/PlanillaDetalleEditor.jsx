@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { SearchableSelect } from './SearchableSelect'
 
-const LADO_OPTIONS = ['L1', 'L2', 'A1', 'A2']
+const LADO_OPTIONS = ['NA','L1', 'L2', 'A1', 'A2']
 
 function VetaCheckbox({ checked, onChange, disabled = false }) {
   return (
@@ -141,9 +141,6 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
             <Field label="Lado 1">
               <LadoSelect value={row.perforacionLado1} onChange={(v) => onUpdate('perforacionLado1', v)} />
             </Field>
-            <Field label="Lado 2">
-              <LadoSelect value={row.perforacionLado2} onChange={(v) => onUpdate('perforacionLado2', v)} />
-            </Field>
           </div>
         </div>
 
@@ -156,6 +153,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
                 value={row.ranuraDist || '10'}
                 onChange={(e) => onUpdate('ranuraDist', e.target.value)}
               >
+                <option value="NA">6</option>
                 <option value="10">10</option>
                 <option value="15">15</option>
                 <option value="18">18</option>
@@ -167,6 +165,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
                 value={row.ranuraProf || '6'}
                 onChange={(e) => onUpdate('ranuraProf', e.target.value)}
               >
+                <option value="NA">NA</option>
                 <option value="6">6</option>
                 <option value="8">8</option>
                 <option value="10">10</option>
@@ -178,6 +177,7 @@ function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRem
                 value={row.ranuraEs || '4'}
                 onChange={(e) => onUpdate('ranuraEs', e.target.value)}
               >
+                <option value="NA">6</option>
                 <option value="4">4</option>
                 <option value="7">7</option>
               </select>
