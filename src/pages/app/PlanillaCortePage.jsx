@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { formatEstado, isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
+import { downloadProyectoExcel } from '../../planilla/excelExport'
 
 function StepBadge({ step, label, active, done }) {
   return (
@@ -47,6 +48,10 @@ export default function PlanillaCortePage() {
     addOrder,
     removeOrder,
     saveAllToDatabase,
+    maquinas,
+    maquinaId,
+    maquinaParametros,
+    updateMaquinaSelection,
   } = usePlanillaDraft()
 
   const totalDetalles = useMemo(
@@ -236,6 +241,42 @@ export default function PlanillaCortePage() {
         {!readOnly ? (
           <section className="card pad">
             <h2 className="card__title mb-3">Resumen y envío</h2>
+            {orders.length ? (
+              <div className="form-row-2 mb-4">
+                <label className="field">
+                  <span>Máquina (P_PARAMS)</span>
+                  <select
+                    value={maquinaId}
+                    onChange={(e) => void updateMaquinaSelection(e.target.value)}
+                  >
+                    <option value="">Seleccionar máquina…</option>
+                    {maquinas.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre} ({m.codigo})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="field flex justify-end">
+                  <span className="invisible">Acción</span>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={!orders.some((o) => o.detalles.length)}
+                    onClick={() => {
+                      const safe = (project?.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
+                      downloadProyectoExcel(`${safe}.xlsx`, {
+                        orders,
+                        maquinaParametros,
+                        projectName: project?.nombre,
+                      })
+                    }}
+                  >
+                    Descargar Excel
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div className="planilla-summary-grid mb-4">
               <div className="planilla-summary-stat">
                 <span className="planilla-summary-stat__label">Órdenes</span>
@@ -261,6 +302,46 @@ export default function PlanillaCortePage() {
               >
                 {saving ? 'Enviando…' : 'Enviar a ventas'}
               </button>
+            </div>
+          </section>
+        ) : null}
+
+        {readOnly && orders.length ? (
+          <section className="card pad">
+            <h2 className="card__title mb-3">Exportar</h2>
+            <div className="form-row-2">
+              <label className="field">
+                <span>Máquina (P_PARAMS)</span>
+                <select
+                  value={maquinaId}
+                  onChange={(e) => void updateMaquinaSelection(e.target.value)}
+                >
+                  <option value="">Seleccionar máquina…</option>
+                  {maquinas.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} ({m.codigo})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="field flex justify-end">
+                <span className="invisible">Acción</span>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  disabled={!orders.some((o) => o.detalles.length)}
+                  onClick={() => {
+                    const safe = (project?.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
+                    downloadProyectoExcel(`${safe}.xlsx`, {
+                      orders,
+                      maquinaParametros,
+                      projectName: project?.nombre,
+                    })
+                  }}
+                >
+                  Descargar Excel
+                </button>
+              </div>
             </div>
           </section>
         ) : null}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
+import { downloadOrderExcel } from '../../planilla/excelExport'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const {
@@ -13,6 +14,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     cantoOptions,
     loadingProject,
     updateOrderDetalles,
+    maquinaParametros,
   } = usePlanillaDraft()
 
   const order = useMemo(
@@ -52,6 +54,14 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       readOnly={readOnly}
       onClose={onClose}
       onSave={handleSave}
+      maquinaParametros={maquinaParametros}
+      onDownloadExcel={() => {
+        const safe = (order.codigo || 'orden').replace(/[^\w.-]+/g, '_')
+        downloadOrderExcel(`${safe}.xlsx`, { ...order, detalles: rows }, {
+          maquinaParametros,
+          projectName: project?.nombre,
+        })
+      }}
       onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
       onUpdateRow={
         readOnly

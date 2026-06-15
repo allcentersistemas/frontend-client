@@ -1,11 +1,16 @@
 import { useMemo } from 'react'
 import { SearchableSelect } from './SearchableSelect'
-
-const LADO_OPTIONS = ['NA','L1', 'L2', 'A1', 'A2']
+import {
+  DETALLE_TABLE_COLUMNS,
+  LADO_OPTIONS,
+  RANURA_DIST,
+  RANURA_ES,
+  RANURA_PROF,
+} from '../../planilla/detalleColumns'
 
 function VetaCheckbox({ checked, onChange, disabled = false }) {
   return (
-    <label className="planilla-veta" title={checked ? '1-Longitud' : '0-No'}>
+    <label className="planilla-veta planilla-veta--compact" title={checked ? '1-Longitud' : '0-No'}>
       <input
         type="checkbox"
         className="planilla-veta__input"
@@ -14,190 +19,123 @@ function VetaCheckbox({ checked, onChange, disabled = false }) {
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="planilla-veta__box" aria-hidden />
-      <span className="planilla-veta__text">{checked ? '1-Longitud' : '0-No'}</span>
+      <span className="planilla-veta__text">{checked ? '1-Long' : '0-No'}</span>
     </label>
   )
 }
 
-function LadoSelect({ value, onChange }) {
+function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }) {
+  const { key, type } = column
+
+  if (readOnly) {
+    if (type === 'veta') {
+      return <span className="small">{row.vetaLongitud ? '1-Longitud' : '0-No'}</span>
+    }
+    return <span className="small">{row[key] || '—'}</span>
+  }
+
+  if (type === 'veta') {
+    return (
+      <VetaCheckbox checked={Boolean(row.vetaLongitud)} onChange={(v) => onUpdate('vetaLongitud', v)} />
+    )
+  }
+
+  if (type === 'canto') {
+    return (
+      <SearchableSelect
+        value={row[key]}
+        onChange={(v) => onUpdate(key, v)}
+        options={cantoOptions}
+        placeholder="—"
+        size="sm"
+      />
+    )
+  }
+
+  if (type === 'lado') {
+    return (
+      <select
+        className="planilla-select planilla-select--block planilla-select--table"
+        value={row[key] || 'NA'}
+        onChange={(e) => onUpdate(key, e.target.value)}
+      >
+        {LADO_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (type === 'ranuraDist') {
+    return (
+      <select
+        className="planilla-select planilla-select--block planilla-select--table"
+        value={row.ranuraDist || 'NA'}
+        onChange={(e) => onUpdate('ranuraDist', e.target.value)}
+      >
+        {RANURA_DIST.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (type === 'ranuraProf') {
+    return (
+      <select
+        className="planilla-select planilla-select--block planilla-select--table"
+        value={row.ranuraProf || 'NA'}
+        onChange={(e) => onUpdate('ranuraProf', e.target.value)}
+      >
+        {RANURA_PROF.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (type === 'ranuraEs') {
+    return (
+      <select
+        className="planilla-select planilla-select--block planilla-select--table"
+        value={row.ranuraEs || 'NA'}
+        onChange={(e) => onUpdate('ranuraEs', e.target.value)}
+      >
+        {RANURA_ES.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (key === 'tablero') {
+    return (
+      <SearchableSelect
+        value={row.tablero}
+        onChange={(v) => onUpdate('tablero', v)}
+        options={tableros}
+        placeholder="Tablero"
+        size="sm"
+      />
+    )
+  }
+
   return (
-    <select className="planilla-select" value={value || 'NA'} onChange={(e) => onChange(e.target.value)}>
-      {LADO_OPTIONS.map((opt) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
-      ))}
-    </select>
-  )
-}
-
-function Field({ label, children, wide = false }) {
-  return (
-    <label className={wide ? 'planilla-field planilla-field--wide' : 'planilla-field'}>
-      <span>{label}</span>
-      {children}
-    </label>
-  )
-}
-
-function PlanillaRowEditor({ row, index, tableros, cantoOptions, onUpdate, onRemove, canRemove, readOnly }) {
-  return (
-    <article className="planilla-row-card">
-      <div className="planilla-row-card__head">
-        <div className="planilla-row-card__head-left">
-          <span className="planilla-row-card__badge">Pieza {index + 1}</span>
-          {row.tablero ? <span className="planilla-row-card__preview">{row.tablero}</span> : null}
-        </div>
-        <button
-          type="button"
-          className="btn btn--ghost planilla-row-card__remove"
-          onClick={onRemove}
-          disabled={!canRemove || readOnly}
-          aria-label={`Quitar pieza ${index + 1}`}
-        >
-          Quitar
-        </button>
-      </div>
-
-      <fieldset disabled={readOnly} className="planilla-row-card__fieldset">
-      <div className="planilla-row-card__section planilla-row-card__section--material">
-        <h4 className="planilla-row-card__section-title">Material y medidas</h4>
-        <div className="planilla-row-card__grid planilla-row-card__grid--material">
-          <Field label="Tablero" wide>
-            <SearchableSelect
-              value={row.tablero}
-              onChange={(v) => onUpdate('tablero', v)}
-              options={tableros}
-              placeholder="Seleccionar tablero"
-            />
-          </Field>
-          <Field label="Cantidad">
-            <input
-              className="planilla-input planilla-input--block"
-              value={row.cantidad}
-              onChange={(e) => onUpdate('cantidad', e.target.value)}
-              inputMode="numeric"
-              placeholder="0"
-            />
-          </Field>
-          <Field label="Largo">
-            <input
-              className="planilla-input planilla-input--block"
-              value={row.largoVeta}
-              onChange={(e) => onUpdate('largoVeta', e.target.value)}
-              inputMode="numeric"
-              placeholder="mm"
-            />
-          </Field>
-          <Field label="Ancho">
-            <input
-              className="planilla-input planilla-input--block"
-              value={row.ancho}
-              onChange={(e) => onUpdate('ancho', e.target.value)}
-              inputMode="numeric"
-              placeholder="mm"
-            />
-          </Field>
-          <div className="planilla-field planilla-field--veta">
-            <span>Veta</span>
-            <VetaCheckbox
-              checked={Boolean(row.vetaLongitud)}
-              onChange={(v) => onUpdate('vetaLongitud', v)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="planilla-row-card__section planilla-row-card__section--canto">
-        <h4 className="planilla-row-card__section-title">Canto</h4>
-        <div className="planilla-row-card__grid planilla-row-card__grid--4">
-          {['l1', 'l2', 'a1', 'a2'].map((key) => (
-            <Field key={key} label={key.toUpperCase()}>
-              <SearchableSelect
-                value={row[key]}
-                onChange={(v) => onUpdate(key, v)}
-                options={cantoOptions}
-                placeholder={key.toUpperCase()}
-                size="sm"
-              />
-            </Field>
-          ))}
-        </div>
-      </div>
-
-      <div className="planilla-row-card__sections-inline">
-        <div className="planilla-row-card__section planilla-row-card__section--perf">
-          <h4 className="planilla-row-card__section-title">Perforación</h4>
-          <div className="planilla-row-card__grid planilla-row-card__grid--3">
-            <Field label="Cantidad">
-              <input
-                className="planilla-input planilla-input--block"
-                value={row.perforacionCantidad}
-                onChange={(e) => onUpdate('perforacionCantidad', e.target.value)}
-                inputMode="numeric"
-              />
-            </Field>
-            <Field label="Lado 1">
-              <LadoSelect value={row.perforacionLado1} onChange={(v) => onUpdate('perforacionLado1', v)} />
-            </Field>
-            <Field label="Lado 2">
-              <LadoSelect value={row.perforacionLado2} onChange={(v) => onUpdate('perforacionLado2', v)} />
-            </Field>
-          </div>
-        </div>
-
-        <div className="planilla-row-card__section planilla-row-card__section--ranura">
-          <h4 className="planilla-row-card__section-title">Ranura</h4>
-          <div className="planilla-row-card__grid planilla-row-card__grid--3">
-            <Field label="Distancia">
-              <select
-                className="planilla-select planilla-select--block"
-                value={row.ranuraDist || 'NA'}
-                onChange={(e) => onUpdate('ranuraDist', e.target.value)}
-              >
-                <option value="NA">NA</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="18">18</option>
-              </select>
-            </Field>
-            <Field label="Profundidad">
-              <select
-                className="planilla-select planilla-select--block"
-                value={row.ranuraProf || 'NA'}
-                onChange={(e) => onUpdate('ranuraProf', e.target.value)}
-              >
-                <option value="NA">NA</option>
-                <option value="6">6</option>
-                <option value="8">8</option>
-                <option value="10">10</option>
-              </select>
-            </Field>
-            <Field label="Espesor">
-              <select
-                className="planilla-select planilla-select--block"
-                value={row.ranuraEs || 'NA'}
-                onChange={(e) => onUpdate('ranuraEs', e.target.value)}
-              >
-                <option value="NA">NA</option>
-                <option value="4">4</option>
-                <option value="7">7</option>
-              </select>
-            </Field>
-          </div>
-        </div>
-      </div>
-
-      <Field label="Observación" wide>
-        <input
-          className="planilla-input planilla-input--block"
-          value={row.observacion}
-          onChange={(e) => onUpdate('observacion', e.target.value)}
-          placeholder="Notas opcionales de la pieza"
-        />
-      </Field>
-      </fieldset>
-    </article>
+    <input
+      className="planilla-input planilla-input--block planilla-input--table"
+      value={row[key] || ''}
+      onChange={(e) => onUpdate(key, e.target.value)}
+      inputMode={type === 'number' ? 'numeric' : undefined}
+      placeholder="—"
+    />
   )
 }
 
@@ -213,6 +151,8 @@ export function PlanillaDetalleEditor({
   onAddRow,
   onUpdateRow,
   onRemoveRow,
+  onDownloadExcel,
+  maquinaParametros,
 }) {
   const totalPiezas = useMemo(
     () =>
@@ -237,6 +177,9 @@ export function PlanillaDetalleEditor({
           {order.descripcion ? (
             <p className="planilla-modal__subtitle">{order.descripcion}</p>
           ) : null}
+          {maquinaParametros ? (
+            <p className="small muted mt-1">Parámetros: {maquinaParametros}</p>
+          ) : null}
         </div>
         <div className="planilla-modal__header-meta">
           <span className="planilla-stat">
@@ -257,30 +200,67 @@ export function PlanillaDetalleEditor({
       </header>
 
       <div className="planilla-modal__toolbar">
-        {!readOnly ? (
-          <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
-            + Agregar pieza
-          </button>
-        ) : (
-          <span className="tag tag--ok">Solo lectura</span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {!readOnly ? (
+            <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
+              + Agregar pieza
+            </button>
+          ) : (
+            <span className="tag tag--ok">Solo lectura</span>
+          )}
+          {onDownloadExcel ? (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={onDownloadExcel}>
+              Descargar Excel
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="planilla-modal__body">
-        <div className="planilla-row-cards planilla-row-cards--modal">
-          {rows.map((row, index) => (
-            <PlanillaRowEditor
-              key={index}
-              row={row}
-              index={index}
-              tableros={tableros}
-              cantoOptions={cantoOptions}
-              onUpdate={readOnly ? () => {} : (key, value) => onUpdateRow(index, key, value)}
-              onRemove={readOnly ? () => {} : () => onRemoveRow(index)}
-              canRemove={rows.length > 1}
-              readOnly={readOnly}
-            />
-          ))}
+        <div className="planilla-table-shell planilla-table-shell--detalle">
+          <table className="planilla-detalle-table">
+            <thead>
+              <tr>
+                <th className="planilla-detalle-table__num">#</th>
+                {DETALLE_TABLE_COLUMNS.map((col) => (
+                  <th key={col.key}>{col.label}</th>
+                ))}
+                {!readOnly ? <th className="planilla-detalle-table__actions"> </th> : null}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  <td className="planilla-detalle-table__num">{index + 1}</td>
+                  {DETALLE_TABLE_COLUMNS.map((col) => (
+                    <td key={col.key} className={col.wide ? 'planilla-detalle-table__wide' : undefined}>
+                      <DetalleCell
+                        column={col}
+                        row={row}
+                        tableros={tableros}
+                        cantoOptions={cantoOptions}
+                        readOnly={readOnly}
+                        onUpdate={(key, value) => onUpdateRow(index, key, value)}
+                      />
+                    </td>
+                  ))}
+                  {!readOnly ? (
+                    <td className="planilla-detalle-table__actions">
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => onRemoveRow(index)}
+                        disabled={rows.length <= 1}
+                        aria-label={`Quitar pieza ${index + 1}`}
+                      >
+                        Quitar
+                      </button>
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

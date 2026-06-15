@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchPlanillaCatalogos, getProyectoOptimizacion, saveProyectoCompleto } from '../api/orderApi'
+import { fetchPlanillaCatalogos, fetchMaquinas, getProyectoOptimizacion, saveProyectoCompleto, updateProyectoMaquina } from '../api/orderApi'
 import {
   isPersistedProjectId,
   mapDetalleToApiPayload,
@@ -64,9 +64,16 @@ export function PlanillaDraftProvider({ projectKey, children }) {
   const [catalogError, setCatalogError] = useState('')
   const [projectEditable, setProjectEditable] = useState(true)
   const [projectEstado, setProjectEstado] = useState('')
+  const [maquinas, setMaquinas] = useState([])
+  const [maquinaId, setMaquinaId] = useState('')
+  const [maquinaParametros, setMaquinaParametros] = useState('')
 
   const cantoOptions = useMemo(() => mergeCantoOptions(cantos), [cantos])
   const basePath = useMemo(() => planillaBasePath(project), [project])
+  const selectedMaquina = useMemo(
+    () => maquinas.find((m) => String(m.id) === String(maquinaId)) || null,
+    [maquinas, maquinaId],
+  )
 
   const persistDraft = useCallback(
     (nextProject, nextProjectDraft, nextOrders) => {
@@ -100,6 +107,10 @@ export function PlanillaDraftProvider({ projectKey, children }) {
         const editable = savedProject.editable !== false
         setProjectEditable(editable)
         setProjectEstado(savedProject.estado || 'ENVIADO')
+        if (savedProject.maquinaId) {
+          setMaquinaId(String(savedProject.maquinaId))
+          setMaquinaParametros(savedProject.maquinaParametros || '')
+        }
         const nextDraft = {
           nombre: savedProject.nombre || '',
           descripcion: savedProject.descripcion || '',
@@ -124,10 +135,14 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       setCatalogLoading(true)
       setCatalogError('')
       try {
-        const catalog = await fetchPlanillaCatalogos()
+        const [catalog, maquinasList] = await Promise.all([
+          fetchPlanillaCatalogos(),
+          fetchMaquinas().catch(() => []),
+        ])
         if (!cancelled) {
           setTableros(Array.isArray(catalog?.tableros) ? catalog.tableros : [])
           setCantos(Array.isArray(catalog?.cantos) ? catalog.cantos : [])
+          setMaquinas(Array.isArray(maquinasList) ? maquinasList : [])
         }
       } catch (err) {
         if (!cancelled) {
@@ -216,6 +231,22 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setSaveOk('Detalle de orden actualizado.')
   }, [])
 
+  const updateMaquinaSelection = useCallback(
+    async (nextMaquinaId) => {
+      setMaquinaId(nextMaquinaId)
+      const machine = maquinas.find((m) => String(m.id) === String(nextMaquinaId))
+      setMaquinaParametros(machine?.codigo || '')
+      if (project && isPersistedProjectId(project.id) && nextMaquinaId) {
+        try {
+          await updateProyectoMaquina(project.id, Number(nextMaquinaId))
+        } catch {
+          /* draft local sigue válido para export */
+        }
+      }
+    },
+    [maquinas, project],
+  )
+
   const saveAllToDatabase = useCallback(async () => {
     if (!project) {
       setSaveError('Primero debe crear el proyecto.')
@@ -238,6 +269,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
         project: {
           nombre: project.nombre,
           descripcion: project.descripcion,
+          maquinaId: maquinaId ? Number(maquinaId) : null,
         },
         orders: orders.map((order) => ({
           codigo: order.codigo,
@@ -258,6 +290,10 @@ export function PlanillaDraftProvider({ projectKey, children }) {
         setProject(nextProject)
         setProjectEditable(false)
         setProjectEstado(savedProject.estado || 'ENVIADO')
+        if (savedProject.maquinaId) {
+          setMaquinaId(String(savedProject.maquinaId))
+          setMaquinaParametros(savedProject.maquinaParametros || '')
+        }
         setOrders(nextOrders)
         persistDraft(nextProject, projectDraft, nextOrders)
         sessionStorage.removeItem(DRAFT_STORAGE_KEY)
@@ -275,7 +311,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     } finally {
       setSaving(false)
     }
-  }, [navigate, orders, persistDraft, project, projectDraft])
+  }, [navigate, orders, persistDraft, project, projectDraft, maquinaId])
 
   const value = useMemo(
     () => ({
@@ -295,6 +331,10 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       catalogError,
       projectEditable,
       projectEstado,
+      maquinas,
+      maquinaId,
+      maquinaParametros,
+      selectedMaquina,
       basePath,
       setSaveError,
       setSaveOk,
@@ -304,6 +344,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       addOrder,
       removeOrder,
       updateOrderDetalles,
+      updateMaquinaSelection,
       saveAllToDatabase,
     }),
     [
@@ -323,6 +364,10 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       catalogError,
       projectEditable,
       projectEstado,
+      maquinas,
+      maquinaId,
+      maquinaParametros,
+      selectedMaquina,
       basePath,
       updateProjectDraft,
       activateProject,
@@ -330,6 +375,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       addOrder,
       removeOrder,
       updateOrderDetalles,
+      updateMaquinaSelection,
       saveAllToDatabase,
     ],
   )

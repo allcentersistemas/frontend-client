@@ -254,8 +254,45 @@
   @apply flex flex-col gap-3 border-t border-slate-200/80 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/10 dark:bg-black/25;
 }
 
-.planilla-table-shell {
-  @apply min-h-0 flex-1 overflow-auto px-2 py-3 sm:px-4;
+.planilla-table-shell--detalle {
+  @apply px-0 py-0;
+}
+
+.planilla-detalle-table {
+  @apply w-full min-w-[1100px] border-collapse text-left text-xs;
+}
+
+.planilla-detalle-table th {
+  @apply sticky top-0 z-[1] whitespace-nowrap border-b border-slate-200 bg-slate-50/95 px-2 py-2 text-[0.65rem] font-semibold tracking-wide text-slate-600 uppercase dark:border-white/[0.06] dark:bg-slate-950/95 dark:text-slate-500;
+}
+
+.planilla-detalle-table td {
+  @apply border-b border-slate-100 px-2 py-1.5 align-middle dark:border-white/[0.05];
+}
+
+.planilla-detalle-table__num {
+  @apply w-8 text-center text-slate-500;
+}
+
+.planilla-detalle-table__wide {
+  @apply min-w-[160px];
+}
+
+.planilla-detalle-table__actions {
+  @apply w-16 whitespace-nowrap;
+}
+
+.planilla-input--table,
+.planilla-select--table {
+  @apply min-h-[34px] py-1 text-xs;
+}
+
+.planilla-veta--compact {
+  @apply min-h-[34px] px-2 py-1;
+}
+
+.planilla-veta--compact .planilla-veta__text {
+  @apply text-[0.65rem];
 }
 
 .planilla-row-card {

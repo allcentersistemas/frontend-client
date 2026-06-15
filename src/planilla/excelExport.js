@@ -1,0 +1,66 @@
+import * as XLSX from 'xlsx'
+import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
+import { vetaToPayload } from './helpers'
+
+function formatDecimal(value) {
+  if (value === '' || value == null) return ''
+  const n = Number(String(value).replace(',', '.'))
+  if (!Number.isFinite(n)) return String(value)
+  return n.toFixed(1).replace('.', ',')
+}
+
+function formatInt(value) {
+  if (value === '' || value == null) return ''
+  const n = parseInt(String(value).replace(/\D/g, ''), 10)
+  return Number.isFinite(n) ? n : ''
+}
+
+function rowToExcelCells(row, { pParams, pIdesc }) {
+  return {
+    pCodeMat: row.tablero || '',
+    pParams: pParams || '',
+    pMinq: formatInt(row.cantidad),
+    pLength: formatDecimal(row.largoVeta),
+    pWidth: formatDecimal(row.ancho),
+    pGrain: vetaToPayload(Boolean(row.vetaLongitud)),
+    pEdgeMaSup: row.l1 || '',
+    pEdgeMaInf: row.l2 || '',
+    pEdgeMaIzq: row.a1 || '',
+    pEdgeMaDer: row.a2 || '',
+    pIdesc: pIdesc || row.observacion || '',
+    pIidesc: '',
+  }
+}
+
+/**
+ * Genera y descarga un .xlsx con el formato del optimizador.
+ * @param {string} filename
+ * @param {{ orders: Array, maquinaParametros?: string, projectName?: string }} data
+ */
+export function downloadProyectoExcel(filename, { orders = [], maquinaParametros = '', projectName = '' }) {
+  const technicalRow = EXCEL_EXPORT_COLUMNS.map((c) => c.technical)
+  const labelRow = EXCEL_EXPORT_COLUMNS.map((c) => c.label)
+  const dataRows = []
+
+  for (const order of orders) {
+    const pIdesc = order.descripcion || projectName || ''
+    for (const detalle of order.detalles || []) {
+      const cells = rowToExcelCells(detalle, { pParams: maquinaParametros, pIdesc })
+      dataRows.push(EXCEL_EXPORT_COLUMNS.map((col) => cells[col.key] ?? ''))
+    }
+  }
+
+  const sheetData = [technicalRow, labelRow, ...dataRows]
+  const ws = XLSX.utils.aoa_to_sheet(sheetData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Planilla')
+  XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`)
+}
+
+export function downloadOrderExcel(filename, order, { maquinaParametros = '', projectName = '' } = {}) {
+  downloadProyectoExcel(filename, {
+    orders: [order],
+    maquinaParametros,
+    projectName,
+  })
+}

@@ -77,3 +77,21 @@ export async function saveProyectoCompleto(payload) {
     }),
   )
 }
+
+export async function fetchMaquinas() {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/maquinas`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
+export async function updateProyectoMaquina(proyectoId, maquinaId) {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/maquina`), {
+      method: 'PATCH',
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({ maquinaId }),
+    }),
+  )
+}
