@@ -63,10 +63,7 @@ export default function PlanillaCortePage() {
 
   function handleAddOrder() {
     if (readOnly) return
-    const order = addOrder()
-    if (order && project) {
-      navigate(planillaOrderDetallePath(project, order.id))
-    }
+    addOrder()
   }
 
   function openDetalle(order) {
