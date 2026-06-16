@@ -317,7 +317,7 @@ function NaturalFields({ profile, setProfileField }) {
         />
       </AuthField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <AuthField label="Tipo de documento *" icon={FileText}>
+        <AuthField label="Tipo de documento *" >
           <select
             value={profile.tipoDocumento}
             onChange={(e) => setProfileField('tipoDocumento', e.target.value)}

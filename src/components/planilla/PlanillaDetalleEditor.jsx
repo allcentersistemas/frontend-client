@@ -200,20 +200,6 @@ export function PlanillaDetalleEditor({
       </header>
 
       <div className="planilla-modal__toolbar">
-        <div className="flex flex-wrap items-center gap-2">
-          {!readOnly ? (
-            <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
-              + Agregar pieza
-            </button>
-          ) : (
-            <span className="tag tag--ok">Solo lectura</span>
-          )}
-          {onDownloadExcel ? (
-            <button type="button" className="btn btn--ghost btn--sm" onClick={onDownloadExcel}>
-              Descargar Excel
-            </button>
-          ) : null}
-        </div>
       </div>
 
       <div className="planilla-modal__body">

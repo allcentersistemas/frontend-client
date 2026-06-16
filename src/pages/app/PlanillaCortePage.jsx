@@ -257,24 +257,6 @@ export default function PlanillaCortePage() {
                     ))}
                   </select>
                 </label>
-                <div className="field flex justify-end">
-                  <span className="invisible">Acción</span>
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    disabled={!orders.some((o) => o.detalles.length)}
-                    onClick={() => {
-                      const safe = (project?.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
-                      downloadProyectoExcel(`${safe}.xlsx`, {
-                        orders,
-                        maquinaParametros,
-                        projectName: project?.nombre,
-                      })
-                    }}
-                  >
-                    Descargar Excel
-                  </button>
-                </div>
               </div>
             ) : null}
             <div className="planilla-summary-grid mb-4">
@@ -306,45 +288,6 @@ export default function PlanillaCortePage() {
           </section>
         ) : null}
 
-        {readOnly && orders.length ? (
-          <section className="card pad">
-            <h2 className="card__title mb-3">Exportar</h2>
-            <div className="form-row-2">
-              <label className="field">
-                <span>Máquina (P_PARAMS)</span>
-                <select
-                  value={maquinaId}
-                  onChange={(e) => void updateMaquinaSelection(e.target.value)}
-                >
-                  <option value="">Seleccionar máquina…</option>
-                  {maquinas.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nombre} ({m.codigo})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="field flex justify-end">
-                <span className="invisible">Acción</span>
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  disabled={!orders.some((o) => o.detalles.length)}
-                  onClick={() => {
-                    const safe = (project?.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
-                    downloadProyectoExcel(`${safe}.xlsx`, {
-                      orders,
-                      maquinaParametros,
-                      projectName: project?.nombre,
-                    })
-                  }}
-                >
-                  Descargar Excel
-                </button>
-              </div>
-            </div>
-          </section>
-        ) : null}
       </div>
 
       {modalOpen ? <PlanillaOrdenDetallePanel orderId={orderId} readOnly={readOnly} /> : null}
