@@ -222,7 +222,7 @@ export default function PlanillaCortePage() {
                               ? 'Ver detalle'
                               : order.detalles.length
                                 ? 'Editar detalle'
-                                : 'Capturar detalle'}
+                                : 'Agregar detalle'}
                         </button>
                         {!readOnly ? (
                           <button type="button" className="btn btn--ghost" onClick={() => removeOrder(order.id)}>
@@ -240,25 +240,6 @@ export default function PlanillaCortePage() {
 
         {!readOnly ? (
           <section className="card pad">
-            <h2 className="card__title mb-3">Resumen y envío</h2>
-            {orders.length ? (
-              <div className="form-row-2 mb-4">
-                <label className="field">
-                  <span>Máquina (P_PARAMS)</span>
-                  <select
-                    value={maquinaId}
-                    onChange={(e) => void updateMaquinaSelection(e.target.value)}
-                  >
-                    <option value="">Seleccionar máquina…</option>
-                    {maquinas.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nombre} ({m.codigo})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            ) : null}
             <div className="planilla-summary-grid mb-4">
               <div className="planilla-summary-stat">
                 <span className="planilla-summary-stat__label">Órdenes</span>
