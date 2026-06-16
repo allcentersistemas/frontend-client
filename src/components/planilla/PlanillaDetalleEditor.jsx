@@ -200,6 +200,15 @@ export function PlanillaDetalleEditor({
       </header>
 
       <div className="planilla-modal__toolbar">
+        <div className="flex flex-wrap items-center gap-2">
+          {!readOnly ? (
+            <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
+              + Agregar pieza
+            </button>
+          ) : (
+            <span className="tag tag--ok">Solo lectura</span>
+          )}
+        </div>
       </div>
 
       <div className="planilla-modal__body">
