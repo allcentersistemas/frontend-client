@@ -57,7 +57,7 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Solo los proyectos de su cuenta. Una vez enviados a ventas ya no puede editarlos.
+
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
