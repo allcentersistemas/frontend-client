@@ -44,7 +44,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Portal cliente"
-      subtitle="Accede con tu cuenta de AllCenter"
+      subtitle="Accede con tu cuenta"
       footer={
         registrationEnabled ? (
           <span>
@@ -93,15 +93,6 @@ export default function LoginPage() {
             'Entrar'
           )}
         </AuthSubmitButton>
-
-        {registrationEnabled ? (
-          <Link
-            to="/registro"
-            className="flex w-full items-center justify-center rounded-xl border border-amber-400/25 bg-transparent py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-50 dark:border-white/10 dark:text-amber-100 dark:hover:bg-amber-400/5"
-          >
-            Crear cuenta
-          </Link>
-        ) : null}
       </form>
 
       {prefillDemoLogin ? (
