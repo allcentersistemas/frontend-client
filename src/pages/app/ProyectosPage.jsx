@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listProyectosOptimizacion } from '../../api/orderApi'
+import { downloadProyectoCotizacion, listProyectosOptimizacion } from '../../api/orderApi'
+import { EstadoTag } from '../../components/EstadoTag'
 import {
   ESTADOS_PROYECTO,
   emptyProyectoFilters,
   filterProyectosClientSide,
-  formatEstadoProyecto,
   formatProyectoDate,
 } from '../../planilla/proyectoListUtils'
 
@@ -13,6 +13,8 @@ export default function ProyectosPage() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionMsg, setActionMsg] = useState('')
+  const [busyId, setBusyId] = useState(null)
   const [filters, setFilters] = useState(emptyProyectoFilters())
   const [applied, setApplied] = useState(emptyProyectoFilters())
 
@@ -50,6 +52,19 @@ export default function ProyectosPage() {
     setApplied(empty)
   }
 
+  async function handleDownloadCotizacion(project) {
+    setBusyId(project.id)
+    setActionMsg('')
+    try {
+      const safe = (project.nombre || `proyecto-${project.id}`).replace(/[^\w.-]+/g, '_')
+      await downloadProyectoCotizacion(project.id, safe)
+    } catch (err) {
+      setActionMsg(err.message || 'No se pudo descargar la cotización.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="page-stack">
       <header className="page__head">
@@ -57,7 +72,7 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-
+              Consulte el estado de sus envíos y descargue la cotización cuando esté disponible.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -65,6 +80,8 @@ export default function ProyectosPage() {
           </Link>
         </div>
       </header>
+
+      {actionMsg ? <p className="form-error px-1">{actionMsg}</p> : null}
 
       <section className="card pad">
         <form onSubmit={applyFilters} className="toolbar toolbar--wrap">
@@ -139,7 +156,35 @@ export default function ProyectosPage() {
         </div>
       ) : (
         <>
-
+          <div className="project-grid md:hidden">
+            {filtered.map((p) => (
+              <article key={p.id} className="project-card">
+                <div className="project-card__head">
+                  <h3 className="project-card__title">{p.nombre}</h3>
+                  <EstadoTag estado={p.estado} />
+                </div>
+                <p className="project-card__desc">{p.descripcion || 'Sin descripción'}</p>
+                <p className="small muted">
+                  {formatProyectoDate(p.fechaCreacion)} · {p.cantidadOrdenes ?? 0} órdenes
+                </p>
+                <div className="project-card__actions">
+                  <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--primary btn--sm">
+                    Ver detalle
+                  </Link>
+                  {p.tieneCotizacion ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={busyId === p.id}
+                      onClick={() => void handleDownloadCotizacion(p)}
+                    >
+                      Cotización
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
 
           <div className="card card--table hidden md:block">
             <div className="table-wrap">
@@ -151,7 +196,7 @@ export default function ProyectosPage() {
                     <th>Descripción</th>
                     <th>Órdenes</th>
                     <th>Enviado</th>
-                    <th />
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -159,15 +204,29 @@ export default function ProyectosPage() {
                     <tr key={p.id}>
                       <td className="font-medium">{p.nombre}</td>
                       <td>
-                        <span className="tag">{formatEstadoProyecto(p.estado)}</span>
+                        <EstadoTag estado={p.estado} />
                       </td>
                       <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
                       <td>{p.cantidadOrdenes ?? 0}</td>
                       <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
                       <td>
-                        <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--ghost">
-                          Ver detalle
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                          <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--ghost btn--sm">
+                            Ver detalle
+                          </Link>
+                          {p.tieneCotizacion ? (
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--sm"
+                              disabled={busyId === p.id}
+                              onClick={() => void handleDownloadCotizacion(p)}
+                            >
+                              Descargar cotización
+                            </button>
+                          ) : (
+                            <span className="small muted self-center">Sin cotización</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

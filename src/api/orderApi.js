@@ -95,3 +95,32 @@ export async function updateProyectoMaquina(proyectoId, maquinaId) {
     }),
   )
 }
+
+/** Descarga la cotización del proyecto (solo si estado COTIZADO y archivo disponible). */
+export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cotizacion') {
+  return withClientAuth(async (accessToken) => {
+    const url = clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/cotizacion`)
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'omit',
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      let message = 'No se pudo descargar la cotización.'
+      try {
+        const body = JSON.parse(text)
+        if (body?.message) message = body.message
+      } catch {
+        if (text) message = text
+      }
+      throw new Error(message)
+    }
+    const blob = await res.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = `${filenameHint}-cotizacion.pdf`
+    a.click()
+    URL.revokeObjectURL(objectUrl)
+  })
+}

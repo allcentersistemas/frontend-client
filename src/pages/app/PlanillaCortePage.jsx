@@ -1,9 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { downloadProyectoCotizacion } from '../../api/orderApi'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
-import { formatEstado, isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
+import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
 import { downloadProyectoExcel } from '../../planilla/excelExport'
+import { EstadoTag } from '../../components/EstadoTag'
 
 function StepBadge({ step, label, active, done }) {
   return (
@@ -27,6 +29,7 @@ export default function PlanillaCortePage() {
   const { projectId, orderId } = useParams()
   const navigate = useNavigate()
   const editingId = projectId && projectId !== 'nuevo' ? Number(projectId) : null
+  const [busyCotizacion, setBusyCotizacion] = useState(false)
 
   const {
     project,
@@ -106,8 +109,26 @@ export default function PlanillaCortePage() {
                   : 'Configure el proyecto y las órdenes; abra el detalle de cada orden para capturar piezas.'}
               </p>
               {projectEstado ? (
-                <p className="small mt-2">
-                  Estado: <span className="tag">{formatEstado(projectEstado)}</span>
+                <p className="small mt-2 flex flex-wrap items-center gap-2">
+                  <span>Estado:</span> <EstadoTag estado={projectEstado} />
+                  {readOnly && projectEstado === 'COTIZADO' && project?.id ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={busyCotizacion}
+                      onClick={async () => {
+                        setBusyCotizacion(true)
+                        try {
+                          const safe = (project.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
+                          await downloadProyectoCotizacion(project.id, safe)
+                        } finally {
+                          setBusyCotizacion(false)
+                        }
+                      }}
+                    >
+                      Descargar cotización
+                    </button>
+                  ) : null}
                 </p>
               ) : null}
             </div>

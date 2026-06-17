@@ -18,6 +18,7 @@ export function newDetalle() {
     ranuraDist: '',
     ranuraProf: '',
     ranuraEs: '',
+    ranuraLado: '',
     observado: false,
     observacion: '',
   }
@@ -68,6 +69,7 @@ export function mapDetalleFromApi(detalle) {
     ranuraDist: detalle.ranuraDist || '',
     ranuraProf: detalle.ranuraProf || '',
     ranuraEs: detalle.ranuraEs || '',
+    ranuraLado: detalle.ranuraLado || '',
     observado: Boolean(detalle.observado),
     observacion: detalle.observacion || '',
   }
@@ -90,6 +92,7 @@ export function mapDetalleToApiPayload(row) {
     ranuraDist: row.ranuraDist,
     ranuraProf: row.ranuraProf,
     ranuraEs: row.ranuraEs,
+    ranuraLado: row.ranuraLado,
     observado: Boolean(row.observado),
     observacion: row.observacion,
   }
