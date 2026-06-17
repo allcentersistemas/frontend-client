@@ -156,35 +156,6 @@ export default function ProyectosPage() {
         </div>
       ) : (
         <>
-          <div className="project-grid md:hidden">
-            {filtered.map((p) => (
-              <article key={p.id} className="project-card">
-                <div className="project-card__head">
-                  <h3 className="project-card__title">{p.nombre}</h3>
-                  <EstadoTag estado={p.estado} />
-                </div>
-                <p className="project-card__desc">{p.descripcion || 'Sin descripción'}</p>
-                <p className="small muted">
-                  {formatProyectoDate(p.fechaCreacion)} · {p.cantidadOrdenes ?? 0} órdenes
-                </p>
-                <div className="project-card__actions">
-                  <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--primary btn--sm">
-                    Ver detalle
-                  </Link>
-                  {p.tieneCotizacion ? (
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      disabled={busyId === p.id}
-                      onClick={() => void handleDownloadCotizacion(p)}
-                    >
-                      Cotización
-                    </button>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
 
           <div className="card card--table hidden md:block">
             <div className="table-wrap">
