@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import logo from '../assets/allcenter1.png'
+import logo from '../assets/allpanel.png'
 import { ThemeToggle } from './ThemeToggle'
 
 /**

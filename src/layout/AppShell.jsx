@@ -9,7 +9,7 @@ import {
 } from '../auth/clientSession'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { cn } from '../lib/cn'
-import logo from '../assets/allcenter1.png'
+import logo from '../assets/allpanel.png'
 
 export default function AppShell() {
   const navigate = useNavigate()
