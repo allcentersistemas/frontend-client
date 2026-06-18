@@ -4,7 +4,7 @@ import { downloadProyectoCotizacion } from '../../api/orderApi'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
-import { downloadProyectoExcel } from '../../planilla/excelExport'
+import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 import { EstadoTag } from '../../components/EstadoTag'
 
 function StepBadge({ step, label, active, done }) {
@@ -246,8 +246,22 @@ export default function PlanillaCortePage() {
                                 : 'Agregar detalle'}
                         </button>
                         {!readOnly ? (
-                          <button type="button" className="btn btn--ghost" onClick={() => removeOrder(order.id)}>
+                          <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeOrder(order.id)}>
                             Quitar
+                          </button>
+                        ) : null}
+                        {order.detalles.length ? (
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            onClick={() =>
+                              downloadOrderExcel(orderExcelFilename(order, project?.nombre), order, {
+                                maquinaParametros,
+                                projectName: project?.nombre,
+                              })
+                            }
+                          >
+                            Excel
                           </button>
                         ) : null}
                       </div>

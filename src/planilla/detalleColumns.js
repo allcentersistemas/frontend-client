@@ -28,9 +28,18 @@ export const DETALLE_TABLE_COLUMNS = [
   { key: 'observacion', label: 'Descripción', wide: true },
   { key: 'perforacionCantidad', label: 'Perf. cant.', type: 'number' },
   { key: 'perforacionLado1', label: 'Perf. lado', type: 'lado' },
-  { key: 'ranuraDist', label: 'Ran. dist.', type: 'ranuraDist' },
-  { key: 'ranuraProf', label: 'Ran. prof.', type: 'ranuraProf' },
-  { key: 'ranuraEs', label: 'Ran. esp.', type: 'ranuraEs' },
+  { key: 'ranuraDist', label: 'Ran. dist.', type: 'ranuraDist', group: 'ranura' },
+  { key: 'ranuraProf', label: 'Ran. prof.', type: 'ranuraProf', group: 'ranura' },
+  { key: 'ranuraEs', label: 'Ran. esp.', type: 'ranuraEs', group: 'ranura' },
+  { key: 'ranuraLado', label: 'Ran. lado', type: 'lado', group: 'ranura' },
+]
+
+export const DETALLE_TABLE_GROUPS = [
+  { id: 'material', label: 'Material y medidas', span: 5 },
+  { id: 'canto', label: 'Canto', span: 4 },
+  { id: 'obs', label: 'Descripción', span: 1 },
+  { id: 'perf', label: 'Perforación', span: 2 },
+  { id: 'ranura', label: 'Ranura', span: 4 },
 ]
 
 const LADO_OPTIONS = ['NA', 'L1', 'L2', 'A1', 'A2']

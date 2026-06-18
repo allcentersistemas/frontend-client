@@ -254,32 +254,80 @@
   @apply flex flex-col gap-3 border-t border-slate-200/80 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/10 dark:bg-black/25;
 }
 
+.planilla-modal--detalle {
+  @apply max-h-[94svh] w-full max-w-[min(98vw,1800px)];
+}
+
+.planilla-modal__body--table {
+  @apply overflow-hidden px-2 py-2 sm:px-3;
+}
+
 .planilla-table-shell--detalle {
-  @apply px-0 py-0;
+  @apply max-h-[min(60vh,520px)] overflow-auto px-0 py-0;
 }
 
 .planilla-detalle-table {
-  @apply w-full min-w-[1100px] border-collapse text-left text-xs;
+  @apply w-full min-w-[1680px] border-collapse text-left text-xs;
+}
+
+.planilla-detalle-table__group-row th {
+  @apply border-b-0 py-1.5 text-[0.6rem];
+}
+
+.planilla-detalle-table__group {
+  @apply border-l border-slate-200/80 text-center font-bold tracking-wider normal-case dark:border-white/10;
+}
+
+.planilla-detalle-table__group--material {
+  @apply border-l-0 bg-sky-500/10 text-sky-800 dark:bg-sky-400/10 dark:text-sky-200;
+}
+
+.planilla-detalle-table__group--canto {
+  @apply bg-amber-500/10 text-amber-900 dark:bg-amber-400/10 dark:text-amber-200;
+}
+
+.planilla-detalle-table__group--obs {
+  @apply bg-slate-500/10 text-slate-700 dark:bg-slate-400/10 dark:text-slate-200;
+}
+
+.planilla-detalle-table__group--perf {
+  @apply bg-violet-500/10 text-violet-800 dark:bg-violet-400/10 dark:text-violet-200;
+}
+
+.planilla-detalle-table__group--ranura {
+  @apply bg-emerald-500/10 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200;
 }
 
 .planilla-detalle-table th {
   @apply sticky top-0 z-[1] whitespace-nowrap border-b border-slate-200 bg-slate-50/95 px-2 py-2 text-[0.65rem] font-semibold tracking-wide text-slate-600 uppercase dark:border-white/[0.06] dark:bg-slate-950/95 dark:text-slate-500;
 }
 
+.planilla-detalle-table thead tr:nth-child(2) th {
+  @apply top-[1.75rem];
+}
+
 .planilla-detalle-table td {
-  @apply border-b border-slate-100 px-2 py-1.5 align-middle dark:border-white/[0.05];
+  @apply border-b border-slate-100 px-1.5 py-1 align-middle dark:border-white/[0.05];
+}
+
+.planilla-detalle-table tbody tr:hover {
+  @apply bg-amber-400/5 dark:bg-amber-400/5;
 }
 
 .planilla-detalle-table__num {
-  @apply w-8 text-center text-slate-500;
+  @apply w-9 text-center text-slate-500;
 }
 
 .planilla-detalle-table__wide {
-  @apply min-w-[160px];
+  @apply min-w-[140px];
 }
 
 .planilla-detalle-table__actions {
-  @apply w-16 whitespace-nowrap;
+  @apply w-10 whitespace-nowrap text-center;
+}
+
+.planilla-detalle-table__readonly {
+  @apply block max-w-[120px] truncate text-slate-600 dark:text-slate-300;
 }
 
 .planilla-input--table,

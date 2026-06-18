@@ -33,22 +33,16 @@ function rowToExcelCells(row, { pParams, pIdesc }) {
 }
 
 /**
- * Genera y descarga un .xlsx con el formato del optimizador.
- * @param {string} filename
- * @param {{ orders: Array, maquinaParametros?: string, projectName?: string }} data
+ * Genera y descarga un .xlsx de una sola orden.
  */
-export function downloadProyectoExcel(filename, { orders = [], maquinaParametros = '', projectName = '' }) {
+export function downloadOrderExcel(filename, order, { maquinaParametros = '', projectName = '' } = {}) {
   const technicalRow = EXCEL_EXPORT_COLUMNS.map((c) => c.technical)
   const labelRow = EXCEL_EXPORT_COLUMNS.map((c) => c.label)
-  const dataRows = []
-
-  for (const order of orders) {
-    const pIdesc = order.descripcion || projectName || ''
-    for (const detalle of order.detalles || []) {
-      const cells = rowToExcelCells(detalle, { pParams: maquinaParametros, pIdesc })
-      dataRows.push(EXCEL_EXPORT_COLUMNS.map((col) => cells[col.key] ?? ''))
-    }
-  }
+  const pIdesc = order.descripcion || projectName || ''
+  const dataRows = (order.detalles || []).map((detalle) => {
+    const cells = rowToExcelCells(detalle, { pParams: maquinaParametros, pIdesc })
+    return EXCEL_EXPORT_COLUMNS.map((col) => cells[col.key] ?? '')
+  })
 
   const sheetData = [technicalRow, labelRow, ...dataRows]
   const ws = XLSX.utils.aoa_to_sheet(sheetData)
@@ -57,10 +51,8 @@ export function downloadProyectoExcel(filename, { orders = [], maquinaParametros
   XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`)
 }
 
-export function downloadOrderExcel(filename, order, { maquinaParametros = '', projectName = '' } = {}) {
-  downloadProyectoExcel(filename, {
-    orders: [order],
-    maquinaParametros,
-    projectName,
-  })
+export function orderExcelFilename(order, projectName = 'proyecto') {
+  const projectSlug = String(projectName || 'proyecto').replace(/[^\w.-]+/g, '_')
+  const orderSlug = String(order.codigo || `orden-${order.id}`).replace(/[^\w.-]+/g, '_')
+  return `${projectSlug}_${orderSlug}.xlsx`
 }
