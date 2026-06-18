@@ -129,7 +129,7 @@ export default function AppShell() {
             <img src={logo} alt="AllCenter" className="h-9 w-9 object-contain" />
           </span>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-slate-900 dark:text-white">AllCenter</p>
+            <p className="truncate font-semibold text-slate-900 dark:text-white">AllPanel</p>
             <p className="truncate text-xs text-slate-500">Portal cliente</p>
           </div>
         </div>
