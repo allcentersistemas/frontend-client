@@ -209,11 +209,6 @@ export function PlanillaDetalleEditor({
           ) : (
             <span className="tag tag--ok">Solo lectura</span>
           )}
-          {onDownloadExcel ? (
-            <button type="button" className="btn btn--ghost btn--sm" onClick={onDownloadExcel}>
-              Descargar Excel
-            </button>
-          ) : null}
         </div>
         <p className="planilla-modal__hint small muted m-0">
           Cada fila es una pieza. Desplácese horizontalmente para ver todas las columnas.
