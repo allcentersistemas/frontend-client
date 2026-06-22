@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
+import { normalizeMeasureRow } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
@@ -31,7 +32,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
 
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
-    updateOrderDetalles(order.id, rows)
+    updateOrderDetalles(order.id, rows.map(normalizeMeasureRow))
     onClose()
   }, [readOnly, order, rows, updateOrderDetalles, onClose])
 
@@ -58,7 +59,6 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       onDownloadExcel={() => {
         downloadOrderExcel(orderExcelFilename(order, project?.nombre), { ...order, detalles: rows }, {
           maquinaParametros,
-          projectName: project?.nombre,
         })
       }}
       onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}

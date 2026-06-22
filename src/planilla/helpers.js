@@ -1,3 +1,5 @@
+import { normalizeMeasureInput } from './measureInput.js'
+
 export const VETA_NO = '0-No'
 export const VETA_LONGITUD = '1-Longitud'
 
@@ -78,15 +80,15 @@ export function mapDetalleFromApi(detalle) {
 export function mapDetalleToApiPayload(row) {
   return {
     tablero: row.tablero,
-    cantidad: row.cantidad,
-    largoVeta: row.largoVeta,
-    ancho: row.ancho,
+    cantidad: normalizeMeasureInput(row.cantidad),
+    largoVeta: normalizeMeasureInput(row.largoVeta),
+    ancho: normalizeMeasureInput(row.ancho),
     veta: vetaToPayload(Boolean(row.vetaLongitud)),
     l1: row.l1,
     l2: row.l2,
     a1: row.a1,
     a2: row.a2,
-    perforacionCantidad: row.perforacionCantidad,
+    perforacionCantidad: normalizeMeasureInput(row.perforacionCantidad),
     perforacionLado1: row.perforacionLado1,
     perforacionLado2: row.perforacionLado2,
     ranuraDist: row.ranuraDist,

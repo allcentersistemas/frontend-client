@@ -6,28 +6,39 @@ function formatDecimal(value) {
   if (value === '' || value == null) return ''
   const n = Number(String(value).replace(',', '.'))
   if (!Number.isFinite(n)) return String(value)
-  return n.toFixed(1).replace('.', ',')
+  return Number.isInteger(n) ? String(n) : String(n).replace(',', '.')
 }
 
 function formatInt(value) {
   if (value === '' || value == null) return ''
   const n = parseInt(String(value).replace(/\D/g, ''), 10)
-  return Number.isFinite(n) ? n : ''
+  return Number.isFinite(n) ? String(n) : ''
 }
 
-function rowToExcelCells(row, { pParams, pIdesc }) {
+function withTrailingSpace(value) {
+  const s = String(value ?? '').trim()
+  if (!s) return ''
+  return `${s} `
+}
+
+function blankOrString(value) {
+  if (value == null) return ''
+  return String(value).trim()
+}
+
+function rowToExcelCells(row, { pParams }) {
   return {
-    pCodeMat: row.tablero || '',
+    pCodeMat: withTrailingSpace(row.tablero),
     pParams: pParams || '',
     pMinq: formatInt(row.cantidad),
     pLength: formatDecimal(row.largoVeta),
     pWidth: formatDecimal(row.ancho),
-    pGrain: vetaToPayload(Boolean(row.vetaLongitud)),
-    pEdgeMaSup: row.l1 || '',
-    pEdgeMaInf: row.l2 || '',
-    pEdgeMaIzq: row.a1 || '',
-    pEdgeMaDer: row.a2 || '',
-    pIdesc: pIdesc || row.observacion || '',
+    pGrain: vetaToPayload(Boolean(row.vetaLongitud)).toLowerCase(),
+    pEdgeMaSup: withTrailingSpace(row.l1),
+    pEdgeMaInf: withTrailingSpace(row.l2),
+    pEdgeMaIzq: withTrailingSpace(row.a1),
+    pEdgeMaDer: withTrailingSpace(row.a2),
+    pIdesc: blankOrString(row.observacion),
     pIidesc: '',
   }
 }
@@ -35,12 +46,11 @@ function rowToExcelCells(row, { pParams, pIdesc }) {
 /**
  * Genera y descarga un .xlsx de una sola orden.
  */
-export function downloadOrderExcel(filename, order, { maquinaParametros = '', projectName = '' } = {}) {
+export function downloadOrderExcel(filename, order, { maquinaParametros = '' } = {}) {
   const technicalRow = EXCEL_EXPORT_COLUMNS.map((c) => c.technical)
   const labelRow = EXCEL_EXPORT_COLUMNS.map((c) => c.label)
-  const pIdesc = order.descripcion || projectName || ''
   const dataRows = (order.detalles || []).map((detalle) => {
-    const cells = rowToExcelCells(detalle, { pParams: maquinaParametros, pIdesc })
+    const cells = rowToExcelCells(detalle, { pParams: maquinaParametros })
     return EXCEL_EXPORT_COLUMNS.map((col) => cells[col.key] ?? '')
   })
 

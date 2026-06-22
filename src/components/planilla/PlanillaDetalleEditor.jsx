@@ -8,6 +8,7 @@ import {
   RANURA_ES,
   RANURA_PROF,
 } from '../../planilla/detalleColumns'
+import { normalizeMeasureInput } from '../../planilla/measureInput'
 
 function VetaCheckbox({ checked, onChange, disabled = false }) {
   return (
@@ -133,8 +134,10 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
     <input
       className="planilla-input planilla-input--block planilla-input--table"
       value={row[key] || ''}
-      onChange={(e) => onUpdate(key, e.target.value)}
-      inputMode={type === 'number' ? 'numeric' : undefined}
+      onChange={(e) =>
+        onUpdate(key, type === 'number' ? normalizeMeasureInput(e.target.value) : e.target.value)
+      }
+      inputMode={type === 'number' ? 'decimal' : undefined}
       placeholder="—"
     />
   )

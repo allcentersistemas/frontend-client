@@ -257,7 +257,6 @@ export default function PlanillaCortePage() {
                             onClick={() =>
                               downloadOrderExcel(orderExcelFilename(order, project?.nombre), order, {
                                 maquinaParametros,
-                                projectName: project?.nombre,
                               })
                             }
                           >
