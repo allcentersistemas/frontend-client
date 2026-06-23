@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SearchableSelect } from './SearchableSelect'
 import {
   DETALLE_TABLE_COLUMNS,
@@ -8,9 +8,10 @@ import {
   RANURA_ES,
   RANURA_PROF,
 } from '../../planilla/detalleColumns'
+import { cellNavProps, DETALLE_COLUMN_KEYS, focusDetalleCell } from '../../planilla/detalleTableFocus'
 import { normalizeMeasureInput } from '../../planilla/measureInput'
 
-function VetaCheckbox({ checked, onChange, disabled = false }) {
+function VetaCheckbox({ checked, onChange, disabled = false, navProps = {} }) {
   return (
     <label className="planilla-veta planilla-veta--compact" title={checked ? '1-Longitud' : '0-No'}>
       <input
@@ -19,6 +20,7 @@ function VetaCheckbox({ checked, onChange, disabled = false }) {
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
+        {...navProps}
       />
       <span className="planilla-veta__box" aria-hidden />
       <span className="planilla-veta__text">{checked ? '1-Long' : '0-No'}</span>
@@ -26,19 +28,58 @@ function VetaCheckbox({ checked, onChange, disabled = false }) {
   )
 }
 
-function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }) {
+function DetalleCell({ column, row, rowIndex, tabHandlers, onUpdate, onPatch, tableros, cantoOptions, readOnly }) {
   const { key, type } = column
+  const nav = readOnly ? {} : cellNavProps(rowIndex, key, tabHandlers)
 
   if (readOnly) {
-    if (type === 'veta') {
-      return <span className="planilla-detalle-table__readonly">{row.vetaLongitud ? '1-Long' : '0-No'}</span>
+    if (type === 'veta' || type === 'ranuraEspecial') {
+      const on = type === 'veta' ? row.vetaLongitud : row.ranuraEspecial
+      return (
+        <span className="planilla-detalle-table__readonly">
+          {type === 'veta' ? (on ? '1-Long' : '0-No') : on ? 'Sí' : 'No'}
+        </span>
+      )
     }
     return <span className="planilla-detalle-table__readonly">{row[key] || '—'}</span>
   }
 
+  if (type === 'ranuraEspecial') {
+    return (
+      <label className="planilla-veta planilla-veta--compact" title="Ranura especial (valores manuales)">
+        <input
+          type="checkbox"
+          className="planilla-veta__input"
+          checked={Boolean(row.ranuraEspecial)}
+          onChange={(e) => {
+            const checked = e.target.checked
+            const patch = { ranuraEspecial: checked }
+            if (!checked) {
+              patch.ranuraDist = RANURA_DIST.includes(row.ranuraDist) ? row.ranuraDist || 'NA' : 'NA'
+              patch.ranuraProf = RANURA_PROF.includes(row.ranuraProf) ? row.ranuraProf || 'NA' : 'NA'
+              patch.ranuraEs = RANURA_ES.includes(row.ranuraEs) ? row.ranuraEs || 'NA' : 'NA'
+            } else {
+              if (!row.ranuraDist || row.ranuraDist === 'NA') patch.ranuraDist = ''
+              if (!row.ranuraProf || row.ranuraProf === 'NA') patch.ranuraProf = ''
+              if (!row.ranuraEs || row.ranuraEs === 'NA') patch.ranuraEs = ''
+            }
+            onPatch(patch)
+          }}
+          {...nav}
+        />
+        <span className="planilla-veta__box" aria-hidden />
+        <span className="planilla-veta__text">Esp.</span>
+      </label>
+    )
+  }
+
   if (type === 'veta') {
     return (
-      <VetaCheckbox checked={Boolean(row.vetaLongitud)} onChange={(v) => onUpdate('vetaLongitud', v)} />
+      <VetaCheckbox
+        checked={Boolean(row.vetaLongitud)}
+        onChange={(v) => onUpdate('vetaLongitud', v)}
+        navProps={nav}
+      />
     )
   }
 
@@ -50,6 +91,7 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
         options={cantoOptions}
         placeholder="—"
         size="sm"
+        triggerProps={nav}
       />
     )
   }
@@ -60,6 +102,7 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
         className="planilla-select planilla-select--block planilla-select--table"
         value={row[key] || 'NA'}
         onChange={(e) => onUpdate(key, e.target.value)}
+        {...nav}
       >
         {LADO_OPTIONS.map((opt) => (
           <option key={opt} value={opt}>
@@ -71,11 +114,24 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
   }
 
   if (type === 'ranuraDist') {
+    if (row.ranuraEspecial) {
+      return (
+        <input
+          className="planilla-input planilla-input--block planilla-input--table"
+          value={row.ranuraDist || ''}
+          onChange={(e) => onUpdate('ranuraDist', normalizeMeasureInput(e.target.value))}
+          inputMode="numeric"
+          placeholder="—"
+          {...nav}
+        />
+      )
+    }
     return (
       <select
         className="planilla-select planilla-select--block planilla-select--table"
         value={row.ranuraDist || 'NA'}
         onChange={(e) => onUpdate('ranuraDist', e.target.value)}
+        {...nav}
       >
         {RANURA_DIST.map((opt) => (
           <option key={opt} value={opt}>
@@ -87,11 +143,24 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
   }
 
   if (type === 'ranuraProf') {
+    if (row.ranuraEspecial) {
+      return (
+        <input
+          className="planilla-input planilla-input--block planilla-input--table"
+          value={row.ranuraProf || ''}
+          onChange={(e) => onUpdate('ranuraProf', normalizeMeasureInput(e.target.value))}
+          inputMode="numeric"
+          placeholder="—"
+          {...nav}
+        />
+      )
+    }
     return (
       <select
         className="planilla-select planilla-select--block planilla-select--table"
         value={row.ranuraProf || 'NA'}
         onChange={(e) => onUpdate('ranuraProf', e.target.value)}
+        {...nav}
       >
         {RANURA_PROF.map((opt) => (
           <option key={opt} value={opt}>
@@ -103,11 +172,24 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
   }
 
   if (type === 'ranuraEs') {
+    if (row.ranuraEspecial) {
+      return (
+        <input
+          className="planilla-input planilla-input--block planilla-input--table"
+          value={row.ranuraEs || ''}
+          onChange={(e) => onUpdate('ranuraEs', normalizeMeasureInput(e.target.value))}
+          inputMode="numeric"
+          placeholder="—"
+          {...nav}
+        />
+      )
+    }
     return (
       <select
         className="planilla-select planilla-select--block planilla-select--table"
         value={row.ranuraEs || 'NA'}
         onChange={(e) => onUpdate('ranuraEs', e.target.value)}
+        {...nav}
       >
         {RANURA_ES.map((opt) => (
           <option key={opt} value={opt}>
@@ -126,6 +208,7 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
         options={tableros}
         placeholder="Tablero"
         size="sm"
+        triggerProps={nav}
       />
     )
   }
@@ -137,8 +220,9 @@ function DetalleCell({ column, row, onUpdate, tableros, cantoOptions, readOnly }
       onChange={(e) =>
         onUpdate(key, type === 'number' ? normalizeMeasureInput(e.target.value) : e.target.value)
       }
-      inputMode={type === 'number' ? 'decimal' : undefined}
+      inputMode={type === 'number' ? 'numeric' : undefined}
       placeholder="—"
+      {...nav}
     />
   )
 }
@@ -154,10 +238,34 @@ export function PlanillaDetalleEditor({
   onSave,
   onAddRow,
   onUpdateRow,
+  onPatchRow,
   onRemoveRow,
   onDownloadExcel,
   maquinaParametros,
 }) {
+  const [pendingFocus, setPendingFocus] = useState(null)
+
+  const tabHandlers = useMemo(
+    () => ({
+      onEndOfRow: (rowIndex) => {
+        if (!onAddRow) return
+        onAddRow()
+        setPendingFocus({ row: rowIndex + 1, col: DETALLE_COLUMN_KEYS[0] })
+      },
+    }),
+    [onAddRow],
+  )
+
+  useEffect(() => {
+    if (!pendingFocus) return
+    const frame = requestAnimationFrame(() => {
+      if (focusDetalleCell(pendingFocus.row, pendingFocus.col)) {
+        setPendingFocus(null)
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [pendingFocus, rows])
+
   const totalPiezas = useMemo(
     () =>
       rows.reduce((sum, row) => {
@@ -214,7 +322,7 @@ export function PlanillaDetalleEditor({
           )}
         </div>
         <p className="planilla-modal__hint small muted m-0">
-          Cada fila es una pieza. Desplácese horizontalmente para ver todas las columnas.
+          Cada fila es una pieza. Use Tab para avanzar entre columnas; al final de la fila se crea una nueva.
         </p>
       </div>
 
@@ -258,10 +366,13 @@ export function PlanillaDetalleEditor({
                       <DetalleCell
                         column={col}
                         row={row}
+                        rowIndex={index}
+                        tabHandlers={tabHandlers}
                         tableros={tableros}
                         cantoOptions={cantoOptions}
                         readOnly={readOnly}
                         onUpdate={(key, value) => onUpdateRow(index, key, value)}
+                        onPatch={(patch) => onPatchRow?.(index, patch)}
                       />
                     </td>
                   ))}
@@ -274,6 +385,7 @@ export function PlanillaDetalleEditor({
                         disabled={rows.length <= 1}
                         aria-label={`Quitar fila ${index + 1}`}
                         title="Quitar fila"
+                        tabIndex={-1}
                       >
                         ×
                       </button>

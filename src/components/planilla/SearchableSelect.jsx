@@ -17,6 +17,7 @@ export function SearchableSelect({
   disabled = false,
   className,
   size = 'md',
+  triggerProps = {},
 }) {
   const rootRef = useRef(null)
   const [open, setOpen] = useState(false)
@@ -152,6 +153,7 @@ export function SearchableSelect({
           disabled={disabled || !options.length}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
+          {...triggerProps}
         >
           <span className="truncate">{options.length ? selectedLabel : 'Sin opciones'}</span>
           <span className="searchable-select__chev" aria-hidden>

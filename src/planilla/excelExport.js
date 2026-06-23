@@ -2,13 +2,6 @@ import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
 import { vetaToPayload } from './helpers'
 
-function formatDecimal(value) {
-  if (value === '' || value == null) return ''
-  const n = Number(String(value).replace(',', '.'))
-  if (!Number.isFinite(n)) return String(value)
-  return Number.isInteger(n) ? String(n) : String(n).replace(',', '.')
-}
-
 function formatInt(value) {
   if (value === '' || value == null) return ''
   const n = parseInt(String(value).replace(/\D/g, ''), 10)
@@ -31,8 +24,8 @@ function rowToExcelCells(row, { pParams }) {
     pCodeMat: withTrailingSpace(row.tablero),
     pParams: pParams || '',
     pMinq: formatInt(row.cantidad),
-    pLength: formatDecimal(row.largoVeta),
-    pWidth: formatDecimal(row.ancho),
+    pLength: formatInt(row.largoVeta),
+    pWidth: formatInt(row.ancho),
     pGrain: vetaToPayload(Boolean(row.vetaLongitud)).toLowerCase(),
     pEdgeMaSup: withTrailingSpace(row.l1),
     pEdgeMaInf: withTrailingSpace(row.l2),

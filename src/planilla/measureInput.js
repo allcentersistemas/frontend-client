@@ -1,10 +1,10 @@
-/** Campos numéricos de medida / cantidad en el detalle de planilla. */
+/** Campos numéricos enteros en el detalle de planilla. */
 export const MEASURE_FIELDS = ['cantidad', 'largoVeta', 'ancho', 'perforacionCantidad']
 
-/** Convierte comas decimales a punto para persistir en BD. */
+/** Solo dígitos (enteros). Convierte comas/puntos y rechaza decimales. */
 export function normalizeMeasureInput(value) {
   if (value == null) return ''
-  return String(value).replace(/,/g, '.')
+  return String(value).replace(/\D/g, '')
 }
 
 export function normalizeMeasureRow(row) {
@@ -12,6 +12,13 @@ export function normalizeMeasureRow(row) {
   for (const key of MEASURE_FIELDS) {
     if (out[key] != null && out[key] !== '') {
       out[key] = normalizeMeasureInput(out[key])
+    }
+  }
+  if (row.ranuraEspecial) {
+    for (const key of ['ranuraDist', 'ranuraProf', 'ranuraEs']) {
+      if (out[key] != null && out[key] !== '') {
+        out[key] = normalizeMeasureInput(out[key])
+      }
     }
   }
   return out

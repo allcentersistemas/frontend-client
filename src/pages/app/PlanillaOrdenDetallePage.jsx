@@ -58,6 +58,10 @@ export default function PlanillaOrdenDetallePage() {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
   }, [])
 
+  const patchRow = useCallback((index, patch) => {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  }, [])
+
   if (loadingProject || !order) {
     return (
       <div className="card pad flex items-center gap-4">
@@ -79,6 +83,7 @@ export default function PlanillaOrdenDetallePage() {
       onSave={handleSave}
       onAddRow={addRow}
       onUpdateRow={updateRow}
+      onPatchRow={patchRow}
       onRemoveRow={removeRow}
     />
   )

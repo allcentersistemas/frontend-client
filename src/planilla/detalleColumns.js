@@ -28,6 +28,7 @@ export const DETALLE_TABLE_COLUMNS = [
   { key: 'observacion', label: 'Descripción', wide: true },
   { key: 'perforacionCantidad', label: 'Perf. cant.', type: 'number' },
   { key: 'perforacionLado1', label: 'Perf. lado', type: 'lado' },
+  { key: 'ranuraEspecial', label: 'Especial', type: 'ranuraEspecial', group: 'ranura' },
   { key: 'ranuraDist', label: 'Ran. dist.', type: 'ranuraDist', group: 'ranura' },
   { key: 'ranuraProf', label: 'Ran. prof.', type: 'ranuraProf', group: 'ranura' },
   { key: 'ranuraEs', label: 'Ran. esp.', type: 'ranuraEs', group: 'ranura' },
@@ -39,12 +40,12 @@ export const DETALLE_TABLE_GROUPS = [
   { id: 'canto', label: 'Canto', span: 4 },
   { id: 'obs', label: 'Descripción', span: 1 },
   { id: 'perf', label: 'Perforación', span: 2 },
-  { id: 'ranura', label: 'Ranura', span: 4 },
+  { id: 'ranura', label: 'Ranura', span: 5 },
 ]
 
 const LADO_OPTIONS = ['NA', 'L1', 'L2', 'A1', 'A2']
 const RANURA_DIST = ['NA', '10', '15', '18']
-const RANURA_PROF = ['NA', '6', '8', '10']
-const RANURA_ES = ['NA', '4', '7']
+const RANURA_PROF = ['NA', '7', '8', '10']
+const RANURA_ES = ['NA', '4', '7', '10']
 
 export { LADO_OPTIONS, RANURA_DIST, RANURA_PROF, RANURA_ES }

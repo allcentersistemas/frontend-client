@@ -1,4 +1,5 @@
 import { normalizeMeasureInput } from './measureInput.js'
+import { RANURA_DIST, RANURA_ES, RANURA_PROF } from './detalleColumns.js'
 
 export const VETA_NO = '0-No'
 export const VETA_LONGITUD = '1-Longitud'
@@ -17,6 +18,7 @@ export function newDetalle() {
     perforacionCantidad: '',
     perforacionLado1: '',
     perforacionLado2: '',
+    ranuraEspecial: false,
     ranuraDist: '',
     ranuraProf: '',
     ranuraEs: '',
@@ -54,6 +56,21 @@ export function vetaFromApi(value) {
   return v === VETA_LONGITUD || v.startsWith('1-') || v === '1'
 }
 
+function isPresetRanura(value, options) {
+  const v = String(value ?? '').trim()
+  if (!v || v === 'NA') return true
+  return options.includes(v)
+}
+
+function inferRanuraEspecial(detalle) {
+  if (detalle.ranuraEspecial) return true
+  return (
+    !isPresetRanura(detalle.ranuraDist, RANURA_DIST) ||
+    !isPresetRanura(detalle.ranuraProf, RANURA_PROF) ||
+    !isPresetRanura(detalle.ranuraEs, RANURA_ES)
+  )
+}
+
 export function mapDetalleFromApi(detalle) {
   return {
     tablero: detalle.tablero || '',
@@ -68,6 +85,7 @@ export function mapDetalleFromApi(detalle) {
     perforacionCantidad: detalle.perforacionCantidad || '',
     perforacionLado1: detalle.perforacionLado1 || '',
     perforacionLado2: detalle.perforacionLado2 || '',
+    ranuraEspecial: inferRanuraEspecial(detalle),
     ranuraDist: detalle.ranuraDist || '',
     ranuraProf: detalle.ranuraProf || '',
     ranuraEs: detalle.ranuraEs || '',
@@ -91,6 +109,7 @@ export function mapDetalleToApiPayload(row) {
     perforacionCantidad: normalizeMeasureInput(row.perforacionCantidad),
     perforacionLado1: row.perforacionLado1,
     perforacionLado2: row.perforacionLado2,
+    ranuraEspecial: Boolean(row.ranuraEspecial),
     ranuraDist: row.ranuraDist,
     ranuraProf: row.ranuraProf,
     ranuraEs: row.ranuraEs,

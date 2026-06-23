@@ -68,6 +68,12 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
           : (index, key, value) =>
               setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
       }
+      onPatchRow={
+        readOnly
+          ? undefined
+          : (index, patch) =>
+              setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+      }
       onRemoveRow={
         readOnly ? undefined : (index) => setRows((prev) => prev.filter((_, i) => i !== index))
       }
