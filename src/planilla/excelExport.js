@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
 import { vetaToPayload } from './helpers'
+import { formatMeasureForOptimizer } from './measureExport'
 
 function formatInt(value) {
   if (value === '' || value == null) return ''
@@ -24,8 +25,8 @@ function rowToExcelCells(row, { pParams }) {
     pCodeMat: withTrailingSpace(row.tablero),
     pParams: pParams || '',
     pMinq: formatInt(row.cantidad),
-    pLength: formatInt(row.largoVeta),
-    pWidth: formatInt(row.ancho),
+    pLength: formatMeasureForOptimizer(row.largoVeta),
+    pWidth: formatMeasureForOptimizer(row.ancho),
     pGrain: vetaToPayload(Boolean(row.vetaLongitud)).toLowerCase(),
     pEdgeMaSup: withTrailingSpace(row.l1),
     pEdgeMaInf: withTrailingSpace(row.l2),
