@@ -1,5 +1,5 @@
 /**
- * Medidas largo/ancho para el optimizador: entero en UI/BD × 100 (ej. 437 → 43700).
+ * Medidas largo/ancho para exportación (Excel/TXT/CSV): entero en UI/BD × 10 (ej. 437 → 4370).
  */
 export function formatMeasureForOptimizer(value) {
   if (value === '' || value == null) return ''

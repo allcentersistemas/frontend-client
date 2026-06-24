@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { downloadProyectoCotizacion } from '../../api/orderApi'
+import { downloadProyectoCotizacion, findProyectoByNombre } from '../../api/orderApi'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
@@ -30,6 +30,8 @@ export default function PlanillaCortePage() {
   const navigate = useNavigate()
   const editingId = projectId && projectId !== 'nuevo' ? Number(projectId) : null
   const [busyCotizacion, setBusyCotizacion] = useState(false)
+  const [activating, setActivating] = useState(false)
+  const [duplicateProject, setDuplicateProject] = useState(null)
 
   const {
     project,
@@ -45,6 +47,7 @@ export default function PlanillaCortePage() {
     tableros,
     projectEditable,
     projectEstado,
+    setSaveError,
     updateProjectDraft,
     activateProject,
     updateOrderDraft,
@@ -68,6 +71,43 @@ export default function PlanillaCortePage() {
 
   const readOnly = !projectEditable && Boolean(editingId)
   const modalOpen = Boolean(orderId)
+  const canSave = projectEditable && !readOnly && Boolean(project)
+
+  async function handleActivateProject() {
+    if (!projectDraft.nombre.trim()) return
+    setSaveError('')
+    setActivating(true)
+    try {
+      const currentId = project?.id && isPersistedProjectId(project.id) ? project.id : null
+      let existing = null
+      try {
+        existing = await findProyectoByNombre(projectDraft.nombre)
+      } catch (err) {
+        setSaveError(err.message || 'No se pudo verificar el nombre del proyecto.')
+        return
+      }
+      if (existing?.id && existing.id !== currentId) {
+        setDuplicateProject(existing)
+        return
+      }
+      activateProject()
+    } catch (err) {
+      setSaveError(err.message || 'No se pudo verificar el nombre del proyecto.')
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  function handleUseOtherName() {
+    setDuplicateProject(null)
+    updateProjectDraft('nombre', '')
+  }
+
+  function handleUpdateExistingProject() {
+    if (!duplicateProject?.id) return
+    setDuplicateProject(null)
+    navigate(`/app/planilla-corte/${duplicateProject.id}`)
+  }
 
   function handleAddOrder() {
     if (readOnly) return
@@ -89,7 +129,6 @@ export default function PlanillaCortePage() {
   }
 
   const step1Done = Boolean(project)
-  const canSave = projectEditable && !readOnly && !isPersistedProjectId(project?.id)
 
   return (
     <>
@@ -169,8 +208,13 @@ export default function PlanillaCortePage() {
               </label>
             </div>
             <div className="form-actions">
-              <button type="button" className="btn btn--primary" onClick={activateProject}>
-                {project ? 'Actualizar borrador' : 'Activar proyecto'}
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={activating}
+                onClick={() => void handleActivateProject()}
+              >
+                {activating ? 'Verificando…' : project ? 'Actualizar borrador' : 'Activar proyecto'}
               </button>
             </div>
           </section>
@@ -297,7 +341,7 @@ export default function PlanillaCortePage() {
                 onClick={() => void saveAllToDatabase()}
                 disabled={saving || !canSave || !orders.length}
               >
-                {saving ? 'Enviando…' : 'Enviar a ventas'}
+                {saving ? 'Enviando…' : project && isPersistedProjectId(project.id) ? 'Actualizar proyecto' : 'Enviar a ventas'}
               </button>
             </div>
           </section>
@@ -306,6 +350,43 @@ export default function PlanillaCortePage() {
       </div>
 
       {modalOpen ? <PlanillaOrdenDetallePanel orderId={orderId} readOnly={readOnly} /> : null}
+
+      {duplicateProject ? (
+        <div className="planilla-modal-backdrop" role="presentation" onClick={() => setDuplicateProject(null)}>
+          <div
+            className="planilla-modal card pad"
+            role="dialog"
+            aria-labelledby="dup-project-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="dup-project-title" className="card__title mb-3">
+              Proyecto con el mismo nombre
+            </h2>
+            <p className="mb-4">
+              Ya tiene un proyecto llamado «{duplicateProject.nombre}»
+              {duplicateProject.estado ? ` (${duplicateProject.estado})` : ''}. ¿Qué desea hacer?
+            </p>
+            {duplicateProject.editable === false ? (
+              <p className="form-error small mb-4">
+                Ese proyecto ya está en revisión por ventas y no puede modificarse. Use otro nombre.
+              </p>
+            ) : null}
+            <div className="form-actions">
+              {duplicateProject.editable !== false ? (
+                <button type="button" className="btn btn--primary" onClick={handleUpdateExistingProject}>
+                  Actualizar proyecto existente
+                </button>
+              ) : null}
+              <button type="button" className="btn btn--ghost" onClick={handleUseOtherName}>
+                Usar otro nombre
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={() => setDuplicateProject(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

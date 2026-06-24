@@ -264,8 +264,9 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setSaveOk('')
     setSaving(true)
     try {
+      const updatingExisting = project && isPersistedProjectId(project.id) && projectEditable
       const response = await saveProyectoCompleto({
-        projectId: null,
+        projectId: updatingExisting ? project.id : null,
         project: {
           nombre: project.nombre,
           descripcion: project.descripcion,
@@ -303,7 +304,11 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       } else {
         setOrders(nextOrders)
       }
-      setSaveOk('Proyecto enviado correctamente. Ventas lo revisará pronto.')
+      setSaveOk(
+        updatingExisting
+          ? 'Proyecto actualizado correctamente.'
+          : 'Proyecto enviado correctamente. Ventas lo revisará pronto.',
+      )
       return true
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar.')
@@ -311,7 +316,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     } finally {
       setSaving(false)
     }
-  }, [navigate, orders, persistDraft, project, projectDraft, maquinaId])
+  }, [navigate, orders, persistDraft, project, projectDraft, maquinaId, persistedId, projectEditable])
 
   const value = useMemo(
     () => ({

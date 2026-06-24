@@ -1,5 +1,5 @@
 import { clientApiUrl } from '../config/env'
-import { fetchJson } from './http'
+import { fetchJson, parseHttpError } from './http'
 import { clientRefreshSession } from './clientAuth'
 import {
   clearClientSession,
@@ -67,6 +67,21 @@ export async function fetchPlanillaCatalogos() {
 
 /** @deprecated Usar fetchPlanillaCatalogos */
 export const fetchKardexCatalogos = fetchPlanillaCatalogos
+
+export async function findProyectoByNombre(nombre) {
+  return withClientAuth(async (accessToken) => {
+    const q = encodeURIComponent(nombre.trim())
+    const url = clientApiUrl(`${OPT_BASE}/proyectos/por-nombre?nombre=${q}`)
+    const res = await fetch(url, {
+      headers: authHeaders(accessToken),
+      credentials: 'omit',
+    })
+    if (res.status === 404) return null
+    if (!res.ok) throw await parseHttpError(res)
+    const text = await res.text()
+    return text ? JSON.parse(text) : null
+  })
+}
 
 export async function saveProyectoCompleto(payload) {
   return withClientAuth((accessToken) =>

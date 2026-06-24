@@ -15,6 +15,7 @@ import {
 import { clientRegister } from '../api/clientAuth'
 import { getClientAccessToken, saveClientSession } from '../auth/clientSession'
 import { registrationEnabled } from '../config/security'
+import { validatePassword } from '../utils/passwordPolicy'
 import {
   AuthField,
   AuthLink,
@@ -89,6 +90,11 @@ export default function RegisterPage() {
     }
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres')
+      return
+    }
+    const pwdErr = validatePassword(password)
+    if (pwdErr) {
+      setError(pwdErr)
       return
     }
     if (password !== password2) {
@@ -187,7 +193,7 @@ export default function RegisterPage() {
             Letras, números, punto, guion y guion bajo. Podrá iniciar sesión con correo o usuario.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <AuthField label="Contraseña * (8–128)" icon={Lock}>
+            <AuthField label="Contraseña * (mayúscula, número y símbolo)" icon={Lock}>
               <input
                 type="password"
                 name="password"
