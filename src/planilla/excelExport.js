@@ -1,6 +1,10 @@
 import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
 import { vetaToPayload } from './helpers'
+import {
+  formatObservacionForExport,
+  formatPerforacionRanuraForExport,
+} from './exportDescHelpers'
 import { formatMeasureForOptimizer } from './measureExport'
 
 function formatInt(value) {
@@ -32,8 +36,8 @@ function rowToExcelCells(row, { pParams }) {
     pEdgeMaInf: withTrailingSpace(row.l2),
     pEdgeMaIzq: withTrailingSpace(row.a1),
     pEdgeMaDer: withTrailingSpace(row.a2),
-    pIdesc: blankOrString(row.observacion),
-    pIidesc: '',
+    pIdesc: formatPerforacionRanuraForExport(row),
+    pIidesc: formatObservacionForExport(row),
   }
 }
 

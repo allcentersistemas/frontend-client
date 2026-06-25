@@ -14,9 +14,8 @@ export const EXCEL_EXPORT_COLUMNS = [
   { key: 'pIidesc', technical: '[P_IIDESC]', label: 'II Descripción' },
 ]
 
-/** Columnas editables en la tabla de detalle (modal). */
+/** Columnas editables en la tabla de detalle (modal). Material se elige una vez por orden. */
 export const DETALLE_TABLE_COLUMNS = [
-  { key: 'tablero', label: 'Tablero', wide: true },
   { key: 'cantidad', label: 'Cant.', type: 'number' },
   { key: 'largoVeta', label: 'Largo', type: 'number' },
   { key: 'ancho', label: 'Ancho', type: 'number' },
@@ -36,7 +35,7 @@ export const DETALLE_TABLE_COLUMNS = [
 ]
 
 export const DETALLE_TABLE_GROUPS = [
-  { id: 'material', label: 'Material y medidas', span: 5 },
+  { id: 'material', label: 'Medidas', span: 4 },
   { id: 'canto', label: 'Canto', span: 4 },
   { id: 'obs', label: 'Descripción', span: 1 },
   { id: 'perf', label: 'Perforación', span: 2 },

@@ -231,6 +231,8 @@ export function PlanillaDetalleEditor({
   order,
   projectName,
   rows,
+  sharedTablero = '',
+  onSharedTableroChange,
   tableros,
   cantoOptions,
   readOnly = false,
@@ -312,7 +314,23 @@ export function PlanillaDetalleEditor({
       </header>
 
       <div className="planilla-modal__toolbar">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-end gap-3">
+          {!readOnly ? (
+            <label className="field" style={{ minWidth: 'min(100%, 280px)', flex: '1 1 240px' }}>
+              <span>Material (tablero) · toda la orden</span>
+              <SearchableSelect
+                value={sharedTablero}
+                onChange={onSharedTableroChange}
+                options={tableros}
+                placeholder="Seleccione tablero"
+                size="sm"
+              />
+            </label>
+          ) : sharedTablero ? (
+            <p className="small muted m-0">
+              Material: <strong>{sharedTablero}</strong>
+            </p>
+          ) : null}
           {!readOnly ? (
             <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
               + Agregar fila

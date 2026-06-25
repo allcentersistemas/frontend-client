@@ -264,9 +264,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setSaveOk('')
     setSaving(true)
     try {
-      const updatingExisting = project && isPersistedProjectId(project.id) && projectEditable
       const response = await saveProyectoCompleto({
-        projectId: updatingExisting ? project.id : null,
+        projectId: null,
         project: {
           nombre: project.nombre,
           descripcion: project.descripcion,
@@ -304,11 +303,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       } else {
         setOrders(nextOrders)
       }
-      setSaveOk(
-        updatingExisting
-          ? 'Proyecto actualizado correctamente.'
-          : 'Proyecto enviado correctamente. Ventas lo revisará pronto.',
-      )
+      setSaveOk('Proyecto enviado correctamente. Ventas lo revisará pronto.')
       return true
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar.')

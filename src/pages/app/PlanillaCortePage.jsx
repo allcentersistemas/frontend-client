@@ -69,7 +69,8 @@ export default function PlanillaCortePage() {
     [orders],
   )
 
-  const readOnly = !projectEditable && Boolean(editingId)
+  const readOnly =
+    Boolean(editingId) || (project && isPersistedProjectId(project.id)) || !projectEditable
   const modalOpen = Boolean(orderId)
   const canSave = projectEditable && !readOnly && Boolean(project)
 
@@ -103,7 +104,7 @@ export default function PlanillaCortePage() {
     updateProjectDraft('nombre', '')
   }
 
-  function handleUpdateExistingProject() {
+  function handleViewExistingProject() {
     if (!duplicateProject?.id) return
     setDuplicateProject(null)
     navigate(`/app/planilla-corte/${duplicateProject.id}`)
@@ -341,7 +342,7 @@ export default function PlanillaCortePage() {
                 onClick={() => void saveAllToDatabase()}
                 disabled={saving || !canSave || !orders.length}
               >
-                {saving ? 'Enviando…' : project && isPersistedProjectId(project.id) ? 'Actualizar proyecto' : 'Enviar a ventas'}
+                {saving ? 'Enviando…' : 'Enviar a ventas'}
               </button>
             </div>
           </section>
@@ -364,19 +365,13 @@ export default function PlanillaCortePage() {
             </h2>
             <p className="mb-4">
               Ya tiene un proyecto llamado «{duplicateProject.nombre}»
-              {duplicateProject.estado ? ` (${duplicateProject.estado})` : ''}. ¿Qué desea hacer?
+              {duplicateProject.estado ? ` (${duplicateProject.estado})` : ''}. Elija otro nombre o consulte el
+              proyecto existente (solo lectura).
             </p>
-            {duplicateProject.editable === false ? (
-              <p className="form-error small mb-4">
-                Ese proyecto ya está en revisión por ventas y no puede modificarse. Use otro nombre.
-              </p>
-            ) : null}
             <div className="form-actions">
-              {duplicateProject.editable !== false ? (
-                <button type="button" className="btn btn--primary" onClick={handleUpdateExistingProject}>
-                  Actualizar proyecto existente
-                </button>
-              ) : null}
+              <button type="button" className="btn btn--primary" onClick={handleViewExistingProject}>
+                Ver proyecto existente
+              </button>
               <button type="button" className="btn btn--ghost" onClick={handleUseOtherName}>
                 Usar otro nombre
               </button>

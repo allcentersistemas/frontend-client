@@ -24,17 +24,21 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   )
 
   const [rows, setRows] = useState([newDetalle()])
+  const [sharedTablero, setSharedTablero] = useState('')
 
   useEffect(() => {
     if (!order) return
-    setRows(order.detalles.length ? order.detalles.map((d) => ({ ...d })) : [newDetalle()])
+    const detalles = order.detalles.length ? order.detalles.map((d) => ({ ...d })) : [newDetalle()]
+    setRows(detalles)
+    setSharedTablero(detalles.find((d) => d.tablero)?.tablero || '')
   }, [order])
 
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
-    updateOrderDetalles(order.id, rows.map(normalizeMeasureRow))
+    const withMaterial = rows.map((row) => ({ ...row, tablero: sharedTablero }))
+    updateOrderDetalles(order.id, withMaterial.map(normalizeMeasureRow))
     onClose()
-  }, [readOnly, order, rows, updateOrderDetalles, onClose])
+  }, [readOnly, order, rows, sharedTablero, updateOrderDetalles, onClose])
 
   if (loadingProject || !order) {
     return (
@@ -50,6 +54,8 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       order={order}
       projectName={project?.nombre}
       rows={rows}
+      sharedTablero={sharedTablero}
+      onSharedTableroChange={readOnly ? undefined : setSharedTablero}
       tableros={tableros}
       cantoOptions={cantoOptions}
       readOnly={readOnly}
@@ -57,7 +63,8 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       onSave={handleSave}
       maquinaParametros={maquinaParametros}
       onDownloadExcel={() => {
-        downloadOrderExcel(orderExcelFilename(order, project?.nombre), { ...order, detalles: rows }, {
+        const detalles = rows.map((row) => ({ ...row, tablero: sharedTablero }))
+        downloadOrderExcel(orderExcelFilename(order, project?.nombre), { ...order, detalles }, {
           maquinaParametros,
         })
       }}
