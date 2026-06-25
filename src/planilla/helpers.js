@@ -130,6 +130,9 @@ export function mapOrdersFromApi(savedOrders) {
 
 export function mergeCantoOptions(cantosKardex) {
   const merged = [...(cantosKardex || [])]
+  if (!merged.some((o) => String(o.name || o.sku || '').toUpperCase() === 'NA')) {
+    merged.unshift({ id: 'na', name: 'NA', sku: '' })
+  }
   for (const fb of CANTO_FALLBACK) {
     const key = fb.name.toUpperCase()
     if (!merged.some((o) => String(o.name || o.sku || '').toUpperCase() === key)) {

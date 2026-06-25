@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
 import { vetaToPayload } from './helpers'
 import {
+  exportCantoValue,
   formatObservacionForExport,
   formatPerforacionRanuraForExport,
 } from './exportDescHelpers'
@@ -14,9 +15,7 @@ function formatInt(value) {
 }
 
 function withTrailingSpace(value) {
-  const s = String(value ?? '').trim()
-  if (!s) return ''
-  return `${s} `
+  return exportCantoValue(value)
 }
 
 function blankOrString(value) {

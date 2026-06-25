@@ -28,6 +28,11 @@ function VetaCheckbox({ checked, onChange, disabled = false, navProps = {} }) {
   )
 }
 
+function formatReadonlyCell(value) {
+  if (value == null || value === '' || String(value).trim().toUpperCase() === 'NA') return '—'
+  return String(value)
+}
+
 function DetalleCell({ column, row, rowIndex, tabHandlers, onUpdate, onPatch, tableros, cantoOptions, readOnly }) {
   const { key, type } = column
   const nav = readOnly ? {} : cellNavProps(rowIndex, key, tabHandlers)
@@ -41,7 +46,7 @@ function DetalleCell({ column, row, rowIndex, tabHandlers, onUpdate, onPatch, ta
         </span>
       )
     }
-    return <span className="planilla-detalle-table__readonly">{row[key] || '—'}</span>
+    return <span className="planilla-detalle-table__readonly">{formatReadonlyCell(row[key])}</span>
   }
 
   if (type === 'ranuraEspecial') {
