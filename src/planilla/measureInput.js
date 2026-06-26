@@ -2,7 +2,7 @@
 export const MEASURE_FIELDS = ['cantidad', 'largoVeta', 'ancho', 'perforacionCantidad']
 
 /** Medida mínima del tablero (largo/ancho) en la unidad de la planilla. */
-export const MIN_BOARD_MEASURE = 51
+export const MIN_BOARD_MEASURE = 50
 
 const BOARD_MEASURE_FIELDS = [
   ['largoVeta', 'Largo/veta'],
