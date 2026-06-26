@@ -5,7 +5,7 @@ export const MEASURE_FIELDS = ['cantidad', 'largo', 'ancho', 'perforacionCantida
 export const MIN_BOARD_MEASURE = 51
 
 const BOARD_MEASURE_FIELDS = [
-  ['largo', 'Ancho'],
+  ['largo', 'Largo'],
   ['ancho', 'Ancho'],
 ]
 
