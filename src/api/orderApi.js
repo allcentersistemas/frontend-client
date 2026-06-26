@@ -139,3 +139,12 @@ export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cot
     URL.revokeObjectURL(objectUrl)
   })
 }
+
+export async function cancelProyectoOptimizacion(proyectoId) {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/cancelar`), {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    }),
+  )
+}

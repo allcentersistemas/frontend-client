@@ -249,6 +249,7 @@ export function PlanillaDetalleEditor({
   onRemoveRow,
   onDownloadExcel,
   maquinaParametros,
+  measureError = '',
 }) {
   const [pendingFocus, setPendingFocus] = useState(null)
 
@@ -283,8 +284,8 @@ export function PlanillaDetalleEditor({
   )
 
   return (
-    <>
-      <header className="planilla-modal__header">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="planilla-modal__header shrink-0">
         <div className="min-w-0 flex-1">
           <p className="planilla-modal__eyebrow">
             Detalle de orden
@@ -346,7 +347,9 @@ export function PlanillaDetalleEditor({
         </div>
         <p className="planilla-modal__hint small muted m-0">
           Cada fila es una pieza. Use Tab para avanzar entre columnas; al final de la fila se crea una nueva.
+          Las medidas del tablero (largo y ancho) no deben ser menores a 50.
         </p>
+        {measureError ? <p className="form-error m-0 text-sm">{measureError}</p> : null}
       </div>
 
       <div className="planilla-modal__body planilla-modal__body--table">
@@ -431,6 +434,6 @@ export function PlanillaDetalleEditor({
           </button>
         ) : null}
       </footer>
-    </>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { downloadProyectoCotizacion, listProyectosOptimizacion } from '../../api/orderApi'
+import { downloadProyectoCotizacion, cancelProyectoOptimizacion, listProyectosOptimizacion } from '../../api/orderApi'
 import { EstadoTag } from '../../components/EstadoTag'
 import {
   ESTADOS_PROYECTO,
@@ -50,6 +50,32 @@ export default function ProyectosPage() {
     const empty = emptyProyectoFilters()
     setFilters(empty)
     setApplied(empty)
+  }
+
+  async function handleCancelProject(project) {
+    const nombre = project.nombre || `proyecto ${project.id}`
+    if (
+      !window.confirm(
+        `¿Cancelar el proyecto «${nombre}»? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return
+    }
+    setBusyId(project.id)
+    setActionMsg('')
+    try {
+      await cancelProyectoOptimizacion(project.id)
+      setActionMsg(`Proyecto «${nombre}» cancelado.`)
+      await loadProjects()
+    } catch (err) {
+      setActionMsg(err.message || 'No se pudo cancelar el proyecto.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  function canCancelProject(project) {
+    return project.estado === 'ENVIADO' || project.estado === 'EN_ATENCION'
   }
 
   async function handleDownloadCotizacion(project) {
@@ -197,6 +223,17 @@ export default function ProyectosPage() {
                           ) : (
                             <span className="small muted self-center">Sin cotización</span>
                           )}
+                          {canCancelProject(p) ? (
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--sm"
+                              disabled={busyId === p.id}
+                              style={{ color: 'var(--danger, #b00020)' }}
+                              onClick={() => void handleCancelProject(p)}
+                            >
+                              Cancelar
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

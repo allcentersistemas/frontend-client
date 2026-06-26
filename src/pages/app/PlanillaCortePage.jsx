@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { downloadProyectoCotizacion, findProyectoByNombre } from '../../api/orderApi'
+import { downloadProyectoCotizacion, cancelProyectoOptimizacion, findProyectoByNombre } from '../../api/orderApi'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
@@ -30,6 +30,7 @@ export default function PlanillaCortePage() {
   const navigate = useNavigate()
   const editingId = projectId && projectId !== 'nuevo' ? Number(projectId) : null
   const [busyCotizacion, setBusyCotizacion] = useState(false)
+  const [busyCancel, setBusyCancel] = useState(false)
   const [activating, setActivating] = useState(false)
   const [duplicateProject, setDuplicateProject] = useState(null)
 
@@ -129,6 +130,26 @@ export default function PlanillaCortePage() {
     )
   }
 
+  const canCancelProject =
+    project?.id &&
+    (projectEstado === 'ENVIADO' || projectEstado === 'EN_ATENCION')
+
+  async function handleCancelProject() {
+    if (!project?.id) return
+    const nombre = project.nombre || `proyecto ${project.id}`
+    if (!window.confirm(`¿Cancelar el proyecto «${nombre}»?`)) return
+    setSaveError('')
+    setBusyCancel(true)
+    try {
+      await cancelProyectoOptimizacion(project.id)
+      navigate('/app/proyectos')
+    } catch (err) {
+      setSaveError(err.message || 'No se pudo cancelar el proyecto.')
+    } finally {
+      setBusyCancel(false)
+    }
+  }
+
   const step1Done = Boolean(project)
 
   return (
@@ -167,6 +188,17 @@ export default function PlanillaCortePage() {
                       }}
                     >
                       Descargar cotización
+                    </button>
+                  ) : null}
+                  {canCancelProject ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={busyCancel}
+                      style={{ color: 'var(--danger, #b00020)' }}
+                      onClick={() => void handleCancelProject()}
+                    >
+                      Cancelar proyecto
                     </button>
                   ) : null}
                 </p>

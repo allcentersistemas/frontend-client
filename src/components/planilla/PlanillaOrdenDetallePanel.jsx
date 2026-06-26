@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
-import { normalizeMeasureRow } from '../../planilla/measureInput'
+import { normalizeMeasureRow, validateAllBoardMeasures } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
@@ -25,6 +25,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
 
   const [rows, setRows] = useState([newDetalle()])
   const [sharedTablero, setSharedTablero] = useState('')
+  const [measureError, setMeasureError] = useState('')
 
   useEffect(() => {
     if (!order) return
@@ -36,6 +37,12 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
     const withMaterial = rows.map((row) => ({ ...row, tablero: sharedTablero }))
+    const validationError = validateAllBoardMeasures(withMaterial)
+    if (validationError) {
+      setMeasureError(validationError)
+      return
+    }
+    setMeasureError('')
     updateOrderDetalles(order.id, withMaterial.map(normalizeMeasureRow))
     onClose()
   }, [readOnly, order, rows, sharedTablero, updateOrderDetalles, onClose])
@@ -84,6 +91,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       onRemoveRow={
         readOnly ? undefined : (index) => setRows((prev) => prev.filter((_, i) => i !== index))
       }
+      measureError={measureError}
     />
   )
 }
@@ -116,7 +124,7 @@ export function PlanillaOrdenDetallePanel({ orderId, readOnly = false }) {
       role="presentation"
     >
       <div
-        className="planilla-modal planilla-modal--detalle"
+        className="planilla-modal planilla-modal--detalle flex min-h-0 flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="planilla-orden-title"

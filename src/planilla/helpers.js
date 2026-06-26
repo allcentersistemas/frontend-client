@@ -162,6 +162,8 @@ export function formatEstado(value) {
     ENVIADO: 'Enviando',
     EN_ATENCION: 'En atención',
     COTIZADO: 'Cotizado',
+    VENDIDO: 'Vendido',
+    CANCELADO: 'Cancelado',
   }
   return map[value] || value || '—'
 }

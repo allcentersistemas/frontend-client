@@ -259,11 +259,12 @@
 }
 
 .planilla-modal__body--table {
-  @apply overflow-hidden px-2 py-2 sm:px-3;
+  @apply flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-2 sm:px-3;
 }
 
 .planilla-table-shell--detalle {
-  @apply max-h-[min(60vh,520px)] overflow-auto px-0 py-0;
+  @apply min-h-0 flex-1 overflow-auto px-0 py-0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .planilla-detalle-table {
@@ -550,12 +551,20 @@
 }
 
 @media (max-width: 640px) {
+  .planilla-modal-backdrop {
+    @apply items-stretch p-0;
+  }
+
   .planilla-modal {
     @apply max-h-[100svh] rounded-xl;
   }
 
   .planilla-modal--detalle {
-    @apply max-h-[98svh] rounded-xl;
+    @apply h-[100dvh] max-h-none rounded-none;
+  }
+
+  .planilla-table-shell--detalle {
+    @apply max-h-none;
   }
 
   .planilla-table {
