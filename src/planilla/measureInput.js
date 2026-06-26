@@ -5,7 +5,7 @@ export const MEASURE_FIELDS = ['cantidad', 'largoVeta', 'ancho', 'perforacionCan
 export const MIN_BOARD_MEASURE = 51
 
 const BOARD_MEASURE_FIELDS = [
-  ['largoVeta', 'Largo/veta'],
+  ['largoVeta', 'Ancho'],
   ['ancho', 'Ancho'],
 ]
 
