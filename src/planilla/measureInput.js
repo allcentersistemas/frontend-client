@@ -1,11 +1,11 @@
 /** Campos numéricos enteros en el detalle de planilla. */
-export const MEASURE_FIELDS = ['cantidad', 'largoVeta', 'ancho', 'perforacionCantidad']
+export const MEASURE_FIELDS = ['cantidad', 'largo', 'ancho', 'perforacionCantidad']
 
 /** Medida mínima del tablero (largo/ancho) en la unidad de la planilla. */
 export const MIN_BOARD_MEASURE = 51
 
 const BOARD_MEASURE_FIELDS = [
-  ['largoVeta', 'Ancho'],
+  ['largo', 'Ancho'],
   ['ancho', 'Ancho'],
 ]
 
