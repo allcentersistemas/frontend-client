@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
-import { normalizeMeasureRow, validateAllBoardMeasures } from '../../planilla/measureInput'
+import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
@@ -33,6 +33,18 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     setRows(detalles)
     setSharedTablero(detalles.find((d) => d.tablero)?.tablero || '')
   }, [order])
+
+  const handleBoardMeasureBlur = useCallback((rowIndex, key, value) => {
+    const message = validateBoardMeasureValue(key, value, rowIndex)
+    if (!message) {
+      setMeasureError('')
+      return
+    }
+    setMeasureError(message)
+    setRows((prev) =>
+      prev.map((row, i) => (i === rowIndex ? { ...row, [key]: '' } : row)),
+    )
+  }, [])
 
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
@@ -79,8 +91,10 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       onUpdateRow={
         readOnly
           ? undefined
-          : (index, key, value) =>
+          : (index, key, value) => {
+              setMeasureError('')
               setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
+            }
       }
       onPatchRow={
         readOnly
@@ -92,6 +106,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         readOnly ? undefined : (index) => setRows((prev) => prev.filter((_, i) => i !== index))
       }
       measureError={measureError}
+      onBoardMeasureBlur={readOnly ? undefined : handleBoardMeasureBlur}
     />
   )
 }

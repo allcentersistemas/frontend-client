@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle } from '../../planilla/helpers'
+import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 
 export default function PlanillaOrdenDetallePage() {
   const { orderId } = useParams()
@@ -23,6 +24,7 @@ export default function PlanillaOrdenDetallePage() {
   )
 
   const [rows, setRows] = useState([newDetalle()])
+  const [measureError, setMeasureError] = useState('')
 
   useEffect(() => {
     if (!order) return
@@ -42,9 +44,32 @@ export default function PlanillaOrdenDetallePage() {
 
   const handleSave = useCallback(() => {
     if (!order) return
-    updateOrderDetalles(order.id, rows)
+    const validationError = validateAllBoardMeasures(rows)
+    if (validationError) {
+      setMeasureError(validationError)
+      return
+    }
+    setMeasureError('')
+    updateOrderDetalles(order.id, rows.map(normalizeMeasureRow))
     navigate(basePath)
   }, [order, rows, updateOrderDetalles, navigate, basePath])
+
+  const handleBoardMeasureBlur = useCallback((rowIndex, key, value) => {
+    const message = validateBoardMeasureValue(key, value, rowIndex)
+    if (!message) {
+      setMeasureError('')
+      return
+    }
+    setMeasureError(message)
+    setRows((prev) =>
+      prev.map((row, i) => (i === rowIndex ? { ...row, [key]: '' } : row)),
+    )
+  }, [])
+
+  const handleUpdateRow = useCallback((index, key, value) => {
+    setMeasureError('')
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
+  }, [])
 
   const addRow = useCallback(() => {
     setRows((prev) => [...prev, newDetalle()])
@@ -55,8 +80,8 @@ export default function PlanillaOrdenDetallePage() {
   }, [])
 
   const updateRow = useCallback((index, key, value) => {
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
-  }, [])
+    handleUpdateRow(index, key, value)
+  }, [handleUpdateRow])
 
   const patchRow = useCallback((index, patch) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
@@ -85,6 +110,8 @@ export default function PlanillaOrdenDetallePage() {
       onUpdateRow={updateRow}
       onPatchRow={patchRow}
       onRemoveRow={removeRow}
+      measureError={measureError}
+      onBoardMeasureBlur={handleBoardMeasureBlur}
     />
   )
 }

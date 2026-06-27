@@ -1,11 +1,13 @@
 /** Campos numéricos enteros en el detalle de planilla. */
-export const MEASURE_FIELDS = ['cantidad', 'largo', 'ancho', 'perforacionCantidad']
+export const MEASURE_FIELDS = ['cantidad', 'largoVeta', 'ancho', 'perforacionCantidad']
 
 /** Medida mínima del tablero (largo/ancho) en la unidad de la planilla. */
-export const MIN_BOARD_MEASURE = 50
+export const MIN_BOARD_MEASURE = 51
+
+export const BOARD_MEASURE_KEYS = ['largoVeta', 'ancho']
 
 const BOARD_MEASURE_FIELDS = [
-  ['largo', 'Largo'],
+  ['largoVeta', 'Largo'],
   ['ancho', 'Ancho'],
 ]
 
@@ -13,6 +15,10 @@ const BOARD_MEASURE_FIELDS = [
 export function normalizeMeasureInput(value) {
   if (value == null) return ''
   return String(value).replace(/\D/g, '')
+}
+
+export function isBoardMeasureField(key) {
+  return BOARD_MEASURE_KEYS.includes(key)
 }
 
 export function normalizeMeasureRow(row) {
@@ -32,7 +38,21 @@ export function normalizeMeasureRow(row) {
   return out
 }
 
-/** Valida medidas del tablero; devuelve mensaje de error o null. */
+/** Valida una medida de tablero; devuelve mensaje de error o null. */
+export function validateBoardMeasureValue(key, value, rowIndex = 0) {
+  if (!isBoardMeasureField(key)) return null
+  if (value === '' || value == null) return null
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return null
+  if (n < MIN_BOARD_MEASURE) {
+    const label = key === 'largoVeta' ? 'Largo' : 'Ancho'
+    const fila = rowIndex >= 0 ? ` (fila ${rowIndex + 1})` : ''
+    return `${label} no debe ser menor a ${MIN_BOARD_MEASURE}${fila}.`
+  }
+  return null
+}
+
+/** Valida medidas del tablero en una fila; devuelve mensaje de error o null. */
 export function validateBoardMeasures(row, rowIndex = 0) {
   for (const [key, label] of BOARD_MEASURE_FIELDS) {
     const raw = row[key]

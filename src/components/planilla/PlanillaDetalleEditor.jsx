@@ -9,7 +9,11 @@ import {
   RANURA_PROF,
 } from '../../planilla/detalleColumns'
 import { cellNavProps, DETALLE_COLUMN_KEYS, focusDetalleCell } from '../../planilla/detalleTableFocus'
-import { normalizeMeasureInput } from '../../planilla/measureInput'
+import {
+  isBoardMeasureField,
+  normalizeMeasureInput,
+  validateBoardMeasureValue,
+} from '../../planilla/measureInput'
 
 function VetaCheckbox({ checked, onChange, disabled = false, navProps = {} }) {
   return (
@@ -33,7 +37,18 @@ function formatReadonlyCell(value) {
   return String(value)
 }
 
-function DetalleCell({ column, row, rowIndex, tabHandlers, onUpdate, onPatch, tableros, cantoOptions, readOnly }) {
+function DetalleCell({
+  column,
+  row,
+  rowIndex,
+  tabHandlers,
+  onUpdate,
+  onPatch,
+  onBoardMeasureBlur,
+  tableros,
+  cantoOptions,
+  readOnly,
+}) {
   const { key, type } = column
   const nav = readOnly ? {} : cellNavProps(rowIndex, key, tabHandlers)
 
@@ -225,6 +240,11 @@ function DetalleCell({ column, row, rowIndex, tabHandlers, onUpdate, onPatch, ta
       onChange={(e) =>
         onUpdate(key, type === 'number' ? normalizeMeasureInput(e.target.value) : e.target.value)
       }
+      onBlur={
+        isBoardMeasureField(key) && onBoardMeasureBlur
+          ? () => onBoardMeasureBlur(rowIndex, key, row[key] || '')
+          : undefined
+      }
       inputMode={type === 'number' ? 'numeric' : undefined}
       placeholder="—"
       {...nav}
@@ -250,6 +270,7 @@ export function PlanillaDetalleEditor({
   onDownloadExcel,
   maquinaParametros,
   measureError = '',
+  onBoardMeasureBlur,
 }) {
   const [pendingFocus, setPendingFocus] = useState(null)
 
@@ -347,7 +368,7 @@ export function PlanillaDetalleEditor({
         </div>
         <p className="planilla-modal__hint small muted m-0">
           Cada fila es una pieza. Use Tab para avanzar entre columnas; al final de la fila se crea una nueva.
-          Las medidas del tablero (largo y ancho) no deben ser menores a 50.
+          Las medidas del tablero (largo y ancho) deben ser al menos 51.
         </p>
         {measureError ? <p className="form-error m-0 text-sm">{measureError}</p> : null}
       </div>
@@ -399,6 +420,7 @@ export function PlanillaDetalleEditor({
                         readOnly={readOnly}
                         onUpdate={(key, value) => onUpdateRow(index, key, value)}
                         onPatch={(patch) => onPatchRow?.(index, patch)}
+                        onBoardMeasureBlur={onBoardMeasureBlur}
                       />
                     </td>
                   ))}
