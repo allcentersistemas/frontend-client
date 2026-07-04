@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchableSelect } from './SearchableSelect'
 import {
   DETALLE_TABLE_COLUMNS,
@@ -268,10 +268,13 @@ export function PlanillaDetalleEditor({
   onPatchRow,
   onRemoveRow,
   onDownloadExcel,
+  onImportExcel,
   maquinaParametros,
   measureError = '',
   onBoardMeasureBlur,
 }) {
+  const importInputRef = useRef(null)
+  const [importBusy, setImportBusy] = useState(false)
   const [pendingFocus, setPendingFocus] = useState(null)
 
   const tabHandlers = useMemo(
@@ -359,16 +362,47 @@ export function PlanillaDetalleEditor({
             </p>
           ) : null}
           {!readOnly ? (
-            <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
-              + Agregar fila
-            </button>
+            <>
+              <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
+                + Agregar fila
+              </button>
+              {onImportExcel ? (
+                <>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    className="sr-only"
+                    tabIndex={-1}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (!file || importBusy) return
+                      setImportBusy(true)
+                      Promise.resolve(onImportExcel(file))
+                        .catch(() => {})
+                        .finally(() => setImportBusy(false))
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={importBusy}
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    {importBusy ? 'Importando…' : 'Importar Excel'}
+                  </button>
+                </>
+              ) : null}
+            </>
           ) : (
             <span className="tag tag--ok">Solo lectura</span>
           )}
         </div>
         <p className="planilla-modal__hint small muted m-0">
           Cada fila es una pieza. Use Tab para avanzar entre columnas; al final de la fila se crea una nueva.
-          Las medidas del tablero (largo y ancho) deben ser al menos 51.
+          Las medidas del tablero (largo y ancho) deben ser al menos 51. Puede importar un Excel con columnas{' '}
+          <strong>Cantidad</strong>, <strong>Largo</strong> y <strong>Ancho</strong>.
         </p>
         {measureError ? <p className="form-error m-0 text-sm">{measureError}</p> : null}
       </div>
