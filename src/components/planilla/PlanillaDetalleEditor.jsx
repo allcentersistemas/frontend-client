@@ -399,11 +399,6 @@ export function PlanillaDetalleEditor({
             <span className="tag tag--ok">Solo lectura</span>
           )}
         </div>
-        <p className="planilla-modal__hint small muted m-0">
-          Cada fila es una pieza. Use Tab para avanzar entre columnas; al final de la fila se crea una nueva.
-          Las medidas del tablero (largo y ancho) deben ser al menos 51. Puede importar un Excel con columnas{' '}
-          <strong>Cantidad</strong>, <strong>Largo</strong> y <strong>Ancho</strong>.
-        </p>
         {measureError ? <p className="form-error m-0 text-sm">{measureError}</p> : null}
       </div>
 
