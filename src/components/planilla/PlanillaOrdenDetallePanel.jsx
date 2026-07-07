@@ -51,26 +51,29 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const handleImportExcel = useCallback(
     async (file) => {
       if (readOnly || !order) return
+      if (!sharedTablero?.trim()) {
+        window.alert('Seleccione el material (tablero) en el desplegable antes de importar el Excel.')
+        return
+      }
       const hasData = rows.some((row) => row.cantidad || row.largoVeta || row.ancho)
       if (
         hasData &&
         !window.confirm(
-          '¿Reemplazar las filas actuales con los datos del Excel? Se importan medidas, cantos, perforación, ranuras y material.',
+          '¿Reemplazar las filas actuales con los datos del Excel? Se importan medidas, cantos, perforación y ranuras. El material será el del desplegable.',
         )
       ) {
         return
       }
       try {
-        const { rows: imported, sharedTablero: importedTablero } = await parsePlanillaDetalleExcel(file)
+        const { rows: imported } = await parsePlanillaDetalleExcel(file)
         setMeasureError('')
-        if (importedTablero) setSharedTablero(importedTablero)
-        setRows(imported)
+        setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
       } catch (e) {
         setMeasureError(e instanceof Error ? e.message : 'No se pudo leer el Excel.')
         throw e
       }
     },
-    [readOnly, order, rows],
+    [readOnly, order, rows, sharedTablero],
   )
 
   const handleSave = useCallback(() => {

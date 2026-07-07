@@ -256,7 +256,6 @@ function buildRowFromLine(line, cols, { fromOptimizer }) {
   const cantidad = parseCantidad(cell(line, cols.cantidad))
   const largoVeta = parseBoardMeasure(cell(line, cols.largoVeta), { fromOptimizer })
   const ancho = parseBoardMeasure(cell(line, cols.ancho), { fromOptimizer })
-  const tablero = parseTextCell(cell(line, cols.tablero))
   const l1 = parseTextCell(cell(line, cols.l1))
   const l2 = parseTextCell(cell(line, cols.l2))
   const a1 = parseTextCell(cell(line, cols.a1))
@@ -272,11 +271,10 @@ function buildRowFromLine(line, cols, { fromOptimizer }) {
 
   const perfRan = parsePerforacionRanuraFromDesc(cell(line, cols.perforacionDesc))
 
-  if (!cantidad && !largoVeta && !ancho && !tablero && !observacion) return null
+  if (!cantidad && !largoVeta && !ancho && !observacion) return null
 
   return {
     ...newDetalle(),
-    tablero,
     cantidad,
     largoVeta,
     ancho,
@@ -311,7 +309,7 @@ function resolveLayout(matrix) {
 /**
  * Lee un .xlsx/.xls con el formato plantilla o exportación optimizador.
  * @param {File} file
- * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[], sharedTablero?: string }>}
+ * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[] }>}
  */
 export async function parsePlanillaDetalleExcel(file) {
   const buffer = await file.arrayBuffer()
@@ -337,8 +335,7 @@ export async function parsePlanillaDetalleExcel(file) {
     throw new Error('No se encontraron filas con datos en el Excel.')
   }
 
-  const sharedTablero = rows.find((r) => r.tablero)?.tablero ?? ''
-  return { rows, sharedTablero }
+  return { rows }
 }
 
 /** @deprecated Usar parsePlanillaDetalleExcel */
