@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import {
   PLANILLA_EXCEL_GROUP_ROW,
   PLANILLA_EXCEL_LABEL_ROW,
+  PLANILLA_EXCEL_TECH_ROW,
   PLANILLA_EXCEL_TITLE,
   PLANILLA_TEMPLATE_EXAMPLE_ROW,
 } from './planillaExcelLayout'
@@ -9,7 +10,13 @@ import {
 /** Descarga la plantilla vacía «LISTADO DE PIEZAS» para completar e importar. */
 export function downloadPlanillaTemplateExcel(filename = 'plantilla_listado_piezas.xlsx') {
   const titleRow = [PLANILLA_EXCEL_TITLE]
-  const sheetData = [titleRow, PLANILLA_EXCEL_GROUP_ROW, PLANILLA_EXCEL_LABEL_ROW, PLANILLA_TEMPLATE_EXAMPLE_ROW]
+  const sheetData = [
+    titleRow,
+    PLANILLA_EXCEL_GROUP_ROW,
+    PLANILLA_EXCEL_TECH_ROW,
+    PLANILLA_EXCEL_LABEL_ROW,
+    PLANILLA_TEMPLATE_EXAMPLE_ROW,
+  ]
   const ws = XLSX.utils.aoa_to_sheet(sheetData)
 
   ws['!cols'] = [

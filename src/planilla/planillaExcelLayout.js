@@ -24,6 +24,27 @@ export const PLANILLA_EXCEL_GROUP_ROW = [
   '',
 ]
 
+/** Fila técnica (referencia optimizador); los datos se ingresan en filas siguientes. */
+export const PLANILLA_EXCEL_TECH_ROW = [
+  '',
+  '',
+  '',
+  '[P_MINQ]',
+  '[P_LENGTH]',
+  '[P_WIDTH]',
+  '[EDGE_MAT_UP]',
+  '[EDGE_MAT_LO]',
+  '[EDGE_MAT_SX]',
+  '[EDGE_MAT_DX]',
+  '[P_IDESC]',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+]
+
 export const PLANILLA_EXCEL_LABEL_ROW = [
   '',
   'MATERIAL COLOR Y ESPESOR',

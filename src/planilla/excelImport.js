@@ -9,15 +9,15 @@ import {
 
 const FIELD_ALIASES = {
   tablero: ['materialcoloryespesor', 'material', 'tablero', 'pcodemat', 'codemat'],
-  cantidad: ['cantidad', 'cant', 'cantmin', 'pminq', 'qty', 'cantminima'],
+  cantidad: ['cantidad', 'cantmin', 'pminq', 'qty', 'cantminima'],
   largoVeta: ['largo', 'largoveta', 'longitud', 'plength', 'length'],
   ancho: ['ancho', 'pwidth', 'width'],
-  l1: ['l1', 'lsuperior', 'superior', 'pedgematup', 'matsup'],
-  l2: ['l2', 'linferior', 'inferior', 'pedgematlo', 'matinf'],
-  a1: ['a1', 'aizquierda', 'izquierda', 'pedgematsx', 'matizq'],
-  a2: ['a2', 'aderecha', 'derecha', 'pedgematdx', 'matder'],
+  l1: ['l1', 'lsuperior', 'superior', 'pedgematup', 'matedgeup', 'matsup'],
+  l2: ['l2', 'linferior', 'inferior', 'pedgematlo', 'matedgelo', 'matinf'],
+  a1: ['a1', 'aizquierda', 'izquierda', 'pedgematsx', 'matedgel', 'matizq'],
+  a2: ['a2', 'aderecha', 'derecha', 'pedgematdx', 'matedger', 'matder'],
   observacion: ['descripcion', 'pdesc', 'observacion', 'descripcio', 'piidesc'],
-  perforacionCantidad: ['perfcant', 'perforacioncant'],
+  perforacionCantidad: ['perfcant', 'perforacioncant', 'cantperf'],
   perforacionLado1: ['perflado', 'perforacionlado'],
   ranuraLado: ['ranuralado', 'ranlado'],
   ranuraDist: ['randist', 'ranuradist', 'dist'],
@@ -37,6 +37,11 @@ function normalizeHeader(value) {
 
 function columnMatches(normalized, aliases) {
   if (!normalized) return false
+  return aliases.some((alias) => normalized === alias)
+}
+
+function columnMatchesLoose(normalized, aliases) {
+  if (!normalized) return false
   return aliases.some((alias) => normalized === alias || normalized.includes(alias))
 }
 
@@ -53,15 +58,15 @@ function parseCantidad(raw) {
 }
 
 /**
- * Medidas largo/ancho: en plantilla humana se usan tal cual (560 → 560).
- * En export del optimizador vienen ×10 (560 → 5600) y se divide al importar.
+ * Medidas en plantilla: tal cual (560 → 560).
+ * Solo export optimizador del sistema (×10) se divide al reimportar.
  */
-function parseBoardMeasure(raw, { fromOptimizer } = {}) {
+function parseBoardMeasure(raw, { scaleFromOptimizer } = {}) {
   if (raw == null || raw === '') return ''
   const n = parseExcelNumber(raw)
   if (!Number.isFinite(n) || n <= 0) return ''
   let val = Math.round(n)
-  if (fromOptimizer) val = Math.round(val / 10)
+  if (scaleFromOptimizer) val = Math.round(val / 10)
   return String(val)
 }
 
@@ -96,6 +101,26 @@ function rowIsEmpty(line) {
   return !(line ?? []).some((v) => String(v ?? '').trim() !== '')
 }
 
+function rowJoinNormalized(row) {
+  return (row ?? []).map(normalizeHeader).join('|')
+}
+
+function isPlanillaLabelRow(row) {
+  const join = rowJoinNormalized(row)
+  return join.includes('cantidad') && join.includes('largo') && join.includes('ancho')
+}
+
+function isPlanillaWorkbook(matrix) {
+  for (let i = 0; i < Math.min(12, matrix.length); i += 1) {
+    const row = matrix[i] ?? []
+    const text = row.map(normalizeHeader).join(' ')
+    if (text.includes('listadodepiezas')) return true
+    if (text.includes('piezasacortar') && text.includes('tablero')) return true
+    if (isPlanillaLabelRow(row)) return true
+  }
+  return false
+}
+
 function mapColumnsFromHeaderRow(headerRow) {
   const headers = (headerRow ?? []).map(normalizeHeader)
   const cols = {}
@@ -112,8 +137,8 @@ function mapColumnsFromHeaderRow(headerRow) {
       }
     }
     if (header === 'lado') genericLado.push(index)
-    if (columnMatches(header, ['perflado', 'perforacionlado'])) perfLado.push(index)
-    if (columnMatches(header, ['ranuralado', 'ranlado'])) ranuraLado.push(index)
+    if (columnMatchesLoose(header, ['perflado', 'perforacionlado'])) perfLado.push(index)
+    if (columnMatchesLoose(header, ['ranuralado', 'ranlado'])) ranuraLado.push(index)
   })
 
   if (cols.perforacionLado1 == null && perfLado.length) {
@@ -142,74 +167,93 @@ function mapColumnsFromTemplateLayout() {
 }
 
 function mapColumnsFromTemplateKeys(headerRow) {
-  const byLayout = mapColumnsFromTemplateLayout()
-  const byHeader = mapColumnsFromHeaderRow(headerRow)
-  return { ...byLayout, ...byHeader }
+  return mapColumnsFromTemplateLayout()
 }
 
 function hasRequiredMeasureColumns(cols) {
   return cols.cantidad != null && cols.largoVeta != null && cols.ancho != null
 }
 
-function detectOptimizerHeader(matrix) {
-  for (let i = 0; i < Math.min(6, matrix.length); i += 1) {
-    const joined = (matrix[i] ?? []).map(normalizeHeader).join('|')
-    if (joined.includes('plength') || joined.includes('pwidth') || joined.includes('pminq')) {
-      const cols = {}
-      EXCEL_EXPORT_COLUMNS.forEach((col) => {
-        const idx = (matrix[i] ?? []).findIndex((cellValue) => {
-          const h = normalizeHeader(cellValue)
-          return h === normalizeHeader(col.technical) || columnMatches(h, FIELD_ALIASES[col.key] ?? [])
-        })
-        if (idx >= 0) cols[col.key] = idx
-      })
-      const legacy = mapColumnsFromHeaderRow(matrix[i])
+/** Plantilla LISTADO DE PIEZAS (con o sin fila técnica [P_LENGTH] en encabezados). */
+function detectPlanillaTemplate(matrix) {
+  for (let i = 0; i < Math.min(12, matrix.length); i += 1) {
+    if (!isPlanillaLabelRow(matrix[i])) continue
+    const cols = mapColumnsFromTemplateKeys(matrix[i])
+    if (hasRequiredMeasureColumns(cols)) {
       return {
-        format: 'optimizer',
+        format: 'planilla',
         headerRowIndex: i,
         dataStart: i + 1,
-        cols: {
-          tablero: cols.pCodeMat ?? legacy.tablero,
-          cantidad: cols.pMinq ?? legacy.cantidad,
-          largoVeta: cols.pLength ?? legacy.largoVeta,
-          ancho: cols.pWidth ?? legacy.ancho,
-          l1: cols.pEdgeMaSup ?? legacy.l1,
-          l2: cols.pEdgeMaInf ?? legacy.l2,
-          a1: cols.pEdgeMaIzq ?? legacy.a1,
-          a2: cols.pEdgeMaDer ?? legacy.a2,
-          observacion: cols.pIidesc ?? legacy.observacion,
-          vetaLongitud: cols.pGrain ?? legacy.vetaLongitud,
-          perforacionDesc: cols.pIdesc,
-        },
+        cols,
       }
     }
   }
+
+  for (let i = 0; i < Math.min(8, matrix.length); i += 1) {
+    const text = (matrix[i] ?? []).map(normalizeHeader).join(' ')
+    if (!text.includes('listadodepiezas')) continue
+    for (let j = i + 1; j < Math.min(i + 5, matrix.length); j += 1) {
+      if (!isPlanillaLabelRow(matrix[j])) continue
+      const cols = mapColumnsFromTemplateKeys(matrix[j])
+      if (hasRequiredMeasureColumns(cols)) {
+        return {
+          format: 'planilla',
+          headerRowIndex: j,
+          dataStart: j + 1,
+          cols,
+        }
+      }
+    }
+    return {
+      format: 'planilla',
+      headerRowIndex: i + 2,
+      dataStart: i + 3,
+      cols: mapColumnsFromTemplateLayout(),
+    }
+  }
+
   return null
 }
 
-function detectPlanillaTemplate(matrix) {
-  for (let i = 0; i < Math.min(8, matrix.length); i += 1) {
-    const title = normalizeHeader(matrix[i]?.[0])
-    const rowJoin = (matrix[i] ?? []).map(normalizeHeader).join(' ')
-    if (title.includes('listadodepiezas') || rowJoin.includes('listadodepiezas')) {
-      return {
-        format: 'planilla',
-        headerRowIndex: i + 2,
-        dataStart: i + 3,
-        cols: mapColumnsFromTemplateLayout(),
-      }
-    }
+/**
+ * Export optimizador del sistema (fila 0 técnica, fila 1 etiquetas, datos desde fila 2).
+ * No aplica si el libro es plantilla LISTADO DE PIEZAS.
+ */
+function detectOptimizerExport(matrix) {
+  if (isPlanillaWorkbook(matrix)) return null
+
+  const technical = rowJoinNormalized(matrix[0])
+  if (!technical.includes('plength') || !technical.includes('pwidth') || !technical.includes('pminq')) {
+    return null
   }
-  for (let i = 0; i < Math.min(8, matrix.length); i += 1) {
-    const labelJoin = (matrix[i] ?? []).map(normalizeHeader).join('|')
-    if (labelJoin.includes('cantidad') && labelJoin.includes('largo') && labelJoin.includes('ancho')) {
-      const cols = mapColumnsFromTemplateKeys(matrix[i])
-      if (hasRequiredMeasureColumns(cols)) {
-        return { format: 'planilla', headerRowIndex: i, dataStart: i + 1, cols }
-      }
-    }
+
+  const cols = {}
+  EXCEL_EXPORT_COLUMNS.forEach((col) => {
+    const idx = (matrix[0] ?? []).findIndex((cellValue) => {
+      const h = normalizeHeader(cellValue)
+      return h === normalizeHeader(col.technical) || columnMatches(h, FIELD_ALIASES[col.key] ?? [])
+    })
+    if (idx >= 0) cols[col.key] = idx
+  })
+  const legacy = mapColumnsFromHeaderRow(matrix[0])
+
+  return {
+    format: 'optimizer',
+    headerRowIndex: 0,
+    dataStart: 2,
+    cols: {
+      cantidad: cols.pMinq ?? legacy.cantidad,
+      largoVeta: cols.pLength ?? legacy.largoVeta,
+      ancho: cols.pWidth ?? legacy.ancho,
+      l1: cols.pEdgeMaSup ?? legacy.l1,
+      l2: cols.pEdgeMaInf ?? legacy.l2,
+      a1: cols.pEdgeMaIzq ?? legacy.a1,
+      a2: cols.pEdgeMaDer ?? legacy.a2,
+      observacion: cols.pIidesc ?? legacy.observacion,
+      vetaLongitud: cols.pGrain ?? legacy.vetaLongitud,
+      perforacionDesc: cols.pIdesc,
+    },
   }
-  return null
 }
 
 function detectGenericHeader(matrix) {
@@ -252,10 +296,10 @@ function parsePerforacionRanuraFromDesc(text) {
   return out
 }
 
-function buildRowFromLine(line, cols, { fromOptimizer }) {
+function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const cantidad = parseCantidad(cell(line, cols.cantidad))
-  const largoVeta = parseBoardMeasure(cell(line, cols.largoVeta), { fromOptimizer })
-  const ancho = parseBoardMeasure(cell(line, cols.ancho), { fromOptimizer })
+  const largoVeta = parseBoardMeasure(cell(line, cols.largoVeta), { scaleFromOptimizer })
+  const ancho = parseBoardMeasure(cell(line, cols.ancho), { scaleFromOptimizer })
   const l1 = parseTextCell(cell(line, cols.l1))
   const l2 = parseTextCell(cell(line, cols.l2))
   const a1 = parseTextCell(cell(line, cols.a1))
@@ -295,12 +339,15 @@ function buildRowFromLine(line, cols, { fromOptimizer }) {
 }
 
 function resolveLayout(matrix) {
-  const optimizer = detectOptimizerHeader(matrix)
-  if (optimizer) return optimizer
   const planilla = detectPlanillaTemplate(matrix)
   if (planilla) return planilla
+
+  const optimizer = detectOptimizerExport(matrix)
+  if (optimizer) return optimizer
+
   const generic = detectGenericHeader(matrix)
   if (generic) return generic
+
   throw new Error(
     `El Excel debe tener columnas «Cantidad», «Largo» y «Ancho» (plantilla «${PLANILLA_EXCEL_TITLE}» o exportación optimizador).`,
   )
@@ -321,13 +368,13 @@ export async function parsePlanillaDetalleExcel(file) {
   if (!matrix.length) throw new Error('El archivo Excel está vacío.')
 
   const layout = resolveLayout(matrix)
-  const fromOptimizer = layout.format === 'optimizer'
+  const scaleFromOptimizer = layout.format === 'optimizer'
   const rows = []
 
   for (let i = layout.dataStart; i < matrix.length; i += 1) {
     const line = matrix[i]
     if (rowIsEmpty(line)) continue
-    const row = buildRowFromLine(line, layout.cols, { fromOptimizer })
+    const row = buildRowFromLine(line, layout.cols, { scaleFromOptimizer })
     if (row) rows.push(row)
   }
 
