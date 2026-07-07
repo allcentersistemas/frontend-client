@@ -1,11 +1,12 @@
 import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
-import { newDetalle, vetaFromApi } from './helpers'
+import { newDetalle } from './helpers'
 import { normalizeMeasureInput } from './measureInput'
 import {
   PLANILLA_EXCEL_TITLE,
   PLANILLA_TEMPLATE_COLUMN_KEYS,
 } from './planillaExcelLayout'
+import { applyCantoCatalogToRows, formatCantoImportErrors } from './cantoImportValidation'
 
 const FIELD_ALIASES = {
   tablero: ['materialcoloryespesor', 'material', 'tablero', 'pcodemat', 'codemat'],
@@ -73,17 +74,6 @@ function parseBoardMeasure(raw, { scaleFromOptimizer } = {}) {
 function parseTextCell(raw) {
   if (raw == null) return ''
   return String(raw).trim()
-}
-
-function parseLado(raw) {
-  const s = parseTextCell(raw).toUpperCase()
-  if (!s || s === 'NA' || s === 'N/A') return ''
-  return s
-}
-
-function parseVeta(raw) {
-  if (raw == null || raw === '') return false
-  return vetaFromApi(raw) || ['si', 'sí', 'yes', 'true', '1'].includes(normalizeHeader(raw))
 }
 
 function cell(row, index) {
@@ -274,28 +264,6 @@ function detectGenericHeader(matrix) {
   return null
 }
 
-function parsePerforacionRanuraFromDesc(text) {
-  const out = {}
-  const raw = parseTextCell(text)
-  if (!raw) return out
-  const perf = raw.match(/P\(([^)]*)\)/i)
-  if (perf) {
-    const parts = perf[1].split('/').map((p) => p.trim())
-    if (parts[0]) out.perforacionCantidad = parseCantidad(parts[0])
-    if (parts[1]) out.perforacionLado1 = parseLado(parts[1])
-    if (parts[2]) out.perforacionLado2 = parseLado(parts[2])
-  }
-  const ran = raw.match(/R\(([^)]*)\)/i)
-  if (ran) {
-    const parts = ran[1].split('/').map((p) => p.trim())
-    if (parts[0]) out.ranuraDist = parseTextCell(parts[0])
-    if (parts[1]) out.ranuraProf = parseTextCell(parts[1])
-    if (parts[2]) out.ranuraEs = parseTextCell(parts[2])
-    if (parts[3]) out.ranuraLado = parseLado(parts[3])
-  }
-  return out
-}
-
 function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const cantidad = parseCantidad(cell(line, cols.cantidad))
   const largoVeta = parseBoardMeasure(cell(line, cols.largoVeta), { scaleFromOptimizer })
@@ -304,37 +272,18 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const l2 = parseTextCell(cell(line, cols.l2))
   const a1 = parseTextCell(cell(line, cols.a1))
   const a2 = parseTextCell(cell(line, cols.a2))
-  const observacion = parseTextCell(cell(line, cols.observacion))
-  const perforacionCantidad = parseCantidad(cell(line, cols.perforacionCantidad))
-  const perforacionLado1 = parseLado(cell(line, cols.perforacionLado1))
-  const ranuraLado = parseLado(cell(line, cols.ranuraLado))
-  const ranuraDist = parseTextCell(cell(line, cols.ranuraDist))
-  const ranuraProf = parseTextCell(cell(line, cols.ranuraProf))
-  const ranuraEs = parseTextCell(cell(line, cols.ranuraEs))
-  const vetaLongitud = parseVeta(cell(line, cols.vetaLongitud))
 
-  const perfRan = parsePerforacionRanuraFromDesc(cell(line, cols.perforacionDesc))
-
-  if (!cantidad && !largoVeta && !ancho && !observacion) return null
+  if (!cantidad && !largoVeta && !ancho && !l1 && !l2 && !a1 && !a2) return null
 
   return {
     ...newDetalle(),
     cantidad,
     largoVeta,
     ancho,
-    vetaLongitud,
     l1,
     l2,
     a1,
     a2,
-    observacion,
-    perforacionCantidad: perforacionCantidad || perfRan.perforacionCantidad || '',
-    perforacionLado1: perforacionLado1 || perfRan.perforacionLado1 || '',
-    perforacionLado2: perfRan.perforacionLado2 || '',
-    ranuraLado: ranuraLado || perfRan.ranuraLado || '',
-    ranuraDist: ranuraDist || perfRan.ranuraDist || '',
-    ranuraProf: ranuraProf || perfRan.ranuraProf || '',
-    ranuraEs: ranuraEs || perfRan.ranuraEs || '',
   }
 }
 
@@ -354,11 +303,12 @@ function resolveLayout(matrix) {
 }
 
 /**
- * Lee un .xlsx/.xls con el formato plantilla o exportación optimizador.
+ * Lee un .xlsx/.xls (hasta cantos: medidas + L1–A2).
  * @param {File} file
+ * @param {{ cantoOptions?: Array<{ name?: string, sku?: string }> }} [opts]
  * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[] }>}
  */
-export async function parsePlanillaDetalleExcel(file) {
+export async function parsePlanillaDetalleExcel(file, opts = {}) {
   const buffer = await file.arrayBuffer()
   const workbook = XLSX.read(buffer, { type: 'array' })
   const sheetName = workbook.SheetNames[0]
@@ -382,7 +332,12 @@ export async function parsePlanillaDetalleExcel(file) {
     throw new Error('No se encontraron filas con datos en el Excel.')
   }
 
-  return { rows }
+  const { rows: withCantos, errors } = applyCantoCatalogToRows(rows, opts.cantoOptions)
+  if (errors.length) {
+    throw new Error(formatCantoImportErrors(errors))
+  }
+
+  return { rows: withCantos }
 }
 
 /** @deprecated Usar parsePlanillaDetalleExcel */

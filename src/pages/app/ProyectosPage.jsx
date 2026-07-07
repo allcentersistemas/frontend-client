@@ -91,6 +91,39 @@ export default function ProyectosPage() {
     }
   }
 
+  function renderProyectoActions(project) {
+    return (
+      <>
+        <Link to={`/app/planilla-corte/${project.id}`} className="btn btn--ghost btn--sm">
+          Ver detalle
+        </Link>
+        {project.tieneCotizacion ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            disabled={busyId === project.id}
+            onClick={() => void handleDownloadCotizacion(project)}
+          >
+            Descargar cotización
+          </button>
+        ) : (
+          <span className="small muted self-center">Sin cotización</span>
+        )}
+        {canCancelProject(project) ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            disabled={busyId === project.id}
+            style={{ color: 'var(--danger, #b00020)' }}
+            onClick={() => void handleCancelProject(project)}
+          >
+            Cancelar
+          </button>
+        ) : null}
+      </>
+    )
+  }
+
   return (
     <div className="page-stack">
       <header className="page__head">
@@ -182,6 +215,22 @@ export default function ProyectosPage() {
         </div>
       ) : (
         <>
+          <div className="project-grid md:hidden">
+            {filtered.map((p) => (
+              <article key={p.id} className="project-card">
+                <div className="project-card__head">
+                  <h2 className="project-card__title">{p.nombre}</h2>
+                  <EstadoTag estado={p.estado} />
+                </div>
+                {p.descripcion ? <p className="project-card__desc">{p.descripcion}</p> : null}
+                <div className="small muted mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Órdenes: {p.cantidadOrdenes ?? 0}</span>
+                  <span>Enviado: {formatProyectoDate(p.fechaCreacion)}</span>
+                </div>
+                <div className="project-card__actions">{renderProyectoActions(p)}</div>
+              </article>
+            ))}
+          </div>
 
           <div className="card card--table hidden md:block">
             <div className="table-wrap">
@@ -207,34 +256,7 @@ export default function ProyectosPage() {
                       <td>{p.cantidadOrdenes ?? 0}</td>
                       <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
                       <td>
-                        <div className="flex flex-wrap gap-2">
-                          <Link to={`/app/planilla-corte/${p.id}`} className="btn btn--ghost btn--sm">
-                            Ver detalle
-                          </Link>
-                          {p.tieneCotizacion ? (
-                            <button
-                              type="button"
-                              className="btn btn--ghost btn--sm"
-                              disabled={busyId === p.id}
-                              onClick={() => void handleDownloadCotizacion(p)}
-                            >
-                              Descargar cotización
-                            </button>
-                          ) : (
-                            <span className="small muted self-center">Sin cotización</span>
-                          )}
-                          {canCancelProject(p) ? (
-                            <button
-                              type="button"
-                              className="btn btn--ghost btn--sm"
-                              disabled={busyId === p.id}
-                              style={{ color: 'var(--danger, #b00020)' }}
-                              onClick={() => void handleCancelProject(p)}
-                            >
-                              Cancelar
-                            </button>
-                          ) : null}
-                        </div>
+                        <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
                       </td>
                     </tr>
                   ))}

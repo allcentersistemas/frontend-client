@@ -59,13 +59,13 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       if (
         hasData &&
         !window.confirm(
-          '¿Reemplazar las filas actuales con los datos del Excel? Se importan medidas, cantos, perforación y ranuras. El material será el del desplegable.',
+          '¿Reemplazar las filas actuales con los datos del Excel? Se importan cantidad, largo, ancho y cantos (L1–A2). El material será el del desplegable.',
         )
       ) {
         return
       }
       try {
-        const { rows: imported } = await parsePlanillaDetalleExcel(file)
+        const { rows: imported } = await parsePlanillaDetalleExcel(file, { cantoOptions })
         setMeasureError('')
         setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
       } catch (e) {
@@ -73,7 +73,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         throw e
       }
     },
-    [readOnly, order, rows, sharedTablero],
+    [readOnly, order, rows, sharedTablero, cantoOptions],
   )
 
   const handleSave = useCallback(() => {
