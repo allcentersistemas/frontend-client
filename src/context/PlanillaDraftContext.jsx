@@ -2,6 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useNavigate } from 'react-router-dom'
 import { fetchPlanillaCatalogos, fetchMaquinas, getProyectoOptimizacion, saveProyectoCompleto, updateProyectoMaquina } from '../api/orderApi'
 import {
+  collectCantoCatalogErrors,
+  formatCantoCatalogErrors,
+} from '../planilla/cantoImportValidation'
+import {
   isPersistedProjectId,
   mapDetalleToApiPayload,
   mapOrdersFromApi,
@@ -260,6 +264,18 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       setSaveError('Este proyecto ya fue enviado y no puede modificarse.')
       return false
     }
+    for (const order of orders) {
+      const cantoErrors = collectCantoCatalogErrors(order.detalles, cantoOptions)
+      if (cantoErrors.length) {
+        setSaveError(
+          formatCantoCatalogErrors(
+            cantoErrors,
+            `Orden «${order.codigo}»: corrija los cantos antes de enviar el proyecto.`,
+          ),
+        )
+        return false
+      }
+    }
     setSaveError('')
     setSaveOk('')
     setSaving(true)
@@ -311,7 +327,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     } finally {
       setSaving(false)
     }
-  }, [navigate, orders, persistDraft, project, projectDraft, maquinaId, persistedId, projectEditable])
+  }, [navigate, orders, cantoOptions, persistDraft, project, projectDraft, maquinaId, persistedId, projectEditable])
 
   const value = useMemo(
     () => ({

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle } from '../../planilla/helpers'
+import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 
 export default function PlanillaOrdenDetallePage() {
@@ -44,6 +45,11 @@ export default function PlanillaOrdenDetallePage() {
 
   const handleSave = useCallback(() => {
     if (!order) return
+    const cantoError = validateCantoCatalogInRows(rows, cantoOptions)
+    if (cantoError) {
+      setMeasureError(cantoError)
+      return
+    }
     const validationError = validateAllBoardMeasures(rows)
     if (validationError) {
       setMeasureError(validationError)
@@ -52,7 +58,7 @@ export default function PlanillaOrdenDetallePage() {
     setMeasureError('')
     updateOrderDetalles(order.id, rows.map(normalizeMeasureRow))
     navigate(basePath)
-  }, [order, rows, updateOrderDetalles, navigate, basePath])
+  }, [order, rows, cantoOptions, updateOrderDetalles, navigate, basePath])
 
   const handleBoardMeasureBlur = useCallback((rowIndex, key, value) => {
     const message = validateBoardMeasureValue(key, value, rowIndex)

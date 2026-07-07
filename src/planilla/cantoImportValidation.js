@@ -44,8 +44,31 @@ export function resolveImportedCanto(raw, lookup) {
   return { value: lookup.get(key), valid: true }
 }
 
+export function collectCantoCatalogErrors(rows, cantoOptions) {
+  const lookup = buildCantoLookup(cantoOptions)
+  const errors = []
+
+  for (let index = 0; index < (rows ?? []).length; index += 1) {
+    const row = rows[index]
+    for (const field of CANTO_IMPORT_FIELDS) {
+      const raw = row[field]
+      if (isBlankCantoValue(raw)) continue
+      const resolved = resolveImportedCanto(raw, lookup)
+      if (!resolved.valid) {
+        errors.push({
+          row: index + 1,
+          field: CANTO_IMPORT_LABELS[field],
+          value: String(raw).trim(),
+        })
+      }
+    }
+  }
+
+  return errors
+}
+
 /**
- * Normaliza L1–A2 al catálogo. Devuelve filas listas y errores por celda inválida.
+ * Normaliza L1–A2 válidos al catálogo. Conserva el valor crudo si no coincide.
  */
 export function applyCantoCatalogToRows(rows, cantoOptions) {
   const lookup = buildCantoLookup(cantoOptions)
@@ -66,7 +89,7 @@ export function applyCantoCatalogToRows(rows, cantoOptions) {
           field: CANTO_IMPORT_LABELS[field],
           value: String(raw).trim(),
         })
-        next[field] = ''
+        next[field] = String(raw).trim()
       } else {
         next[field] = resolved.value
       }
@@ -77,11 +100,25 @@ export function applyCantoCatalogToRows(rows, cantoOptions) {
   return { rows: normalized, errors }
 }
 
-export function formatCantoImportErrors(errors) {
+export function formatCantoCatalogErrors(errors, intro = 'Revise los cantos:') {
   if (!errors?.length) return ''
   const lines = errors
     .slice(0, 15)
     .map((e) => `· Fila ${e.row}, ${e.field}: «${e.value}» no es un canto válido del catálogo.`)
   const extra = errors.length > 15 ? `\n…y ${errors.length - 15} valor(es) más.` : ''
-  return `Revise los cantos del Excel:\n${lines.join('\n')}${extra}`
+  return `${intro}\n${lines.join('\n')}${extra}`
+}
+
+export function formatCantoImportErrors(errors) {
+  return formatCantoCatalogErrors(
+    errors,
+    'Se importaron las filas. Corrija los cantos indicados antes de guardar el detalle:',
+  )
+}
+
+export function validateCantoCatalogInRows(rows, cantoOptions) {
+  return formatCantoCatalogErrors(
+    collectCantoCatalogErrors(rows, cantoOptions),
+    'No se puede guardar el detalle hasta corregir los cantos:',
+  )
 }

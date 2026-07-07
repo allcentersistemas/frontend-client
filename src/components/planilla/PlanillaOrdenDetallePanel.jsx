@@ -6,6 +6,7 @@ import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
+import { formatCantoImportErrors, validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
 import { downloadPlanillaTemplateExcel } from '../../planilla/excelTemplate'
 
@@ -65,9 +66,9 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         return
       }
       try {
-        const { rows: imported } = await parsePlanillaDetalleExcel(file, { cantoOptions })
-        setMeasureError('')
+        const { rows: imported, cantoErrors } = await parsePlanillaDetalleExcel(file, { cantoOptions })
         setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
+        setMeasureError(cantoErrors?.length ? formatCantoImportErrors(cantoErrors) : '')
       } catch (e) {
         setMeasureError(e instanceof Error ? e.message : 'No se pudo leer el Excel.')
         throw e
@@ -79,6 +80,11 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
     const withMaterial = rows.map((row) => ({ ...row, tablero: sharedTablero }))
+    const cantoError = validateCantoCatalogInRows(withMaterial, cantoOptions)
+    if (cantoError) {
+      setMeasureError(cantoError)
+      return
+    }
     const validationError = validateAllBoardMeasures(withMaterial)
     if (validationError) {
       setMeasureError(validationError)
@@ -87,7 +93,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     setMeasureError('')
     updateOrderDetalles(order.id, withMaterial.map(normalizeMeasureRow))
     onClose()
-  }, [readOnly, order, rows, sharedTablero, updateOrderDetalles, onClose])
+  }, [readOnly, order, rows, sharedTablero, cantoOptions, updateOrderDetalles, onClose])
 
   if (loadingProject || !order) {
     return (

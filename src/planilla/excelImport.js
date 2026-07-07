@@ -6,7 +6,7 @@ import {
   PLANILLA_EXCEL_TITLE,
   PLANILLA_TEMPLATE_COLUMN_KEYS,
 } from './planillaExcelLayout'
-import { applyCantoCatalogToRows, formatCantoImportErrors } from './cantoImportValidation'
+import { applyCantoCatalogToRows } from './cantoImportValidation'
 
 const FIELD_ALIASES = {
   tablero: ['materialcoloryespesor', 'material', 'tablero', 'pcodemat', 'codemat'],
@@ -306,7 +306,7 @@ function resolveLayout(matrix) {
  * Lee un .xlsx/.xls (hasta cantos: medidas + L1–A2).
  * @param {File} file
  * @param {{ cantoOptions?: Array<{ name?: string, sku?: string }> }} [opts]
- * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[] }>}
+ * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[], cantoErrors: Array<{ row: number, field: string, value: string }> }>}
  */
 export async function parsePlanillaDetalleExcel(file, opts = {}) {
   const buffer = await file.arrayBuffer()
@@ -333,11 +333,8 @@ export async function parsePlanillaDetalleExcel(file, opts = {}) {
   }
 
   const { rows: withCantos, errors } = applyCantoCatalogToRows(rows, opts.cantoOptions)
-  if (errors.length) {
-    throw new Error(formatCantoImportErrors(errors))
-  }
 
-  return { rows: withCantos }
+  return { rows: withCantos, cantoErrors: errors }
 }
 
 /** @deprecated Usar parsePlanillaDetalleExcel */
