@@ -268,6 +268,7 @@ export function PlanillaDetalleEditor({
   onPatchRow,
   onRemoveRow,
   onDownloadExcel,
+  onDownloadTemplate,
   onImportExcel,
   maquinaParametros,
   measureError = '',
@@ -384,6 +385,15 @@ export function PlanillaDetalleEditor({
                         .finally(() => setImportBusy(false))
                     }}
                   />
+                  {onDownloadTemplate ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={onDownloadTemplate}
+                    >
+                      Descargar plantilla Excel
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="btn btn--ghost btn--sm"

@@ -6,7 +6,8 @@ import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
-import { parseSimpleDetalleExcel } from '../../planilla/excelImport'
+import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
+import { downloadPlanillaTemplateExcel } from '../../planilla/excelTemplate'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const {
@@ -54,14 +55,15 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       if (
         hasData &&
         !window.confirm(
-          '¿Reemplazar las filas actuales con los datos del Excel? Solo se importan cantidad, largo y ancho.',
+          '¿Reemplazar las filas actuales con los datos del Excel? Se importan medidas, cantos, perforación, ranuras y material.',
         )
       ) {
         return
       }
       try {
-        const { rows: imported } = await parseSimpleDetalleExcel(file)
+        const { rows: imported, sharedTablero: importedTablero } = await parsePlanillaDetalleExcel(file)
         setMeasureError('')
+        if (importedTablero) setSharedTablero(importedTablero)
         setRows(imported)
       } catch (e) {
         setMeasureError(e instanceof Error ? e.message : 'No se pudo leer el Excel.')
@@ -112,6 +114,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
           maquinaParametros,
         })
       }}
+      onDownloadTemplate={() => downloadPlanillaTemplateExcel()}
       onImportExcel={readOnly ? undefined : handleImportExcel}
       onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
       onUpdateRow={
