@@ -4,6 +4,7 @@ import { downloadProyectoCotizacion, cancelProyectoOptimizacion, listProyectosOp
 import { EstadoTag } from '../../components/EstadoTag'
 import {
   ESTADOS_PROYECTO,
+  canDownloadCotizacion,
   emptyProyectoFilters,
   filterProyectosClientSide,
   formatProyectoDate,
@@ -97,7 +98,7 @@ export default function ProyectosPage() {
         <Link to={`/app/planilla-corte/${project.id}`} className="btn btn--ghost btn--sm">
           Ver detalle
         </Link>
-        {project.tieneCotizacion ? (
+        {canDownloadCotizacion(project) ? (
           <button
             type="button"
             className="btn btn--ghost btn--sm"

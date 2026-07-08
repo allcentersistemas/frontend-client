@@ -32,7 +32,12 @@ export function estadoTagClass(estado) {
   return map[estado] || 'tag'
 }
 
-export function formatProyectoDate(value) {
+export function canDownloadCotizacion(project) {
+  if (!project) return false
+  if (project.tieneCotizacion) return true
+  return project.estado === 'COTIZADO' || project.estado === 'VENDIDO'
+}
+
   return formatAppDateTime(value)
 }
 

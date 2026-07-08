@@ -10,6 +10,34 @@ import {
 
 const OPT_BASE = '/client/optimizacion'
 
+function parseContentDispositionFilename(header) {
+  if (!header) return null
+  const star = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i)
+  if (star) {
+    try {
+      return decodeURIComponent(star[1].replace(/(^"|"$)/g, ''))
+    } catch {
+      return star[1].replace(/(^"|"$)/g, '')
+    }
+  }
+  const plain = header.match(/filename="?([^";]+)"?/i)
+  return plain ? plain[1] : null
+}
+
+function triggerBrowserDownload(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  window.setTimeout(() => {
+    anchor.remove()
+    URL.revokeObjectURL(objectUrl)
+  }, 0)
+}
+
 function authHeaders(accessToken) {
   return {
     Authorization: `Bearer ${accessToken}`,
@@ -131,12 +159,11 @@ export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cot
       throw new Error(message)
     }
     const blob = await res.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = objectUrl
-    a.download = `${filenameHint}-cotizacion.pdf`
-    a.click()
-    URL.revokeObjectURL(objectUrl)
+    const disposition = res.headers.get('Content-Disposition')
+    const fromHeader = parseContentDispositionFilename(disposition)
+    const safeHint = String(filenameHint || 'cotizacion').replace(/[^\w.-]+/g, '_')
+    const downloadName = fromHeader || `${safeHint}-cotizacion.pdf`
+    triggerBrowserDownload(blob, downloadName)
   })
 }
 

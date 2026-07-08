@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, findProyectoByNombre } from '../../api/orderApi'
+import { canDownloadCotizacion } from '../../planilla/proyectoListUtils'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
@@ -30,6 +31,7 @@ export default function PlanillaCortePage() {
   const navigate = useNavigate()
   const editingId = projectId && projectId !== 'nuevo' ? Number(projectId) : null
   const [busyCotizacion, setBusyCotizacion] = useState(false)
+  const [cotizacionError, setCotizacionError] = useState('')
   const [busyCancel, setBusyCancel] = useState(false)
   const [activating, setActivating] = useState(false)
   const [duplicateProject, setDuplicateProject] = useState(null)
@@ -172,16 +174,19 @@ export default function PlanillaCortePage() {
               {projectEstado ? (
                 <p className="small mt-2 flex flex-wrap items-center gap-2">
                   <span>Estado:</span> <EstadoTag estado={projectEstado} />
-                  {readOnly && projectEstado === 'COTIZADO' && project?.id ? (
+                  {readOnly && canDownloadCotizacion({ estado: projectEstado }) && project?.id ? (
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm"
                       disabled={busyCotizacion}
                       onClick={async () => {
                         setBusyCotizacion(true)
+                        setCotizacionError('')
                         try {
                           const safe = (project.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
                           await downloadProyectoCotizacion(project.id, safe)
+                        } catch (err) {
+                          setCotizacionError(err.message || 'No se pudo descargar la cotización.')
                         } finally {
                           setBusyCotizacion(false)
                         }
@@ -189,6 +194,9 @@ export default function PlanillaCortePage() {
                     >
                       Descargar cotización
                     </button>
+                  ) : null}
+                  {cotizacionError ? (
+                    <span className="small form-error">{cotizacionError}</span>
                   ) : null}
                   {canCancelProject ? (
                     <button
