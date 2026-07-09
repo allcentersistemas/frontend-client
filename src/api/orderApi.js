@@ -24,18 +24,62 @@ function parseContentDispositionFilename(header) {
   return plain ? plain[1] : null
 }
 
-function triggerBrowserDownload(blob, filename) {
-  const objectUrl = URL.createObjectURL(blob)
+function parseErrorMessage(text, fallback) {
+  if (!text) return fallback
+  try {
+    const body = JSON.parse(text)
+    if (body?.message) return body.message
+    if (body?.error) return body.error
+  } catch {
+    if (text.length < 280) return text
+  }
+  return fallback
+}
+
+function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+}
+
+function isPreviewableDownload(contentType, filename) {
+  const type = String(contentType || '').toLowerCase()
+  const name = String(filename || '').toLowerCase()
+  return type.includes('pdf') || type.startsWith('image/') || name.endsWith('.pdf')
+}
+
+function triggerFileDownload(blob, filename, contentType) {
+  const typedBlob =
+    blob.type && blob.type !== 'application/octet-stream'
+      ? blob
+      : new Blob([blob], { type: contentType || 'application/octet-stream' })
+  const objectUrl = URL.createObjectURL(typedBlob)
+  const mobile = isMobileBrowser()
+  const previewable = isPreviewableDownload(contentType, filename)
+
+  if (mobile && previewable) {
+    const opened = window.open(objectUrl, '_blank', 'noopener,noreferrer')
+    if (!opened) {
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.target = '_blank'
+      anchor.rel = 'noopener noreferrer'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+    }
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000)
+    return
+  }
+
   const anchor = document.createElement('a')
   anchor.href = objectUrl
   anchor.download = filename
+  anchor.target = '_blank'
+  anchor.rel = 'noopener noreferrer'
   anchor.style.display = 'none'
   document.body.appendChild(anchor)
   anchor.click()
-  window.setTimeout(() => {
-    anchor.remove()
-    URL.revokeObjectURL(objectUrl)
-  }, 0)
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000)
 }
 
 function authHeaders(accessToken) {
@@ -139,7 +183,7 @@ export async function updateProyectoMaquina(proyectoId, maquinaId) {
   )
 }
 
-/** Descarga la cotización del proyecto (solo si estado COTIZADO y archivo disponible). */
+/** Descarga o abre la cotización del proyecto en una pestaña nueva (móvil) o como archivo. */
 export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cotizacion') {
   return withClientAuth(async (accessToken) => {
     const url = clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/cotizacion`)
@@ -149,21 +193,18 @@ export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cot
     })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      let message = 'No se pudo descargar la cotización.'
-      try {
-        const body = JSON.parse(text)
-        if (body?.message) message = body.message
-      } catch {
-        if (text) message = text
-      }
-      throw new Error(message)
+      throw new Error(parseErrorMessage(text, 'No se pudo descargar la cotización.'))
     }
     const blob = await res.blob()
+    if (!blob || blob.size === 0) {
+      throw new Error('La cotización llegó vacía desde el servidor. Contacte a ventas.')
+    }
     const disposition = res.headers.get('Content-Disposition')
     const fromHeader = parseContentDispositionFilename(disposition)
+    const contentType = res.headers.get('Content-Type') || blob.type || 'application/pdf'
     const safeHint = String(filenameHint || 'cotizacion').replace(/[^\w.-]+/g, '_')
     const downloadName = fromHeader || `${safeHint}-cotizacion.pdf`
-    triggerBrowserDownload(blob, downloadName)
+    triggerFileDownload(blob, downloadName, contentType)
   })
 }
 

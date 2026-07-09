@@ -105,7 +105,7 @@ export default function ProyectosPage() {
             disabled={busyId === project.id}
             onClick={() => void handleDownloadCotizacion(project)}
           >
-            Descargar cotización
+            {busyId === project.id ? 'Descargando…' : 'Descargar cotización'}
           </button>
         ) : (
           <span className="small muted self-center">Sin cotización</span>
