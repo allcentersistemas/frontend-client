@@ -215,42 +215,38 @@ export default function ProyectosPage() {
           ) : null}
         </div>
       ) : (
-        <>
-
-
-          <div className="card card--table hidden md:block">
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Estado</th>
-                    <th>Descripción</th>
-                    <th>Órdenes</th>
-                    <th>Enviado</th>
-                    <th>Acciones</th>
+        <div className="card card--table">
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Estado</th>
+                  <th>Descripción</th>
+                  <th>Órdenes</th>
+                  <th>Enviado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td className="font-medium">{p.nombre}</td>
+                    <td>
+                      <EstadoTag estado={p.estado} />
+                    </td>
+                    <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
+                    <td>{p.cantidadOrdenes ?? 0}</td>
+                    <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
+                    <td>
+                      <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => (
-                    <tr key={p.id}>
-                      <td className="font-medium">{p.nombre}</td>
-                      <td>
-                        <EstadoTag estado={p.estado} />
-                      </td>
-                      <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
-                      <td>{p.cantidadOrdenes ?? 0}</td>
-                      <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
-                      <td>
-                        <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

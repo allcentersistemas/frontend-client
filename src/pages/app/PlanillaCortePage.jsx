@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, findProyectoByNombre } from '../../api/orderApi'
-import { canDownloadCotizacion } from '../../planilla/proyectoListUtils'
+import { canDownloadCotizacion, isProyectoCancelado } from '../../planilla/proyectoListUtils'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
@@ -73,7 +73,10 @@ export default function PlanillaCortePage() {
   )
 
   const readOnly =
-    Boolean(editingId) || (project && isPersistedProjectId(project.id)) || !projectEditable
+    Boolean(editingId) ||
+    (project && isPersistedProjectId(project.id)) ||
+    !projectEditable ||
+    isProyectoCancelado(projectEstado)
   const modalOpen = Boolean(orderId)
   const canSave = projectEditable && !readOnly && Boolean(project)
 
@@ -167,7 +170,9 @@ export default function PlanillaCortePage() {
               </p>
               <h1>{readOnly ? 'Consultar proyecto' : editingId ? 'Planilla de corte' : 'Nuevo proyecto'}</h1>
               <p className="page__lead">
-                {readOnly
+                {isProyectoCancelado(projectEstado)
+                  ? 'Proyecto cancelado. Solo puede consultar el detalle.'
+                  : readOnly
                   ? 'Proyecto enviado a ventas. Puede revisar el detalle pero no modificarlo.'
                   : 'Configure el proyecto y las órdenes; abra el detalle de cada orden para capturar piezas.'}
               </p>
@@ -324,7 +329,7 @@ export default function PlanillaCortePage() {
                         >
                           {String(order.id) === String(orderId)
                             ? 'Editando…'
-                            : readOnly
+                            : readOnly || isProyectoCancelado(projectEstado)
                               ? 'Ver detalle'
                               : order.detalles.length
                                 ? 'Editar detalle'

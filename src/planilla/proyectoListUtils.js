@@ -32,6 +32,12 @@ export function estadoTagClass(estado) {
   return map[estado] || 'tag'
 }
 
+export function isProyectoCancelado(projectOrEstado) {
+  const estado =
+    typeof projectOrEstado === 'string' ? projectOrEstado : projectOrEstado?.estado
+  return estado === 'CANCELADO'
+}
+
 export function canDownloadCotizacion(project) {
   if (!project) return false
   if (project.tieneCotizacion) return true
