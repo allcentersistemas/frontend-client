@@ -237,7 +237,7 @@ export default function ProyectosPage() {
         </div>
       ) : (
         <>
-          <div className="project-grid md:hidden">
+          <div className="grid gap-4 md:hidden">
             {filtered.map((p) => renderProyectoCard(p))}
           </div>
 
