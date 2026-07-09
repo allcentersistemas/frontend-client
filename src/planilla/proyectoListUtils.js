@@ -38,6 +38,7 @@ export function canDownloadCotizacion(project) {
   return project.estado === 'COTIZADO' || project.estado === 'VENDIDO'
 }
 
+export function formatProyectoDate(value) {
   return formatAppDateTime(value)
 }
 
