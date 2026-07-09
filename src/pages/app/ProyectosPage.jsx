@@ -216,22 +216,7 @@ export default function ProyectosPage() {
         </div>
       ) : (
         <>
-          <div className="project-grid md:hidden">
-            {filtered.map((p) => (
-              <article key={p.id} className="project-card">
-                <div className="project-card__head">
-                  <h2 className="project-card__title">{p.nombre}</h2>
-                  <EstadoTag estado={p.estado} />
-                </div>
-                {p.descripcion ? <p className="project-card__desc">{p.descripcion}</p> : null}
-                <div className="small muted mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                  <span>Órdenes: {p.cantidadOrdenes ?? 0}</span>
-                  <span>Enviado: {formatProyectoDate(p.fechaCreacion)}</span>
-                </div>
-                <div className="project-card__actions">{renderProyectoActions(p)}</div>
-              </article>
-            ))}
-          </div>
+
 
           <div className="card card--table hidden md:block">
             <div className="table-wrap">
