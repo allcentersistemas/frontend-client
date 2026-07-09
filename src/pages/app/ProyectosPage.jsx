@@ -125,6 +125,27 @@ export default function ProyectosPage() {
     )
   }
 
+  function renderProyectoCard(project) {
+    return (
+      <article key={project.id} className="project-card">
+        <div className="project-card__head">
+          <h2 className="project-card__title">{project.nombre}</h2>
+          <EstadoTag estado={project.estado} />
+        </div>
+        {project.descripcion ? (
+          <p className="project-card__desc line-clamp-2">{project.descripcion}</p>
+        ) : (
+          <p className="project-card__desc muted">Sin descripción</p>
+        )}
+        <p className="small muted mt-2">
+          {project.cantidadOrdenes ?? 0} orden{(project.cantidadOrdenes ?? 0) === 1 ? '' : 'es'} ·{' '}
+          {formatProyectoDate(project.fechaCreacion)}
+        </p>
+        <div className="project-card__actions">{renderProyectoActions(project)}</div>
+      </article>
+    )
+  }
+
   return (
     <div className="page-stack">
       <header className="page__head">
@@ -215,38 +236,44 @@ export default function ProyectosPage() {
           ) : null}
         </div>
       ) : (
-        <div className="card card--table">
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Estado</th>
-                  <th>Descripción</th>
-                  <th>Órdenes</th>
-                  <th>Enviado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id}>
-                    <td className="font-medium">{p.nombre}</td>
-                    <td>
-                      <EstadoTag estado={p.estado} />
-                    </td>
-                    <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
-                    <td>{p.cantidadOrdenes ?? 0}</td>
-                    <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="project-grid md:hidden">
+            {filtered.map((p) => renderProyectoCard(p))}
           </div>
-        </div>
+
+          <div className="card card--table hidden md:block">
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                    <th>Descripción</th>
+                    <th>Órdenes</th>
+                    <th>Enviado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((p) => (
+                    <tr key={p.id}>
+                      <td className="font-medium">{p.nombre}</td>
+                      <td>
+                        <EstadoTag estado={p.estado} />
+                      </td>
+                      <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
+                      <td>{p.cantidadOrdenes ?? 0}</td>
+                      <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
+                      <td>
+                        <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
