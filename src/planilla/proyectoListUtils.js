@@ -35,6 +35,8 @@ export function estadoTagClass(estado) {
 export function canDownloadCotizacion(project) {
   if (!project) return false
   if (project.tieneCotizacion) return true
+  const archivo = project.cotizacionArchivo ?? project.cotizacion_archivo
+  if (archivo && String(archivo).trim()) return true
   return project.estado === 'COTIZADO' || project.estado === 'VENDIDO'
 }
 

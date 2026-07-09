@@ -174,7 +174,7 @@ export default function PlanillaCortePage() {
               {projectEstado ? (
                 <p className="small mt-2 flex flex-wrap items-center gap-2">
                   <span>Estado:</span> <EstadoTag estado={projectEstado} />
-                  {readOnly && canDownloadCotizacion({ estado: projectEstado }) && project?.id ? (
+                  {readOnly && canDownloadCotizacion({ estado: projectEstado, cotizacionArchivo: project?.cotizacionArchivo }) && project?.id ? (
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm"
