@@ -8,24 +8,93 @@ import {
 } from './planillaExcelLayout'
 import { applyCantoCatalogToRows } from './cantoImportValidation'
 
+/**
+ * Alias por campo. Se mapea etiqueta → campo del formulario:
+ * CANTIDAD→cantidad, LARGO→largo, ANCHO→ancho, L1→l1, …, DESCRIPCION→observacion.
+ */
 const FIELD_ALIASES = {
   tablero: ['materialcoloryespesor', 'material', 'tablero', 'pcodemat', 'codemat'],
   cantidad: ['cantidad', 'cantmin', 'pminq', 'qty', 'cantminima'],
   largoVeta: ['largo', 'largoveta', 'longitud', 'plength', 'length'],
   ancho: ['ancho', 'pwidth', 'width'],
-  l1: ['l1', 'lsuperior', 'superior', 'pedgematup', 'matedgeup', 'matsup'],
-  l2: ['l2', 'linferior', 'inferior', 'pedgematlo', 'matedgelo', 'matinf'],
-  a1: ['a1', 'aizquierda', 'izquierda', 'pedgematsx', 'matedgel', 'matizq'],
-  a2: ['a2', 'aderecha', 'derecha', 'pedgematdx', 'matedger', 'matder'],
-  observacion: ['descripcion', 'pdesc', 'observacion', 'descripcio', 'piidesc'],
+  l1: [
+    'l1',
+    'l1superior',
+    'lsuperior',
+    'superior',
+    'pedgematup',
+    'edgematup',
+    'matedgeup',
+    'matsup',
+  ],
+  l2: [
+    'l2',
+    'l2inferior',
+    'linferior',
+    'inferior',
+    'pedgematlo',
+    'pegdematlo',
+    'edgematlo',
+    'matedgelo',
+    'matinf',
+  ],
+  a1: [
+    'a1',
+    'a1izquierda',
+    'aizquierda',
+    'izquierda',
+    'pedgematsx',
+    'edgematsx',
+    'matedgel',
+    'matizq',
+  ],
+  a2: [
+    'a2',
+    'a2derecha',
+    'aderecha',
+    'derecha',
+    'pedgematdx',
+    'edgematdx',
+    'matedger',
+    'matder',
+  ],
+  observacion: [
+    'descripcion',
+    'pidesc',
+    'piidesc',
+    'pdesc',
+    'observacion',
+    'descripcio',
+    'desc',
+  ],
   perforacionCantidad: ['perfcant', 'perforacioncant', 'cantperf'],
   perforacionLado1: ['perflado', 'perforacionlado'],
   ranuraLado: ['ranuralado', 'ranlado'],
   ranuraDist: ['randist', 'ranuradist', 'dist'],
   ranuraProf: ['ranprof', 'ranuraprof', 'prof'],
-  ranuraEs: ['ranes', 'ranuraes', 'esp'],
+  ranuraEs: ['ranes', 'ranuraes', 'esp', 'es'],
   vetaLongitud: ['veta', 'pgrain', 'grain'],
 }
+
+/** Orden de prioridad al resolver encabezados (evita que CANT robe CANTIDAD). */
+const FIELD_RESOLVE_ORDER = [
+  'cantidad',
+  'largoVeta',
+  'ancho',
+  'l1',
+  'l2',
+  'a1',
+  'a2',
+  'observacion',
+  'tablero',
+  'perforacionCantidad',
+  'perforacionLado1',
+  'ranuraLado',
+  'ranuraDist',
+  'ranuraProf',
+  'ranuraEs',
+  'vetaLongitud',
+]
 
 function normalizeHeader(value) {
   return String(value ?? '')
@@ -39,6 +108,16 @@ function normalizeHeader(value) {
 function columnMatches(normalized, aliases) {
   if (!normalized) return false
   return aliases.some((alias) => normalized === alias)
+}
+
+/** L1 (Superior) → l1superior debe mapear a l1. */
+function columnMatchesField(normalized, field, aliases) {
+  if (!normalized) return false
+  if (columnMatches(normalized, aliases)) return true
+  if (['l1', 'l2', 'a1', 'a2'].includes(field) && normalized.startsWith(field)) {
+    return true
+  }
+  return false
 }
 
 function columnMatchesLoose(normalized, aliases) {
@@ -77,7 +156,7 @@ function parseTextCell(raw) {
 }
 
 function cell(row, index) {
-  if (index < 0 || !row) return ''
+  if (index < 0 || index == null || !row) return ''
   return row[index] ?? ''
 }
 
@@ -105,32 +184,44 @@ function isPlanillaWorkbook(matrix) {
     const row = matrix[i] ?? []
     const text = row.map(normalizeHeader).join(' ')
     if (text.includes('listadodepiezas')) return true
-    if (text.includes('piezasacortar') && text.includes('tablero')) return true
+    if (text.includes('piezasacortar')) return true
     if (isPlanillaLabelRow(row)) return true
   }
   return false
 }
 
+/** Mapeo por nombre de columna: CANTIDAD→cantidad, LARGO→largo, L1→l1, DESCRIPCION→observacion. */
 function mapColumnsFromHeaderRow(headerRow) {
   const headers = (headerRow ?? []).map(normalizeHeader)
   const cols = {}
+  const used = new Set()
   const perfLado = []
   const ranuraLado = []
   const genericLado = []
+  const genericCant = []
 
   headers.forEach((header, index) => {
-    for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+    if (!header || used.has(index)) return
+
+    for (const field of FIELD_RESOLVE_ORDER) {
       if (cols[field] != null) continue
-      if (columnMatches(header, aliases)) {
+      const aliases = FIELD_ALIASES[field] ?? []
+      if (columnMatchesField(header, field, aliases)) {
         cols[field] = index
+        used.add(index)
         return
       }
     }
+
     if (header === 'lado') genericLado.push(index)
+    if (header === 'cant') genericCant.push(index)
     if (columnMatchesLoose(header, ['perflado', 'perforacionlado'])) perfLado.push(index)
     if (columnMatchesLoose(header, ['ranuralado', 'ranlado'])) ranuraLado.push(index)
   })
 
+  if (cols.perforacionCantidad == null && genericCant.length) {
+    cols.perforacionCantidad = genericCant[0]
+  }
   if (cols.perforacionLado1 == null && perfLado.length) {
     cols.perforacionLado1 = perfLado[0]
   } else if (cols.perforacionLado1 == null && genericLado.length >= 1) {
@@ -156,19 +247,25 @@ function mapColumnsFromTemplateLayout() {
   return cols
 }
 
-function mapColumnsFromTemplateKeys(headerRow) {
-  return mapColumnsFromTemplateLayout()
-}
-
 function hasRequiredMeasureColumns(cols) {
   return cols.cantidad != null && cols.largoVeta != null && cols.ancho != null
+}
+
+/** Preferir mapeo por etiquetas; si falla, índices fijos de la plantilla. */
+function resolvePlanillaColumns(labelRow) {
+  const byHeader = mapColumnsFromHeaderRow(labelRow)
+  if (hasRequiredMeasureColumns(byHeader)) {
+    return byHeader
+  }
+  const byLayout = mapColumnsFromTemplateLayout()
+  return hasRequiredMeasureColumns(byLayout) ? byLayout : byHeader
 }
 
 /** Plantilla LISTADO DE PIEZAS (con o sin fila técnica [P_LENGTH] en encabezados). */
 function detectPlanillaTemplate(matrix) {
   for (let i = 0; i < Math.min(12, matrix.length); i += 1) {
     if (!isPlanillaLabelRow(matrix[i])) continue
-    const cols = mapColumnsFromTemplateKeys(matrix[i])
+    const cols = resolvePlanillaColumns(matrix[i])
     if (hasRequiredMeasureColumns(cols)) {
       return {
         format: 'planilla',
@@ -182,9 +279,9 @@ function detectPlanillaTemplate(matrix) {
   for (let i = 0; i < Math.min(8, matrix.length); i += 1) {
     const text = (matrix[i] ?? []).map(normalizeHeader).join(' ')
     if (!text.includes('listadodepiezas')) continue
-    for (let j = i + 1; j < Math.min(i + 5, matrix.length); j += 1) {
+    for (let j = i + 1; j < Math.min(i + 6, matrix.length); j += 1) {
       if (!isPlanillaLabelRow(matrix[j])) continue
-      const cols = mapColumnsFromTemplateKeys(matrix[j])
+      const cols = resolvePlanillaColumns(matrix[j])
       if (hasRequiredMeasureColumns(cols)) {
         return {
           format: 'planilla',
@@ -196,8 +293,8 @@ function detectPlanillaTemplate(matrix) {
     }
     return {
       format: 'planilla',
-      headerRowIndex: i + 2,
-      dataStart: i + 3,
+      headerRowIndex: i + 3,
+      dataStart: i + 4,
       cols: mapColumnsFromTemplateLayout(),
     }
   }
@@ -272,11 +369,31 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const l2 = parseTextCell(cell(line, cols.l2))
   const a1 = parseTextCell(cell(line, cols.a1))
   const a2 = parseTextCell(cell(line, cols.a2))
+  const observacion = parseTextCell(cell(line, cols.observacion))
+  const tablero = parseTextCell(cell(line, cols.tablero))
+  const perforacionCantidad = parseTextCell(cell(line, cols.perforacionCantidad))
+  const perforacionLado1 = parseTextCell(cell(line, cols.perforacionLado1))
+  const ranuraLado = parseTextCell(cell(line, cols.ranuraLado))
+  const ranuraDist = parseTextCell(cell(line, cols.ranuraDist))
+  const ranuraProf = parseTextCell(cell(line, cols.ranuraProf))
+  const ranuraEs = parseTextCell(cell(line, cols.ranuraEs))
 
-  if (!cantidad && !largoVeta && !ancho && !l1 && !l2 && !a1 && !a2) return null
+  if (
+    !cantidad &&
+    !largoVeta &&
+    !ancho &&
+    !l1 &&
+    !l2 &&
+    !a1 &&
+    !a2 &&
+    !observacion
+  ) {
+    return null
+  }
 
   return {
     ...newDetalle(),
+    ...(tablero ? { tablero } : {}),
     cantidad,
     largoVeta,
     ancho,
@@ -284,6 +401,14 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
     l2,
     a1,
     a2,
+    observacion,
+    perforacionCantidad,
+    perforacionLado1,
+    ranuraLado,
+    ranuraDist,
+    ranuraProf,
+    ranuraEs,
+    ranuraEspecial: Boolean(ranuraLado || ranuraDist || ranuraProf || ranuraEs),
   }
 }
 
@@ -303,7 +428,7 @@ function resolveLayout(matrix) {
 }
 
 /**
- * Lee un .xlsx/.xls (hasta cantos: medidas + L1–A2).
+ * Lee un .xlsx/.xls (medidas + L1–A2 + descripción).
  * @param {File} file
  * @param {{ cantoOptions?: Array<{ name?: string, sku?: string }> }} [opts]
  * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[], cantoErrors: Array<{ row: number, field: string, value: string }> }>}

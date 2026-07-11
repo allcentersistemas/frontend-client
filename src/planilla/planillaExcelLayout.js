@@ -1,13 +1,12 @@
 /**
  * Layout del Excel «LISTADO DE PIEZAS» (plantilla cliente).
- * Fila 1: título · fila 2: grupos · fila 3: etiquetas de columna.
+ * Fila 1: título · fila 2: grupos · fila 3: tags técnicos · fila 4: etiquetas.
+ * Coincide con la plantilla operativa (sin columna TABLERO).
  */
 export const PLANILLA_EXCEL_TITLE = 'LISTADO DE PIEZAS'
 
 export const PLANILLA_EXCEL_GROUP_ROW = [
   'N°',
-  'TABLERO',
-  '',
   'PIEZAS A CORTAR',
   '',
   '',
@@ -15,8 +14,8 @@ export const PLANILLA_EXCEL_GROUP_ROW = [
   '',
   '',
   '',
-  'PERFORACIÓN',
-  '',
+  'DESCRIPCION',
+  'PERFORACION',
   '',
   'RANURAS',
   '',
@@ -27,15 +26,13 @@ export const PLANILLA_EXCEL_GROUP_ROW = [
 /** Fila técnica (referencia optimizador); los datos se ingresan en filas siguientes. */
 export const PLANILLA_EXCEL_TECH_ROW = [
   '',
-  '',
-  '',
   '[P_MINQ]',
   '[P_LENGTH]',
   '[P_WIDTH]',
-  '[EDGE_MAT_UP]',
-  '[EDGE_MAT_LO]',
-  '[EDGE_MAT_SX]',
-  '[EDGE_MAT_DX]',
+  '[P_EDGE_MAT_UP]',
+  '[P_EGDE_MAT_LO]',
+  '[P_EDGE_MAT_SX]',
+  '[P_EDGE_MAT_DX]',
   '[P_IDESC]',
   '',
   '',
@@ -46,9 +43,7 @@ export const PLANILLA_EXCEL_TECH_ROW = [
 ]
 
 export const PLANILLA_EXCEL_LABEL_ROW = [
-  '',
-  'MATERIAL COLOR Y ESPESOR',
-  '',
+  'N°',
   'CANTIDAD',
   'LARGO',
   'ANCHO',
@@ -56,7 +51,7 @@ export const PLANILLA_EXCEL_LABEL_ROW = [
   'L2 (Inferior)',
   'A1 (Izquierda)',
   'A2 (Derecha)',
-  'DESCRIPCIÓN',
+  'DESCRIPCION',
   'CANT',
   'LADO',
   'LADO',
@@ -65,11 +60,9 @@ export const PLANILLA_EXCEL_LABEL_ROW = [
   'ES',
 ]
 
-/** Orden de campos en la plantilla (índice de columna). */
+/** Orden de campos en la plantilla (índice de columna) — layout sin TABLERO. */
 export const PLANILLA_TEMPLATE_COLUMN_KEYS = [
   'num',
-  'tablero',
-  '_skip',
   'cantidad',
   'largoVeta',
   'ancho',
@@ -88,8 +81,6 @@ export const PLANILLA_TEMPLATE_COLUMN_KEYS = [
 
 export const PLANILLA_TEMPLATE_EXAMPLE_ROW = [
   '1',
-  '',
-  '',
   '1',
   '560',
   '120',
