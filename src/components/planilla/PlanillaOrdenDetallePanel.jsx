@@ -9,6 +9,7 @@ import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExpo
 import { formatCantoImportErrors, validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
 import { downloadPlanillaTemplateExcel } from '../../planilla/excelTemplate'
+import { downloadPlantillaPlanillaFromServer } from '../../api/orderApi'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const {
@@ -123,7 +124,17 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
           maquinaParametros,
         })
       }}
-      onDownloadTemplate={() => downloadPlanillaTemplateExcel()}
+      onDownloadTemplate={async () => {
+        try {
+          await downloadPlantillaPlanillaFromServer()
+        } catch (err) {
+          if (String(err?.message || '') === 'NO_SERVER_TEMPLATE') {
+            downloadPlanillaTemplateExcel()
+            return
+          }
+          window.alert(err?.message || 'No se pudo descargar la plantilla.')
+        }
+      }}
       onImportExcel={readOnly ? undefined : handleImportExcel}
       onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
       onUpdateRow={

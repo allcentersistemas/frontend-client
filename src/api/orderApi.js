@@ -216,3 +216,31 @@ export async function cancelProyectoOptimizacion(proyectoId) {
     }),
   )
 }
+
+/** Descarga la plantilla del servidor; si no hay, lanza error para que el caller use fallback local. */
+export async function downloadPlantillaPlanillaFromServer() {
+  return withClientAuth(async (accessToken) => {
+    const url = clientApiUrl(`${OPT_BASE}/plantilla`)
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'omit',
+    })
+    if (res.status === 404) {
+      throw new Error('NO_SERVER_TEMPLATE')
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(parseErrorMessage(text, 'No se pudo descargar la plantilla.'))
+    }
+    const blob = await res.blob()
+    if (!blob || blob.size === 0) {
+      throw new Error('NO_SERVER_TEMPLATE')
+    }
+    const disposition = res.headers.get('Content-Disposition')
+    const fromHeader = parseContentDispositionFilename(disposition)
+    const contentType =
+      res.headers.get('Content-Type') ||
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    triggerFileDownload(blob, fromHeader || 'plantilla_listado_piezas.xlsx', contentType)
+  })
+}

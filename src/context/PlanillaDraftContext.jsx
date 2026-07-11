@@ -281,11 +281,18 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setSaveOk('')
     setSaving(true)
     try {
+      const nombreEnvio = (projectDraft.nombre || project.nombre || '').trim()
+      const descripcionEnvio = (projectDraft.descripcion ?? project.descripcion ?? '').trim()
+      if (!nombreEnvio) {
+        setSaveError('El nombre del proyecto es obligatorio.')
+        setSaving(false)
+        return false
+      }
       const response = await saveProyectoCompleto({
         projectId: null,
         project: {
-          nombre: project.nombre,
-          descripcion: project.descripcion,
+          nombre: nombreEnvio,
+          descripcion: descripcionEnvio,
           maquinaId: maquinaId ? Number(maquinaId) : null,
         },
         orders: orders.map((order) => ({
@@ -299,8 +306,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       if (savedProject) {
         const nextProject = {
           id: savedProject.id,
-          nombre: savedProject.nombre || project.nombre,
-          descripcion: savedProject.descripcion || project.descripcion,
+          nombre: savedProject.nombre || nombreEnvio,
+          descripcion: savedProject.descripcion || descripcionEnvio,
           creadoEn: savedProject.fechaCreacion || project.creadoEn,
           estado: savedProject.estado || 'ENVIADO',
         }
