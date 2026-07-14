@@ -162,6 +162,33 @@ export async function clientFetchMe(accessToken) {
   })
 }
 
+export async function clientFetchLoginHistory(accessToken, { page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) })
+  return fetchJson(clientApiUrl(`/auth/login-history?${params}`), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function clientChangePassword(accessToken, currentPassword, newPassword) {
+  return fetchJson(clientApiUrl('/auth/change-password'), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+}
+
+export async function clientLogoutAll(accessToken) {
+  return fetchJson(clientApiUrl('/auth/logout-all'), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+}
+
 export async function clientLogout(refreshToken) {
   return fetchJson(clientApiUrl('/auth/logout'), {
     method: 'POST',

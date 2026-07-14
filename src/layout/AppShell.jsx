@@ -9,6 +9,7 @@ import {
 } from '../auth/clientSession'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { cn } from '../lib/cn'
+import { formatAppDateTime } from '../utils/appDateTime'
 import logo from '../assets/allpanel.png'
 
 export default function AppShell() {
@@ -140,6 +141,11 @@ export default function AppShell() {
             <p className="truncate text-sm text-slate-800 dark:text-slate-200" title={user.email}>
               {user.email}
             </p>
+            {user.lastLoginAt ? (
+              <p className="mt-1 truncate text-[0.7rem] text-slate-500" title={user.lastLoginIp || ''}>
+                Último acceso: {formatAppDateTime(user.lastLoginAt)}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -190,6 +196,24 @@ export default function AppShell() {
             }
           >
             Planilla de corte
+          </NavLink>
+
+          <p className="mt-4 px-3 text-[0.65rem] font-bold tracking-wider text-slate-500 uppercase">
+            Cuenta
+          </p>
+          <NavLink
+            to="/app/cuenta"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              cn(
+                'rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                isActive
+                  ? 'bg-gradient-to-r from-amber-400/25 to-amber-600/15 text-amber-900 ring-1 ring-amber-400/30 dark:text-amber-50'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5',
+              )
+            }
+          >
+            Mi cuenta
           </NavLink>
         </nav>
 

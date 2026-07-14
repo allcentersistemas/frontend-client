@@ -845,3 +845,44 @@ label.field {
 .planilla-input--full {
   @apply max-w-none;
 }
+
+/* Mi cuenta */
+.account-info-grid {
+  @apply m-0 grid gap-4 sm:grid-cols-2;
+}
+
+.account-info-row {
+  @apply m-0;
+}
+
+.account-info-row__value {
+  @apply mt-1 text-sm font-medium text-slate-900 dark:text-slate-100;
+}
+
+.account-history-card {
+  @apply rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-black/20;
+}
+
+.account-event {
+  @apply font-medium text-slate-800 dark:text-slate-200;
+}
+
+.account-event--fail {
+  @apply text-red-700 dark:text-red-300;
+}
+
+.account-ua {
+  @apply max-w-[280px] break-words text-xs text-slate-600 dark:text-slate-400;
+}
+
+.account-pagination {
+  @apply flex flex-wrap items-center justify-center gap-3;
+}
+
+.account-password-form .form-grid {
+  @apply grid gap-4 md:grid-cols-2;
+}
+
+.account-danger-zone {
+  @apply rounded-xl border border-red-200/80 bg-red-50/50 p-4 dark:border-red-500/20 dark:bg-red-950/20;
+}

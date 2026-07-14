@@ -9,6 +9,7 @@ import Inicio from './pages/app/Inicio.jsx'
 import ProyectosPage from './pages/app/ProyectosPage.jsx'
 import PlanillaLayout from './layout/PlanillaLayout.jsx'
 import PlanillaCortePage from './pages/app/PlanillaCortePage.jsx'
+import CuentaPage from './pages/app/CuentaPage.jsx'
 
 /** Despliegue en raíz (/) vs subruta (/portal/). */
 const atRoot = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') === ''
@@ -46,6 +47,7 @@ export default function App() {
             <Route path=":projectId" element={<PlanillaCortePage />} />
             <Route path=":projectId/orden/:orderId" element={<PlanillaCortePage />} />
           </Route>
+          <Route path="cuenta" element={<CuentaPage />} />
         </Route>
       </Route>
     </Routes>
