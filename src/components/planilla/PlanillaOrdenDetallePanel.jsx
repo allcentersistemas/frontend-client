@@ -61,7 +61,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       if (
         hasData &&
         !window.confirm(
-          '¿Reemplazar las filas actuales con los datos del Excel? Se importan cantidad, largo, ancho y cantos (L1–A2). El material será el del desplegable.',
+          '¿Reemplazar las filas actuales con los datos del Excel? Se importan cantidad, largo, ancho, cantos (L1–A2), perforación y ranuras. El material será el del desplegable.',
         )
       ) {
         return

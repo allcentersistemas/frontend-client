@@ -67,9 +67,9 @@ const FIELD_ALIASES = {
     'descripcio',
     'desc',
   ],
-  perforacionCantidad: ['perfcant', 'perforacioncant', 'cantperf'],
-  perforacionLado1: ['perflado', 'perforacionlado'],
-  ranuraLado: ['ranuralado', 'ranlado'],
+  perforacionCantidad: ['cant', 'perfcant', 'perforacioncant', 'cantperf'],
+  perforacionLado1: ['perflado', 'perforacionlado', 'perflado1'],
+  ranuraLado: ['ranuralado', 'ranlado', 'ranlado1'],
   ranuraDist: ['randist', 'ranuradist', 'dist'],
   ranuraProf: ['ranprof', 'ranuraprof', 'prof'],
   ranuraEs: ['ranes', 'ranuraes', 'esp', 'es'],
@@ -247,13 +247,58 @@ function mapColumnsFromTemplateLayout() {
   return cols
 }
 
+const PLANILLA_PERF_RANURA_KEYS = [
+  'perforacionCantidad',
+  'perforacionLado1',
+  'ranuraLado',
+  'ranuraDist',
+  'ranuraProf',
+  'ranuraEs',
+]
+
+/**
+ * Plantilla LISTADO DE PIEZAS: tras DESCRIPCION vienen CANT, LADO (perf), LADO (ran), DIST, PROF, ES.
+ */
+function applyPlanillaPerfRanuraColumnIndices(cols, headers) {
+  const layout = mapColumnsFromTemplateLayout()
+  const descIdx =
+    cols.observacion ??
+    headers.findIndex((h) => columnMatchesField(h, 'observacion', FIELD_ALIASES.observacion))
+
+  if (descIdx >= 0) {
+    const start = descIdx + 1
+    const slice = headers.slice(start, start + PLANILLA_PERF_RANURA_KEYS.length)
+    const looksLikePerfSection =
+      slice.length >= 3 &&
+      (slice[0] === 'cant' ||
+        slice.includes('dist') ||
+        slice.includes('prof') ||
+        slice.filter((h) => h === 'lado').length >= 1)
+    if (looksLikePerfSection) {
+      PLANILLA_PERF_RANURA_KEYS.forEach((key, offset) => {
+        cols[key] = start + offset
+      })
+      return cols
+    }
+  }
+
+  for (const key of PLANILLA_PERF_RANURA_KEYS) {
+    if (cols[key] == null) cols[key] = layout[key]
+  }
+  return cols
+}
+
 function hasRequiredMeasureColumns(cols) {
   return cols.cantidad != null && cols.largoVeta != null && cols.ancho != null
 }
 
 /** Preferir mapeo por etiquetas; si falla, índices fijos de la plantilla. */
-function resolvePlanillaColumns(labelRow) {
-  const byHeader = mapColumnsFromHeaderRow(labelRow)
+function resolvePlanillaColumns(labelRow, { planilla = false } = {}) {
+  const headers = (labelRow ?? []).map(normalizeHeader)
+  let byHeader = mapColumnsFromHeaderRow(labelRow)
+  if (planilla || isPlanillaLabelRow(labelRow)) {
+    byHeader = applyPlanillaPerfRanuraColumnIndices(byHeader, headers)
+  }
   if (hasRequiredMeasureColumns(byHeader)) {
     return byHeader
   }
@@ -265,7 +310,7 @@ function resolvePlanillaColumns(labelRow) {
 function detectPlanillaTemplate(matrix) {
   for (let i = 0; i < Math.min(12, matrix.length); i += 1) {
     if (!isPlanillaLabelRow(matrix[i])) continue
-    const cols = resolvePlanillaColumns(matrix[i])
+    const cols = resolvePlanillaColumns(matrix[i], { planilla: true })
     if (hasRequiredMeasureColumns(cols)) {
       return {
         format: 'planilla',
@@ -281,7 +326,7 @@ function detectPlanillaTemplate(matrix) {
     if (!text.includes('listadodepiezas')) continue
     for (let j = i + 1; j < Math.min(i + 6, matrix.length); j += 1) {
       if (!isPlanillaLabelRow(matrix[j])) continue
-      const cols = resolvePlanillaColumns(matrix[j])
+      const cols = resolvePlanillaColumns(matrix[j], { planilla: true })
       if (hasRequiredMeasureColumns(cols)) {
         return {
           format: 'planilla',
@@ -345,7 +390,8 @@ function detectOptimizerExport(matrix) {
 
 function detectGenericHeader(matrix) {
   for (let i = 0; i < Math.min(6, matrix.length); i += 1) {
-    const cols = mapColumnsFromHeaderRow(matrix[i])
+    const planilla = isPlanillaLabelRow(matrix[i])
+    const cols = resolvePlanillaColumns(matrix[i], { planilla })
     if (hasRequiredMeasureColumns(cols)) {
       return { format: 'planilla', headerRowIndex: i, dataStart: i + 1, cols }
     }
@@ -371,7 +417,7 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const a2 = parseTextCell(cell(line, cols.a2))
   const observacion = parseTextCell(cell(line, cols.observacion))
   const tablero = parseTextCell(cell(line, cols.tablero))
-  const perforacionCantidad = parseTextCell(cell(line, cols.perforacionCantidad))
+  const perforacionCantidad = parseCantidad(cell(line, cols.perforacionCantidad))
   const perforacionLado1 = parseTextCell(cell(line, cols.perforacionLado1))
   const ranuraLado = parseTextCell(cell(line, cols.ranuraLado))
   const ranuraDist = parseTextCell(cell(line, cols.ranuraDist))
@@ -386,7 +432,13 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
     !l2 &&
     !a1 &&
     !a2 &&
-    !observacion
+    !observacion &&
+    !perforacionCantidad &&
+    !perforacionLado1 &&
+    !ranuraLado &&
+    !ranuraDist &&
+    !ranuraProf &&
+    !ranuraEs
   ) {
     return null
   }
