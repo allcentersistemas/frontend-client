@@ -4,6 +4,7 @@ import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalle
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle } from '../../planilla/helpers'
 import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
+import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 
 export default function PlanillaOrdenDetallePage() {
@@ -48,6 +49,11 @@ export default function PlanillaOrdenDetallePage() {
     const cantoError = validateCantoCatalogInRows(rows, cantoOptions)
     if (cantoError) {
       setMeasureError(cantoError)
+      return
+    }
+    const ranuraError = validateRanuraOptionsInRows(rows)
+    if (ranuraError) {
+      setMeasureError(ranuraError)
       return
     }
     const validationError = validateAllBoardMeasures(rows)

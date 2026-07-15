@@ -7,6 +7,7 @@ import {
   PLANILLA_TEMPLATE_COLUMN_KEYS,
 } from './planillaExcelLayout'
 import { applyCantoCatalogToRows } from './cantoImportValidation'
+import { applyRanuraImportToRows } from './ranuraImportValidation'
 
 /**
  * Alias por campo. Se mapea etiqueta → campo del formulario:
@@ -460,7 +461,7 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
     ranuraDist,
     ranuraProf,
     ranuraEs,
-    ranuraEspecial: Boolean(ranuraLado || ranuraDist || ranuraProf || ranuraEs),
+    ranuraEspecial: false,
   }
 }
 
@@ -483,7 +484,7 @@ function resolveLayout(matrix) {
  * Lee un .xlsx/.xls (medidas + L1–A2 + descripción).
  * @param {File} file
  * @param {{ cantoOptions?: Array<{ name?: string, sku?: string }> }} [opts]
- * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[], cantoErrors: Array<{ row: number, field: string, value: string }> }>}
+ * @returns {Promise<{ rows: ReturnType<typeof newDetalle>[], cantoErrors: Array, ranuraErrors: Array }>}
  */
 export async function parsePlanillaDetalleExcel(file, opts = {}) {
   const buffer = await file.arrayBuffer()
@@ -509,9 +510,10 @@ export async function parsePlanillaDetalleExcel(file, opts = {}) {
     throw new Error('No se encontraron filas con datos en el Excel.')
   }
 
-  const { rows: withCantos, errors } = applyCantoCatalogToRows(rows, opts.cantoOptions)
+  const { rows: withCantos, errors: cantoErrors } = applyCantoCatalogToRows(rows, opts.cantoOptions)
+  const { rows: withRanuras, errors: ranuraErrors } = applyRanuraImportToRows(withCantos)
 
-  return { rows: withCantos, cantoErrors: errors }
+  return { rows: withRanuras, cantoErrors, ranuraErrors }
 }
 
 /** @deprecated Usar parsePlanillaDetalleExcel */

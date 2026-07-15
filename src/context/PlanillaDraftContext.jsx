@@ -5,6 +5,7 @@ import {
   collectCantoCatalogErrors,
   formatCantoCatalogErrors,
 } from '../planilla/cantoImportValidation'
+import { collectRanuraImportErrors, formatRanuraImportErrors } from '../planilla/ranuraImportValidation'
 import {
   isPersistedProjectId,
   mapDetalleToApiPayload,
@@ -272,6 +273,16 @@ export function PlanillaDraftProvider({ projectKey, children }) {
           formatCantoCatalogErrors(
             cantoErrors,
             `Orden «${order.codigo}»: corrija los cantos antes de enviar el proyecto.`,
+          ),
+        )
+        return false
+      }
+      const ranuraErrors = collectRanuraImportErrors(order.detalles)
+      if (ranuraErrors.length) {
+        setSaveError(
+          formatRanuraImportErrors(
+            ranuraErrors,
+            `Orden «${order.codigo}»: corrija perforación y ranuras antes de enviar el proyecto.`,
           ),
         )
         return false

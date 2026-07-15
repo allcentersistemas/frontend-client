@@ -6,7 +6,9 @@ import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
-import { formatCantoImportErrors, validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
+import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
+import { formatDetalleImportErrors } from '../../planilla/detalleImportErrors'
+import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
 import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
 import { downloadPlanillaTemplateExcel } from '../../planilla/excelTemplate'
 import { downloadPlantillaPlanillaFromServer } from '../../api/orderApi'
@@ -67,9 +69,12 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         return
       }
       try {
-        const { rows: imported, cantoErrors } = await parsePlanillaDetalleExcel(file, { cantoOptions })
+        const { rows: imported, cantoErrors, ranuraErrors } = await parsePlanillaDetalleExcel(file, {
+          cantoOptions,
+        })
         setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
-        setMeasureError(cantoErrors?.length ? formatCantoImportErrors(cantoErrors) : '')
+        const importMsg = formatDetalleImportErrors(cantoErrors, ranuraErrors)
+        setMeasureError(importMsg)
       } catch (e) {
         setMeasureError(e instanceof Error ? e.message : 'No se pudo leer el Excel.')
         throw e
@@ -84,6 +89,11 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     const cantoError = validateCantoCatalogInRows(withMaterial, cantoOptions)
     if (cantoError) {
       setMeasureError(cantoError)
+      return
+    }
+    const ranuraError = validateRanuraOptionsInRows(withMaterial)
+    if (ranuraError) {
+      setMeasureError(ranuraError)
       return
     }
     const validationError = validateAllBoardMeasures(withMaterial)
