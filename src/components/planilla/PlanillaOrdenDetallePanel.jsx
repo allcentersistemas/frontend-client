@@ -10,8 +10,13 @@ import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation
 import { formatDetalleImportErrors } from '../../planilla/detalleImportErrors'
 import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
 import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
+import { mapAiExtractToDetalleRows } from '../../planilla/aiImport'
 import { downloadPlanillaTemplateExcel } from '../../planilla/excelTemplate'
-import { downloadPlantillaPlanillaFromServer } from '../../api/orderApi'
+import {
+  downloadPlantillaPlanillaFromServer,
+  extractMedidasFromImage,
+  fetchOptimizacionFeatures,
+} from '../../api/orderApi'
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const {
@@ -32,6 +37,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const [rows, setRows] = useState([newDetalle()])
   const [sharedTablero, setSharedTablero] = useState('')
   const [measureError, setMeasureError] = useState('')
+  const [aiVisionEnabled, setAiVisionEnabled] = useState(false)
 
   useEffect(() => {
     if (!order) return
@@ -39,6 +45,24 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     setRows(detalles)
     setSharedTablero(detalles.find((d) => d.tablero)?.tablero || '')
   }, [order])
+
+  useEffect(() => {
+    if (readOnly) {
+      setAiVisionEnabled(false)
+      return
+    }
+    let cancelled = false
+    fetchOptimizacionFeatures()
+      .then((features) => {
+        if (!cancelled) setAiVisionEnabled(Boolean(features?.aiVisionEnabled))
+      })
+      .catch(() => {
+        if (!cancelled) setAiVisionEnabled(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [readOnly])
 
   const handleBoardMeasureBlur = useCallback((rowIndex, key, value) => {
     const message = validateBoardMeasureValue(key, value, rowIndex)
@@ -77,6 +101,46 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         setMeasureError(importMsg)
       } catch (e) {
         setMeasureError(e instanceof Error ? e.message : 'No se pudo leer el Excel.')
+        throw e
+      }
+    },
+    [readOnly, order, rows, sharedTablero, cantoOptions],
+  )
+
+  const handleImportPhoto = useCallback(
+    async (file) => {
+      if (readOnly || !order) return
+      if (!sharedTablero?.trim()) {
+        window.alert('Seleccione el material (tablero) en el desplegable antes de importar desde la foto.')
+        return
+      }
+      const hasData = rows.some((row) => row.cantidad || row.largoVeta || row.ancho)
+      if (
+        hasData &&
+        !window.confirm(
+          '¿Reemplazar las filas actuales con las medidas leídas de la foto? Se importan Cant./Largo/Ancho, cantos y ranuras. Revise siempre los valores.',
+        )
+      ) {
+        return
+      }
+      try {
+        setMeasureError('')
+        const result = await extractMedidasFromImage(file)
+        const { rows: imported, cantoErrors, ranuraErrors } = mapAiExtractToDetalleRows(result?.filas, {
+          cantoOptions,
+        })
+        if (!imported.length) {
+          setMeasureError('No se detectaron filas de corte en la imagen. Pruebe con otra foto más nítida.')
+          return
+        }
+        setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
+        const importMsg = formatDetalleImportErrors(cantoErrors, ranuraErrors)
+        setMeasureError(
+          importMsg ||
+            `Se importaron ${imported.length} fila(s) desde la foto. Revise Cant./Largo/Ancho, cantos y ranuras antes de guardar.`,
+        )
+      } catch (e) {
+        setMeasureError(e instanceof Error ? e.message : 'No se pudo leer la foto con IA.')
         throw e
       }
     },
@@ -146,6 +210,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         }
       }}
       onImportExcel={readOnly ? undefined : handleImportExcel}
+      onImportPhoto={readOnly || !aiVisionEnabled ? undefined : handleImportPhoto}
       onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
       onUpdateRow={
         readOnly

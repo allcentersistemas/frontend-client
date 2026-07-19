@@ -270,12 +270,15 @@ export function PlanillaDetalleEditor({
   onDownloadExcel,
   onDownloadTemplate,
   onImportExcel,
+  onImportPhoto,
   maquinaParametros,
   measureError = '',
   onBoardMeasureBlur,
 }) {
   const importInputRef = useRef(null)
+  const photoInputRef = useRef(null)
   const [importBusy, setImportBusy] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [pendingFocus, setPendingFocus] = useState(null)
 
   const tabHandlers = useMemo(
@@ -397,10 +400,40 @@ export function PlanillaDetalleEditor({
                   <button
                     type="button"
                     className="btn btn--ghost btn--sm"
-                    disabled={importBusy}
+                    disabled={importBusy || photoBusy}
                     onClick={() => importInputRef.current?.click()}
                   >
                     {importBusy ? 'Importando…' : 'Importar Excel'}
+                  </button>
+                </>
+              ) : null}
+              {onImportPhoto ? (
+                <>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/*,.jpg,.jpeg,.png,.webp"
+                    capture="environment"
+                    className="sr-only"
+                    tabIndex={-1}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (!file || photoBusy) return
+                      setPhotoBusy(true)
+                      Promise.resolve(onImportPhoto(file))
+                        .catch(() => {})
+                        .finally(() => setPhotoBusy(false))
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={photoBusy || importBusy}
+                    onClick={() => photoInputRef.current?.click()}
+                    title="Subir foto de la hoja de medidas (IA)"
+                  >
+                    {photoBusy ? 'Leyendo foto…' : 'Importar desde foto'}
                   </button>
                 </>
               ) : null}

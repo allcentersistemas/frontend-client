@@ -217,6 +217,36 @@ export async function cancelProyectoOptimizacion(proyectoId) {
   )
 }
 
+/** Features del portal cliente (p. ej. importación por foto con IA). */
+export async function fetchOptimizacionFeatures() {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/features`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
+/**
+ * Sube una foto de hoja de medidas y obtiene filas (Cant./Largo/Ancho + cantos + ranuras).
+ * @param {File} file
+ */
+export async function extractMedidasFromImage(file) {
+  return withClientAuth(async (accessToken) => {
+    const body = new FormData()
+    body.append('file', file)
+    const url = clientApiUrl(`${OPT_BASE}/extract-medidas`)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body,
+      credentials: 'omit',
+    })
+    if (!res.ok) throw await parseHttpError(res)
+    const text = await res.text()
+    return text ? JSON.parse(text) : null
+  })
+}
+
 /** Descarga la plantilla del servidor; si no hay, lanza error para que el caller use fallback local. */
 export async function downloadPlantillaPlanillaFromServer() {
   return withClientAuth(async (accessToken) => {
