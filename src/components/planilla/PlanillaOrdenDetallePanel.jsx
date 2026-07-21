@@ -17,6 +17,21 @@ import {
   extractMedidasFromImage,
   fetchOptimizacionFeatures,
 } from '../../api/orderApi'
+import { resizePlanillaAiImage } from '../../utils/resizePlanillaAiImage'
+
+function confirmPhotoImportChecklist() {
+  return window.confirm(
+    [
+      'Antes de subir la foto, confirme:',
+      '',
+      '• La hoja muestra Cantidad, Largo y Ancho (mm).',
+      '• La foto está nítida, completa y bien iluminada.',
+      '• No es una selfie, factura ni captura sin medidas de corte.',
+      '',
+      '¿Continuar con la importación por foto?',
+    ].join('\n'),
+  )
+}
 
 function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const {
@@ -114,6 +129,9 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         window.alert('Seleccione el material (tablero) en el desplegable antes de importar desde la foto.')
         return
       }
+      if (!confirmPhotoImportChecklist()) {
+        return
+      }
       const hasData = rows.some((row) => row.cantidad || row.largoVeta || row.ancho)
       if (
         hasData &&
@@ -125,7 +143,8 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       }
       try {
         setMeasureError('')
-        const result = await extractMedidasFromImage(file)
+        const resized = await resizePlanillaAiImage(file, { maxSide: 1600, quality: 0.82 })
+        const result = await extractMedidasFromImage(resized)
         const { rows: imported, cantoErrors, ranuraErrors } = mapAiExtractToDetalleRows(result?.filas, {
           cantoOptions,
         })
