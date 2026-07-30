@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import { EXCEL_EXPORT_COLUMNS } from './detalleColumns'
-import { newDetalle } from './helpers'
+import { newDetalle, vetaFromApi } from './helpers'
 import { normalizeMeasureInput } from './measureInput'
 import {
   PLANILLA_EXCEL_TITLE,
@@ -11,13 +11,14 @@ import { applyRanuraImportToRows } from './ranuraImportValidation'
 
 /**
  * Alias por campo. Se mapea etiqueta → campo del formulario:
- * CANTIDAD→cantidad, LARGO→largo, ANCHO→ancho, L1→l1, …, DESCRIPCION→observacion.
+ * CANTIDAD→cantidad, LARGO→largo, ANCHO→ancho, VETA→vetaLongitud, L1→l1, …, DESCRIPCION→observacion.
  */
 const FIELD_ALIASES = {
   tablero: ['materialcoloryespesor', 'material', 'tablero', 'pcodemat', 'codemat'],
   cantidad: ['cantidad', 'cantmin', 'pminq', 'qty', 'cantminima'],
   largoVeta: ['largo', 'largoveta', 'longitud', 'plength', 'length'],
   ancho: ['ancho', 'pwidth', 'width'],
+  vetaLongitud: ['veta', 'pgrain', 'grain', 'respecta', 'respeta'],
   l1: [
     'l1',
     'l1superior',
@@ -74,7 +75,6 @@ const FIELD_ALIASES = {
   ranuraDist: ['randist', 'ranuradist', 'dist'],
   ranuraProf: ['ranprof', 'ranuraprof', 'prof'],
   ranuraEs: ['ranes', 'ranuraes', 'esp', 'es'],
-  vetaLongitud: ['veta', 'pgrain', 'grain'],
 }
 
 /** Orden de prioridad al resolver encabezados (evita que CANT robe CANTIDAD). */
@@ -82,6 +82,7 @@ const FIELD_RESOLVE_ORDER = [
   'cantidad',
   'largoVeta',
   'ancho',
+  'vetaLongitud',
   'l1',
   'l2',
   'a1',
@@ -94,7 +95,6 @@ const FIELD_RESOLVE_ORDER = [
   'ranuraDist',
   'ranuraProf',
   'ranuraEs',
-  'vetaLongitud',
 ]
 
 function normalizeHeader(value) {
@@ -154,6 +154,28 @@ function parseBoardMeasure(raw, { scaleFromOptimizer } = {}) {
 function parseTextCell(raw) {
   if (raw == null) return ''
   return String(raw).trim()
+}
+
+/** Valores típicos en Excel: 0-No, 1-Longitud, 1-Long, 1, sí, x… */
+function parseVetaCell(raw) {
+  if (raw === true || raw === 1) return true
+  if (raw === false || raw === 0) return false
+  if (raw == null || raw === '') return false
+  const v = String(raw).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  if (!v || v === '0' || v.startsWith('0-') || v === 'no' || v === 'false' || v === 'n') return false
+  if (
+    v === '1' ||
+    v.startsWith('1-') ||
+    v.includes('long') ||
+    v === 'si' ||
+    v === 'yes' ||
+    v === 'true' ||
+    v === 'x' ||
+    v === 's'
+  ) {
+    return true
+  }
+  return vetaFromApi(raw)
 }
 
 function cell(row, index) {
@@ -412,6 +434,7 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
   const cantidad = parseCantidad(cell(line, cols.cantidad))
   const largoVeta = parseBoardMeasure(cell(line, cols.largoVeta), { scaleFromOptimizer })
   const ancho = parseBoardMeasure(cell(line, cols.ancho), { scaleFromOptimizer })
+  const vetaLongitud = parseVetaCell(cell(line, cols.vetaLongitud))
   const l1 = parseTextCell(cell(line, cols.l1))
   const l2 = parseTextCell(cell(line, cols.l2))
   const a1 = parseTextCell(cell(line, cols.a1))
@@ -429,6 +452,7 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
     !cantidad &&
     !largoVeta &&
     !ancho &&
+    !vetaLongitud &&
     !l1 &&
     !l2 &&
     !a1 &&
@@ -450,6 +474,7 @@ function buildRowFromLine(line, cols, { scaleFromOptimizer }) {
     cantidad,
     largoVeta,
     ancho,
+    vetaLongitud,
     l1,
     l2,
     a1,

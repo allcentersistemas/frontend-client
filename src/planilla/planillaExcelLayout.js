@@ -1,7 +1,7 @@
 /**
  * Layout del Excel «LISTADO DE PIEZAS» (plantilla cliente).
  * Fila 1: título · fila 2: grupos · fila 3: tags técnicos · fila 4: etiquetas.
- * Coincide con la plantilla operativa (sin columna TABLERO).
+ * Coincide con la plantilla operativa (sin columna TABLERO; con VETA / [P_GRAIN]).
  */
 export const PLANILLA_EXCEL_TITLE = 'LISTADO DE PIEZAS'
 
@@ -10,6 +10,7 @@ export const PLANILLA_EXCEL_GROUP_ROW = [
   'PIEZAS A CORTAR',
   '',
   '',
+  'RESPETA',
   'CANTO',
   '',
   '',
@@ -29,6 +30,7 @@ export const PLANILLA_EXCEL_TECH_ROW = [
   '[P_MINQ]',
   '[P_LENGTH]',
   '[P_WIDTH]',
+  '[P_GRAIN]',
   '[P_EDGE_MAT_UP]',
   '[P_EGDE_MAT_LO]',
   '[P_EDGE_MAT_SX]',
@@ -47,6 +49,7 @@ export const PLANILLA_EXCEL_LABEL_ROW = [
   'CANTIDAD',
   'LARGO',
   'ANCHO',
+  'VETA',
   'L1 (Superior)',
   'L2 (Inferior)',
   'A1 (Izquierda)',
@@ -57,15 +60,16 @@ export const PLANILLA_EXCEL_LABEL_ROW = [
   'LADO',
   'DIST',
   'PROF',
-  'ES',
+  'ESP',
 ]
 
-/** Orden de campos en la plantilla (índice de columna) — layout sin TABLERO. */
+/** Orden de campos en la plantilla (índice de columna) — layout con VETA. */
 export const PLANILLA_TEMPLATE_COLUMN_KEYS = [
   'num',
   'cantidad',
   'largoVeta',
   'ancho',
+  'vetaLongitud',
   'l1',
   'l2',
   'a1',
@@ -84,6 +88,7 @@ export const PLANILLA_TEMPLATE_EXAMPLE_ROW = [
   '1',
   '560',
   '120',
+  '0-No',
   '',
   '',
   '',
@@ -96,3 +101,6 @@ export const PLANILLA_TEMPLATE_EXAMPLE_ROW = [
   '',
   '',
 ]
+
+/** Último índice de columna (0-based) de la plantilla. */
+export const PLANILLA_EXCEL_LAST_COL = PLANILLA_EXCEL_LABEL_ROW.length - 1
