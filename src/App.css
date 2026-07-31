@@ -226,6 +226,18 @@
   @apply text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl dark:text-white;
 }
 
+.planilla-modal__order-fields {
+  @apply mt-2 flex w-full max-w-xl flex-col gap-2 sm:flex-row;
+}
+
+.planilla-modal__order-field {
+  @apply m-0 min-w-0 flex-1;
+}
+
+.planilla-modal__order-field span {
+  @apply text-[0.7rem] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400;
+}
+
 .planilla-modal__subtitle {
   @apply mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-400;
 }
@@ -321,6 +333,22 @@
 
 .planilla-detalle-table__wide {
   @apply min-w-[140px];
+}
+
+.planilla-detalle-table__th-fill {
+  @apply inline-flex items-center justify-center gap-1;
+}
+
+.planilla-detalle-table__fill-check {
+  @apply inline-flex cursor-pointer items-center;
+}
+
+.planilla-detalle-table__fill-check input {
+  @apply h-3.5 w-3.5 accent-amber-500;
+}
+
+.planilla-input--order-name {
+  @apply m-0 max-w-[14rem] font-semibold;
 }
 
 .planilla-detalle-table__actions {

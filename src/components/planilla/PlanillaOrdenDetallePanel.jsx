@@ -41,6 +41,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
     cantoOptions,
     loadingProject,
     updateOrderDetalles,
+    updateOrderMeta,
     maquinaParametros,
   } = usePlanillaDraft()
 
@@ -230,13 +231,32 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       }}
       onImportExcel={readOnly ? undefined : handleImportExcel}
       onImportPhoto={readOnly || !aiVisionEnabled ? undefined : handleImportPhoto}
-      onAddRow={readOnly ? undefined : () => setRows((prev) => [...prev, newDetalle()])}
+      onUpdateOrderMeta={
+        readOnly
+          ? undefined
+          : (patch) => {
+              updateOrderMeta(order.id, patch)
+            }
+      }
+      onAddRow={
+        readOnly
+          ? undefined
+          : (patch) => setRows((prev) => [...prev, { ...newDetalle(), ...(patch || {}) }])
+      }
       onUpdateRow={
         readOnly
           ? undefined
           : (index, key, value) => {
               setMeasureError('')
               setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
+            }
+      }
+      onBulkUpdateColumn={
+        readOnly
+          ? undefined
+          : (key, value) => {
+              setMeasureError('')
+              setRows((prev) => prev.map((row) => ({ ...row, [key]: value })))
             }
       }
       onPatchRow={

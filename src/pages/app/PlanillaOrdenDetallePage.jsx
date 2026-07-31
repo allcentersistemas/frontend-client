@@ -18,6 +18,7 @@ export default function PlanillaOrdenDetallePage() {
     cantoOptions,
     loadingProject,
     updateOrderDetalles,
+    updateOrderMeta,
   } = usePlanillaDraft()
 
   const order = useMemo(
@@ -83,8 +84,8 @@ export default function PlanillaOrdenDetallePage() {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
   }, [])
 
-  const addRow = useCallback(() => {
-    setRows((prev) => [...prev, newDetalle()])
+  const addRow = useCallback((patch) => {
+    setRows((prev) => [...prev, { ...newDetalle(), ...(patch || {}) }])
   }, [])
 
   const removeRow = useCallback((index) => {
@@ -94,6 +95,11 @@ export default function PlanillaOrdenDetallePage() {
   const updateRow = useCallback((index, key, value) => {
     handleUpdateRow(index, key, value)
   }, [handleUpdateRow])
+
+  const bulkUpdateColumn = useCallback((key, value) => {
+    setMeasureError('')
+    setRows((prev) => prev.map((row) => ({ ...row, [key]: value })))
+  }, [])
 
   const patchRow = useCallback((index, patch) => {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
@@ -118,8 +124,10 @@ export default function PlanillaOrdenDetallePage() {
       cantoOptions={cantoOptions}
       onBack={handleBack}
       onSave={handleSave}
+      onUpdateOrderMeta={(patch) => updateOrderMeta(order.id, patch)}
       onAddRow={addRow}
       onUpdateRow={updateRow}
+      onBulkUpdateColumn={bulkUpdateColumn}
       onPatchRow={patchRow}
       onRemoveRow={removeRow}
       measureError={measureError}

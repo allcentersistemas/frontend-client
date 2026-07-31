@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SearchableSelect } from './SearchableSelect'
 import {
+  DETALLE_FILL_FROM_FIRST_KEYS,
   DETALLE_TABLE_COLUMNS,
   DETALLE_TABLE_GROUPS,
   LADO_OPTIONS,
@@ -267,6 +268,8 @@ export function PlanillaDetalleEditor({
   onUpdateRow,
   onPatchRow,
   onRemoveRow,
+  onBulkUpdateColumn,
+  onUpdateOrderMeta,
   onDownloadExcel,
   onDownloadTemplate,
   onImportExcel,
@@ -280,16 +283,87 @@ export function PlanillaDetalleEditor({
   const [importBusy, setImportBusy] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [pendingFocus, setPendingFocus] = useState(null)
+  const [fillFromFirst, setFillFromFirst] = useState(() =>
+    Object.fromEntries(DETALLE_FILL_FROM_FIRST_KEYS.map((key) => [key, false])),
+  )
+  const [orderCodigo, setOrderCodigo] = useState(order?.codigo ?? '')
+  const [orderDescripcion, setOrderDescripcion] = useState(order?.descripcion ?? '')
+
+  useEffect(() => {
+    setOrderCodigo(order?.codigo ?? '')
+    setOrderDescripcion(order?.descripcion ?? '')
+  }, [order?.id, order?.codigo, order?.descripcion])
+
+  const commitOrderMeta = useCallback(() => {
+    if (readOnly || !onUpdateOrderMeta || !order?.id) return
+    const codigo = (orderCodigo || '').trim()
+    if (!codigo) {
+      setOrderCodigo(order.codigo ?? '')
+      return
+    }
+    if (codigo === (order.codigo ?? '') && orderDescripcion.trim() === (order.descripcion ?? '').trim()) {
+      return
+    }
+    onUpdateOrderMeta({
+      codigo,
+      descripcion: orderDescripcion.trim(),
+    })
+  }, [readOnly, onUpdateOrderMeta, order, orderCodigo, orderDescripcion])
+
+  const applyFillColumn = useCallback(
+    (key, value) => {
+      if (onBulkUpdateColumn) {
+        onBulkUpdateColumn(key, value)
+        return
+      }
+      if (!onUpdateRow || !rows.length) return
+      rows.forEach((_, index) => onUpdateRow(index, key, value))
+    },
+    [onBulkUpdateColumn, onUpdateRow, rows],
+  )
+
+  const toggleFillFromFirst = useCallback(
+    (key, checked) => {
+      setFillFromFirst((prev) => ({ ...prev, [key]: checked }))
+      if (checked && rows[0]) {
+        applyFillColumn(key, rows[0][key])
+      }
+    },
+    [rows, applyFillColumn],
+  )
+
+  const handleCellUpdate = useCallback(
+    (index, key, value) => {
+      if (index === 0 && fillFromFirst[key]) {
+        applyFillColumn(key, value)
+        return
+      }
+      onUpdateRow?.(index, key, value)
+    },
+    [fillFromFirst, applyFillColumn, onUpdateRow],
+  )
+
+  const handleAddRow = useCallback(() => {
+    if (!onAddRow) return
+    const patch = {}
+    const first = rows[0]
+    if (first) {
+      for (const key of DETALLE_FILL_FROM_FIRST_KEYS) {
+        if (fillFromFirst[key]) patch[key] = first[key]
+      }
+    }
+    onAddRow(Object.keys(patch).length ? patch : undefined)
+  }, [onAddRow, rows, fillFromFirst])
 
   const tabHandlers = useMemo(
     () => ({
       onEndOfRow: (rowIndex) => {
         if (!onAddRow) return
-        onAddRow()
+        handleAddRow()
         setPendingFocus({ row: rowIndex + 1, col: DETALLE_COLUMN_KEYS[0] })
       },
     }),
-    [onAddRow],
+    [onAddRow, handleAddRow],
   )
 
   useEffect(() => {
@@ -319,12 +393,50 @@ export function PlanillaDetalleEditor({
             Detalle de orden
             {projectName ? ` · ${projectName}` : ''}
           </p>
-          <h1 id="planilla-orden-title" className="planilla-modal__title">
-            {order.codigo}
-          </h1>
-          {order.descripcion ? (
-            <p className="planilla-modal__subtitle">{order.descripcion}</p>
-          ) : null}
+          {!readOnly && onUpdateOrderMeta ? (
+            <div className="planilla-modal__order-fields">
+              <label className="field planilla-modal__order-field">
+                <span>Código / nombre de orden</span>
+                <input
+                  id="planilla-orden-title"
+                  className="planilla-input"
+                  value={orderCodigo}
+                  onChange={(e) => setOrderCodigo(e.target.value)}
+                  onBlur={commitOrderMeta}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="ORD-001"
+                />
+              </label>
+              <label className="field planilla-modal__order-field">
+                <span>Descripción</span>
+                <input
+                  className="planilla-input"
+                  value={orderDescripcion}
+                  onChange={(e) => setOrderDescripcion(e.target.value)}
+                  onBlur={commitOrderMeta}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Descripción de la orden"
+                />
+              </label>
+            </div>
+          ) : (
+            <>
+              <h1 id="planilla-orden-title" className="planilla-modal__title">
+                {order.codigo}
+              </h1>
+              {order.descripcion ? (
+                <p className="planilla-modal__subtitle">{order.descripcion}</p>
+              ) : null}
+            </>
+          )}
           {maquinaParametros ? (
             <p className="small muted mt-1">Parámetros: {maquinaParametros}</p>
           ) : null}
@@ -367,7 +479,7 @@ export function PlanillaDetalleEditor({
           ) : null}
           {!readOnly ? (
             <>
-              <button type="button" className="btn btn--primary btn--sm" onClick={onAddRow}>
+              <button type="button" className="btn btn--primary btn--sm" onClick={handleAddRow}>
                 + Agregar fila
               </button>
               {onImportExcel ? (
@@ -471,7 +583,24 @@ export function PlanillaDetalleEditor({
               <tr>
                 {DETALLE_TABLE_COLUMNS.map((col) => (
                   <th key={col.key} className={col.wide ? 'planilla-detalle-table__wide' : undefined}>
-                    {col.label}
+                    {col.fillFromFirst && !readOnly ? (
+                      <span className="planilla-detalle-table__th-fill">
+                        <label
+                          className="planilla-detalle-table__fill-check"
+                          title={`Aplicar el valor de la 1.ª fila a toda la columna «${col.label}»`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={Boolean(fillFromFirst[col.key])}
+                            onChange={(e) => toggleFillFromFirst(col.key, e.target.checked)}
+                            aria-label={`Rellenar columna ${col.label} con el valor de la primera fila`}
+                          />
+                        </label>
+                        <span>{col.label}</span>
+                      </span>
+                    ) : (
+                      col.label
+                    )}
                   </th>
                 ))}
               </tr>
@@ -490,7 +619,7 @@ export function PlanillaDetalleEditor({
                         tableros={tableros}
                         cantoOptions={cantoOptions}
                         readOnly={readOnly}
-                        onUpdate={(key, value) => onUpdateRow(index, key, value)}
+                        onUpdate={(key, value) => handleCellUpdate(index, key, value)}
                         onPatch={(patch) => onPatchRow?.(index, patch)}
                         onBoardMeasureBlur={onBoardMeasureBlur}
                       />
@@ -523,7 +652,14 @@ export function PlanillaDetalleEditor({
           {readOnly ? 'Cerrar' : 'Cancelar'}
         </button>
         {!readOnly ? (
-          <button type="button" className="btn btn--primary" onClick={onSave}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => {
+              commitOrderMeta()
+              onSave?.()
+            }}
+          >
             Guardar detalle
           </button>
         ) : null}

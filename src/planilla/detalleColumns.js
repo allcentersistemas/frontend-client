@@ -19,11 +19,11 @@ export const DETALLE_TABLE_COLUMNS = [
   { key: 'cantidad', label: 'Cant.', type: 'number' },
   { key: 'largoVeta', label: 'Largo', type: 'number' },
   { key: 'ancho', label: 'Ancho', type: 'number' },
-  { key: 'vetaLongitud', label: 'Veta', type: 'veta' },
-  { key: 'l1', label: 'L1', type: 'canto' },
-  { key: 'l2', label: 'L2', type: 'canto' },
-  { key: 'a1', label: 'A1', type: 'canto' },
-  { key: 'a2', label: 'A2', type: 'canto' },
+  { key: 'vetaLongitud', label: 'Veta', type: 'veta', fillFromFirst: true },
+  { key: 'l1', label: 'L1', type: 'canto', fillFromFirst: true },
+  { key: 'l2', label: 'L2', type: 'canto', fillFromFirst: true },
+  { key: 'a1', label: 'A1', type: 'canto', fillFromFirst: true },
+  { key: 'a2', label: 'A2', type: 'canto', fillFromFirst: true },
   { key: 'observacion', label: 'Descripción', wide: true },
   { key: 'perforacionCantidad', label: 'Perf. cant.', type: 'number' },
   { key: 'perforacionLado1', label: 'Perf. lado', type: 'lado' },
@@ -33,6 +33,11 @@ export const DETALLE_TABLE_COLUMNS = [
   { key: 'ranuraEs', label: 'Ran. esp.', type: 'ranuraEs', group: 'ranura' },
   { key: 'ranuraLado', label: 'Ran. lado', type: 'lado', group: 'ranura' },
 ]
+
+/** Claves que admiten «aplicar valor de la 1.ª fila a toda la columna». */
+export const DETALLE_FILL_FROM_FIRST_KEYS = DETALLE_TABLE_COLUMNS.filter((c) => c.fillFromFirst).map(
+  (c) => c.key,
+)
 
 export const DETALLE_TABLE_GROUPS = [
   { id: 'material', label: 'Medidas', span: 4 },

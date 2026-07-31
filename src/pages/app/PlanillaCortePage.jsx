@@ -56,6 +56,7 @@ export default function PlanillaCortePage() {
     updateOrderDraft,
     addOrder,
     removeOrder,
+    updateOrderMeta,
     saveAllToDatabase,
     maquinas,
     maquinaId,
@@ -315,12 +316,41 @@ export default function PlanillaCortePage() {
                       className={`order-card${String(order.id) === String(orderId) ? ' order-card--active' : ''}`}
                     >
                       <div className="order-card__head">
-                        <strong>{order.codigo}</strong>
+                        {!readOnly ? (
+                          <input
+                            className="planilla-input planilla-input--order-name"
+                            value={order.codigo}
+                            aria-label="Código de orden"
+                            onChange={(e) => updateOrderMeta(order.id, { codigo: e.target.value })}
+                            onBlur={(e) => {
+                              const codigo = e.target.value.trim()
+                              if (!codigo) {
+                                updateOrderMeta(order.id, { codigo: order.codigo?.trim() || 'ORD' })
+                              } else {
+                                updateOrderMeta(order.id, { codigo })
+                              }
+                            }}
+                          />
+                        ) : (
+                          <strong>{order.codigo}</strong>
+                        )}
                         <span className="tag">
                           {order.detalles.length} filas · {orderPiezas(order)} pzas
                         </span>
                       </div>
-                      <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
+                      {!readOnly ? (
+                        <label className="field mt-2">
+                          <span className="sr-only">Descripción de la orden</span>
+                          <input
+                            className="planilla-input"
+                            value={order.descripcion || ''}
+                            placeholder="Descripción de la orden"
+                            onChange={(e) => updateOrderMeta(order.id, { descripcion: e.target.value })}
+                          />
+                        </label>
+                      ) : (
+                        <p className="small muted">{order.descripcion || 'Sin descripción'}</p>
+                      )}
                       <div className="order-card__actions">
                         <button
                           type="button"

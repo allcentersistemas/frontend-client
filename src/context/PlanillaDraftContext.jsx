@@ -237,6 +237,24 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setSaveOk('Detalle de orden actualizado.')
   }, [])
 
+  const updateOrderMeta = useCallback((orderId, patch) => {
+    if (!orderId || !patch || typeof patch !== 'object') return
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order
+        const next = { ...order }
+        if (patch.codigo != null) {
+          next.codigo = String(patch.codigo)
+        }
+        if (patch.descripcion != null) {
+          next.descripcion = String(patch.descripcion)
+        }
+        return next
+      }),
+    )
+    setSaveOk('')
+  }, [])
+
   const updateMaquinaSelection = useCallback(
     async (nextMaquinaId) => {
       setMaquinaId(nextMaquinaId)
@@ -261,6 +279,12 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     if (!orders.length) {
       setSaveError('Debe agregar al menos una orden.')
       return false
+    }
+    for (const order of orders) {
+      if (!String(order.codigo || '').trim()) {
+        setSaveError('Todas las órdenes deben tener código / nombre.')
+        return false
+      }
     }
     if ((persistedId && !projectEditable) || (project && isPersistedProjectId(project.id) && !projectEditable)) {
       setSaveError('Este proyecto ya fue enviado y no puede modificarse.')
@@ -307,8 +331,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
           maquinaId: maquinaId ? Number(maquinaId) : null,
         },
         orders: orders.map((order) => ({
-          codigo: order.codigo,
-          descripcion: order.descripcion,
+          codigo: String(order.codigo || '').trim(),
+          descripcion: String(order.descripcion || '').trim(),
           detalles: order.detalles.map(mapDetalleToApiPayload),
         })),
       })
@@ -379,6 +403,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       addOrder,
       removeOrder,
       updateOrderDetalles,
+      updateOrderMeta,
       updateMaquinaSelection,
       saveAllToDatabase,
     }),
@@ -410,6 +435,7 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       addOrder,
       removeOrder,
       updateOrderDetalles,
+      updateOrderMeta,
       updateMaquinaSelection,
       saveAllToDatabase,
     ],
