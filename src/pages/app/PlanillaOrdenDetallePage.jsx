@@ -79,11 +79,6 @@ export default function PlanillaOrdenDetallePage() {
     )
   }, [])
 
-  const handleUpdateRow = useCallback((index, key, value) => {
-    setMeasureError('')
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
-  }, [])
-
   const addRow = useCallback((patch) => {
     setRows((prev) => [...prev, { ...newDetalle(), ...(patch || {}) }])
   }, [])
@@ -92,12 +87,10 @@ export default function PlanillaOrdenDetallePage() {
     setRows((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const updateRow = useCallback(
-    (index, key, value) => {
-      handleUpdateRow(index, key, value)
-    },
-    [handleUpdateRow],
-  )
+  const updateRow = useCallback((index, key, value) => {
+    setMeasureError('')
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)))
+  }, [])
 
   const bulkUpdateColumn = useCallback((key, value) => {
     setMeasureError('')
@@ -121,11 +114,10 @@ export default function PlanillaOrdenDetallePage() {
     <PlanillaDetalleEditor
       order={order}
       projectName={project?.nombre}
-      backHref={basePath}
       rows={rows}
       tableros={tableros}
       cantoOptions={cantoOptions}
-      onBack={handleBack}
+      onClose={handleBack}
       onSave={handleSave}
       onUpdateOrderMeta={(patch) => updateOrderMeta(order.id, patch)}
       onAddRow={addRow}

@@ -287,12 +287,10 @@ export function PlanillaDetalleEditor({
     Object.fromEntries(DETALLE_FILL_FROM_FIRST_KEYS.map((key) => [key, false])),
   )
   const [orderCodigo, setOrderCodigo] = useState(order?.codigo ?? '')
-  const [orderDescripcion, setOrderDescripcion] = useState(order?.descripcion ?? '')
 
   useEffect(() => {
     setOrderCodigo(order?.codigo ?? '')
-    setOrderDescripcion(order?.descripcion ?? '')
-  }, [order?.id, order?.codigo, order?.descripcion])
+  }, [order?.id, order?.codigo])
 
   const commitOrderMeta = useCallback(() => {
     if (readOnly || !onUpdateOrderMeta || !order?.id) return
@@ -301,14 +299,9 @@ export function PlanillaDetalleEditor({
       setOrderCodigo(order.codigo ?? '')
       return
     }
-    if (codigo === (order.codigo ?? '') && orderDescripcion.trim() === (order.descripcion ?? '').trim()) {
-      return
-    }
-    onUpdateOrderMeta({
-      codigo,
-      descripcion: orderDescripcion.trim(),
-    })
-  }, [readOnly, onUpdateOrderMeta, order, orderCodigo, orderDescripcion])
+    if (codigo === (order.codigo ?? '')) return
+    onUpdateOrderMeta({ codigo })
+  }, [readOnly, onUpdateOrderMeta, order, orderCodigo])
 
   const applyFillColumn = useCallback(
     (key, value) => {
@@ -411,31 +404,11 @@ export function PlanillaDetalleEditor({
                   placeholder="ORD-001"
                 />
               </label>
-              <label className="field planilla-modal__order-field">
-                <span>Descripción</span>
-                <input
-                  className="planilla-input"
-                  value={orderDescripcion}
-                  onChange={(e) => setOrderDescripcion(e.target.value)}
-                  onBlur={commitOrderMeta}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="Descripción de la orden"
-                />
-              </label>
             </div>
           ) : (
-            <>
-              <h1 id="planilla-orden-title" className="planilla-modal__title">
-                {order.codigo}
-              </h1>
-              {order.descripcion ? (
-                <p className="planilla-modal__subtitle">{order.descripcion}</p>
-              ) : null}
-            </>
+            <h1 id="planilla-orden-title" className="planilla-modal__title">
+              {order.codigo}
+            </h1>
           )}
           {maquinaParametros ? (
             <p className="small muted mt-1">Parámetros: {maquinaParametros}</p>
