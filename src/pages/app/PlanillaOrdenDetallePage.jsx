@@ -92,9 +92,12 @@ export default function PlanillaOrdenDetallePage() {
     setRows((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const updateRow = useCallback((index, key, value) => {
-    handleUpdateRow(index, key, value)
-  }, [handleUpdateRow])
+  const updateRow = useCallback(
+    (index, key, value) => {
+      handleUpdateRow(index, key, value)
+    },
+    [handleUpdateRow],
+  )
 
   const bulkUpdateColumn = useCallback((key, value) => {
     setMeasureError('')
