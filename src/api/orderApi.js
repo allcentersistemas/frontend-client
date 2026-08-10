@@ -208,6 +208,31 @@ export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cot
   })
 }
 
+/**
+ * Obtiene el PDF de planos para visualización (sin descarga).
+ * Devuelve un object URL; el llamador debe revokeObjectURL al cerrar.
+ */
+export async function fetchProyectoPlanosViewBlobUrl(proyectoId) {
+  return withClientAuth(async (accessToken) => {
+    const url = clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/planos/view`)
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'omit',
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(parseErrorMessage(text, 'No se pudieron cargar los planos.'))
+    }
+    const blob = await res.blob()
+    if (!blob || blob.size === 0) {
+      throw new Error('Los planos llegaron vacíos desde el servidor. Contacte a ventas.')
+    }
+    const pdfBlob =
+      blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
+    return URL.createObjectURL(pdfBlob)
+  })
+}
+
 export async function cancelProyectoOptimizacion(proyectoId) {
   return withClientAuth((accessToken) =>
     fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/cancelar`), {

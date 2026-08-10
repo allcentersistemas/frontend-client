@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, listProyectosOptimizacion } from '../../api/orderApi'
 import { EstadoTag } from '../../components/EstadoTag'
+import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import {
   ESTADOS_PROYECTO,
   canDownloadCotizacion,
+  canViewPlano,
   emptyProyectoFilters,
   filterProyectosClientSide,
   formatProyectoDate,
@@ -18,6 +20,7 @@ export default function ProyectosPage() {
   const [busyId, setBusyId] = useState(null)
   const [filters, setFilters] = useState(emptyProyectoFilters())
   const [applied, setApplied] = useState(emptyProyectoFilters())
+  const [planoViewer, setPlanoViewer] = useState(null)
 
   const loadProjects = useCallback(async () => {
     setLoading(true)
@@ -110,6 +113,15 @@ export default function ProyectosPage() {
         ) : (
           <span className="small muted self-center">Sin cotización</span>
         )}
+        {canViewPlano(project) ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => setPlanoViewer({ id: project.id, nombre: project.nombre })}
+          >
+            Ver planos
+          </button>
+        ) : null}
         {canCancelProject(project) ? (
           <button
             type="button"
@@ -275,6 +287,12 @@ export default function ProyectosPage() {
           </div>
         </>
       )}
+      <PlanoViewerModal
+        open={Boolean(planoViewer)}
+        proyectoId={planoViewer?.id}
+        proyectoNombre={planoViewer?.nombre}
+        onClose={() => setPlanoViewer(null)}
+      />
     </div>
   )
 }

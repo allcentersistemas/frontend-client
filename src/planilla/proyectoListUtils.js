@@ -46,6 +46,13 @@ export function canDownloadCotizacion(project) {
   return project.estado === 'COTIZADO' || project.estado === 'VENDIDO'
 }
 
+export function canViewPlano(project) {
+  if (!project) return false
+  if (project.tienePlano) return true
+  const archivo = project.planoArchivo ?? project.plano_archivo
+  return Boolean(archivo && String(archivo).trim())
+}
+
 export function formatProyectoDate(value) {
   return formatAppDateTime(value)
 }

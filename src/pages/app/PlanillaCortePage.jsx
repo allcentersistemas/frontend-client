@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, findProyectoByNombre } from '../../api/orderApi'
-import { canDownloadCotizacion, isProyectoCancelado } from '../../planilla/proyectoListUtils'
+import { canDownloadCotizacion, canViewPlano, isProyectoCancelado } from '../../planilla/proyectoListUtils'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
+import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
 import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
@@ -35,6 +36,7 @@ export default function PlanillaCortePage() {
   const [busyCancel, setBusyCancel] = useState(false)
   const [activating, setActivating] = useState(false)
   const [duplicateProject, setDuplicateProject] = useState(null)
+  const [planoViewerOpen, setPlanoViewerOpen] = useState(false)
 
   const {
     project,
@@ -199,6 +201,20 @@ export default function PlanillaCortePage() {
                       }}
                     >
                       Descargar cotización
+                    </button>
+                  ) : null}
+                  {readOnly &&
+                  canViewPlano({
+                    tienePlano: project?.tienePlano,
+                    planoArchivo: project?.planoArchivo,
+                  }) &&
+                  project?.id ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => setPlanoViewerOpen(true)}
+                    >
+                      Ver planos
                     </button>
                   ) : null}
                   {cotizacionError ? (
@@ -413,6 +429,13 @@ export default function PlanillaCortePage() {
       </div>
 
       {modalOpen ? <PlanillaOrdenDetallePanel orderId={orderId} readOnly={readOnly} /> : null}
+
+      <PlanoViewerModal
+        open={planoViewerOpen}
+        proyectoId={project?.id}
+        proyectoNombre={project?.nombre || projectDraft?.nombre}
+        onClose={() => setPlanoViewerOpen(false)}
+      />
 
       {duplicateProject ? (
         <div className="planilla-modal-backdrop" role="presentation" onClick={() => setDuplicateProject(null)}>

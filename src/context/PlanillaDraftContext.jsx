@@ -109,6 +109,8 @@ export function PlanillaDraftProvider({ projectKey, children }) {
           creadoEn: savedProject.fechaCreacion,
           estado: savedProject.estado || 'ENVIADO',
           cotizacionArchivo: savedProject.cotizacionArchivo || '',
+          planoArchivo: savedProject.planoArchivo || '',
+          tienePlano: Boolean(savedProject.tienePlano || savedProject.planoArchivo),
         }
         const editable = savedProject.editable !== false
         setProjectEditable(editable)
