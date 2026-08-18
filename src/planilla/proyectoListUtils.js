@@ -6,6 +6,10 @@ export const ESTADOS_PROYECTO = [
   { value: 'EN_ATENCION', label: 'En atención' },
   { value: 'COTIZADO', label: 'Cotizado' },
   { value: 'VENDIDO', label: 'Vendido' },
+  { value: 'PRODUCCION', label: 'Producción' },
+  { value: 'DESPACHO', label: 'Despacho' },
+  { value: 'LISTO_PARA_ENTREGAR', label: 'Listo para entregar' },
+  { value: 'ENTREGADO', label: 'Entregado' },
   { value: 'CANCELADO', label: 'Cancelado' },
 ]
 
@@ -15,6 +19,10 @@ export function formatEstadoProyecto(value) {
     EN_ATENCION: 'En atención',
     COTIZADO: 'Cotizado',
     VENDIDO: 'Vendido',
+    PRODUCCION: 'Producción',
+    DESPACHO: 'Despacho',
+    LISTO_PARA_ENTREGAR: 'Listo para entregar',
+    ENTREGADO: 'Entregado',
     CANCELADO: 'Cancelado',
   }
   return map[value] || value || '—'
@@ -27,6 +35,10 @@ export function estadoTagClass(estado) {
     EN_ATENCION: 'tag tag--estado-atencion',
     COTIZADO: 'tag tag--estado-cotizado',
     VENDIDO: 'tag tag--estado-vendido',
+    PRODUCCION: 'tag tag--estado-produccion',
+    DESPACHO: 'tag tag--estado-despacho',
+    LISTO_PARA_ENTREGAR: 'tag tag--estado-listo',
+    ENTREGADO: 'tag tag--estado-entregado',
     CANCELADO: 'tag tag--estado-cancelado',
   }
   return map[estado] || 'tag'
@@ -43,7 +55,14 @@ export function canDownloadCotizacion(project) {
   if (project.tieneCotizacion) return true
   const archivo = project.cotizacionArchivo ?? project.cotizacion_archivo
   if (archivo && String(archivo).trim()) return true
-  return project.estado === 'COTIZADO' || project.estado === 'VENDIDO'
+  return (
+    project.estado === 'COTIZADO' ||
+    project.estado === 'VENDIDO' ||
+    project.estado === 'PRODUCCION' ||
+    project.estado === 'DESPACHO' ||
+    project.estado === 'LISTO_PARA_ENTREGAR' ||
+    project.estado === 'ENTREGADO'
+  )
 }
 
 export function canViewPlano(project) {
