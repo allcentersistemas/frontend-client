@@ -6,7 +6,6 @@ import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrd
 import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
-import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 import { EstadoTag } from '../../components/EstadoTag'
 
 function StepBadge({ step, label, active, done }) {
@@ -62,7 +61,6 @@ export default function PlanillaCortePage() {
     saveAllToDatabase,
     maquinas,
     maquinaId,
-    maquinaParametros,
     updateMaquinaSelection,
   } = usePlanillaDraft()
 
@@ -371,19 +369,6 @@ export default function PlanillaCortePage() {
                         {!readOnly ? (
                           <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeOrder(order.id)}>
                             Quitar
-                          </button>
-                        ) : null}
-                        {order.detalles.length ? (
-                          <button
-                            type="button"
-                            className="btn btn--ghost btn--sm"
-                            onClick={() =>
-                              downloadOrderExcel(orderExcelFilename(order, project?.nombre), order, {
-                                maquinaParametros,
-                              })
-                            }
-                          >
-                            Excel
                           </button>
                         ) : null}
                       </div>

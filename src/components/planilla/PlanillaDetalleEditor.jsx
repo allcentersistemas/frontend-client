@@ -270,7 +270,6 @@ export function PlanillaDetalleEditor({
   onRemoveRow,
   onBulkUpdateColumn,
   onUpdateOrderMeta,
-  onDownloadExcel,
   onDownloadTemplate,
   onImportExcel,
   onImportPhoto,

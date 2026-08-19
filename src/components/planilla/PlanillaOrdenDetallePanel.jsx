@@ -5,7 +5,6 @@ import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalle
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
 import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
-import { downloadOrderExcel, orderExcelFilename } from '../../planilla/excelExport'
 import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { formatDetalleImportErrors } from '../../planilla/detalleImportErrors'
 import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
@@ -212,12 +211,6 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       onClose={onClose}
       onSave={handleSave}
       maquinaParametros={maquinaParametros}
-      onDownloadExcel={() => {
-        const detalles = rows.map((row) => ({ ...row, tablero: sharedTablero }))
-        downloadOrderExcel(orderExcelFilename(order, project?.nombre), { ...order, detalles }, {
-          maquinaParametros,
-        })
-      }}
       onDownloadTemplate={async () => {
         try {
           await downloadPlantillaPlanillaFromServer()
