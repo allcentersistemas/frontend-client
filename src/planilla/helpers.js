@@ -56,6 +56,13 @@ export function vetaFromApi(value) {
   return v === VETA_LONGITUD || v.startsWith('1-') || v === '1'
 }
 
+/** Vacío, blanco o «NA» → sin valor (cadena vacía en UI / null al guardar). */
+export function blankOrEmpty(value) {
+  const s = String(value ?? '').trim()
+  if (!s || s.toUpperCase() === 'NA') return ''
+  return s
+}
+
 function isPresetRanura(value, options) {
   const v = String(value ?? '').trim()
   if (!v || v === 'NA') return true
@@ -73,49 +80,49 @@ function inferRanuraEspecial(detalle) {
 
 export function mapDetalleFromApi(detalle) {
   return {
-    tablero: detalle.tablero || '',
-    cantidad: detalle.cantidad || '',
-    largoVeta: detalle.largoVeta || '',
-    ancho: detalle.ancho || '',
+    tablero: blankOrEmpty(detalle.tablero),
+    cantidad: blankOrEmpty(detalle.cantidad),
+    largoVeta: blankOrEmpty(detalle.largoVeta),
+    ancho: blankOrEmpty(detalle.ancho),
     vetaLongitud: vetaFromApi(detalle.veta),
-    l1: detalle.l1 || '',
-    l2: detalle.l2 || '',
-    a1: detalle.a1 || '',
-    a2: detalle.a2 || '',
-    perforacionCantidad: detalle.perforacionCantidad || '',
-    perforacionLado1: detalle.perforacionLado1 || '',
-    perforacionLado2: detalle.perforacionLado2 || '',
+    l1: blankOrEmpty(detalle.l1),
+    l2: blankOrEmpty(detalle.l2),
+    a1: blankOrEmpty(detalle.a1),
+    a2: blankOrEmpty(detalle.a2),
+    perforacionCantidad: blankOrEmpty(detalle.perforacionCantidad),
+    perforacionLado1: blankOrEmpty(detalle.perforacionLado1),
+    perforacionLado2: blankOrEmpty(detalle.perforacionLado2),
     ranuraEspecial: inferRanuraEspecial(detalle),
-    ranuraDist: detalle.ranuraDist || '',
-    ranuraProf: detalle.ranuraProf || '',
-    ranuraEs: detalle.ranuraEs || '',
-    ranuraLado: detalle.ranuraLado || '',
+    ranuraDist: blankOrEmpty(detalle.ranuraDist),
+    ranuraProf: blankOrEmpty(detalle.ranuraProf),
+    ranuraEs: blankOrEmpty(detalle.ranuraEs),
+    ranuraLado: blankOrEmpty(detalle.ranuraLado),
     observado: Boolean(detalle.observado),
-    observacion: detalle.observacion || '',
+    observacion: blankOrEmpty(detalle.observacion),
   }
 }
 
 export function mapDetalleToApiPayload(row) {
   return {
-    tablero: row.tablero,
+    tablero: blankOrEmpty(row.tablero),
     cantidad: normalizeMeasureInput(row.cantidad),
     largoVeta: normalizeMeasureInput(row.largoVeta),
     ancho: normalizeMeasureInput(row.ancho),
     veta: vetaToPayload(Boolean(row.vetaLongitud)),
-    l1: row.l1,
-    l2: row.l2,
-    a1: row.a1,
-    a2: row.a2,
+    l1: blankOrEmpty(row.l1),
+    l2: blankOrEmpty(row.l2),
+    a1: blankOrEmpty(row.a1),
+    a2: blankOrEmpty(row.a2),
     perforacionCantidad: normalizeMeasureInput(row.perforacionCantidad),
-    perforacionLado1: row.perforacionLado1,
-    perforacionLado2: row.perforacionLado2,
+    perforacionLado1: blankOrEmpty(row.perforacionLado1),
+    perforacionLado2: blankOrEmpty(row.perforacionLado2),
     ranuraEspecial: Boolean(row.ranuraEspecial),
-    ranuraDist: row.ranuraDist,
-    ranuraProf: row.ranuraProf,
-    ranuraEs: row.ranuraEs,
-    ranuraLado: row.ranuraLado,
+    ranuraDist: blankOrEmpty(row.ranuraDist),
+    ranuraProf: blankOrEmpty(row.ranuraProf),
+    ranuraEs: blankOrEmpty(row.ranuraEs),
+    ranuraLado: blankOrEmpty(row.ranuraLado),
     observado: Boolean(row.observado),
-    observacion: row.observacion,
+    observacion: blankOrEmpty(row.observacion),
   }
 }
 
