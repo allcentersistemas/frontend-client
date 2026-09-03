@@ -73,3 +73,22 @@ export function validateAllBoardMeasures(rows) {
   }
   return null
 }
+
+/** Material (tablero) obligatorio en el desplegable de la orden. */
+export function validateMaterialSelected(tablero) {
+  if (!String(tablero ?? '').trim()) {
+    return 'Seleccione el material (tablero) antes de guardar.'
+  }
+  return null
+}
+
+/** Todas las filas del detalle deben tener material. */
+export function validateRowsHaveMaterial(rows) {
+  const list = rows ?? []
+  if (!list.length) return null
+  const missing = list.some((row) => !String(row.tablero ?? '').trim())
+  if (missing) {
+    return 'Seleccione el material (tablero) antes de guardar. Todas las piezas deben tener material.'
+  }
+  return null
+}

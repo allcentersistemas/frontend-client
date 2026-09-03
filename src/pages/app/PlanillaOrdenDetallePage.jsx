@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle } from '../../planilla/helpers'
 import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
-import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
+import {
+  normalizeMeasureRow,
+  validateAllBoardMeasures,
+  validateBoardMeasureValue,
+  validateRowsHaveMaterial,
+} from '../../planilla/measureInput'
 
 export default function PlanillaOrdenDetallePage() {
   const { orderId } = useParams()
@@ -28,10 +33,17 @@ export default function PlanillaOrdenDetallePage() {
 
   const [rows, setRows] = useState([newDetalle()])
   const [measureError, setMeasureError] = useState('')
+  const hydratedOrderIdRef = useRef(null)
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
 
   useEffect(() => {
     if (!order) return
+    const idKey = String(order.id)
+    if (hydratedOrderIdRef.current === idKey) return
+    hydratedOrderIdRef.current = idKey
     setRows(order.detalles.length ? order.detalles.map((d) => ({ ...d })) : [newDetalle()])
+    setMeasureError('')
   }, [order])
 
   useEffect(() => {
@@ -41,12 +53,41 @@ export default function PlanillaOrdenDetallePage() {
     }
   }, [order, loadingProject, navigate, basePath])
 
+  const persistDraft = useCallback(
+    (nextRows = rowsRef.current) => {
+      if (!order) return
+      updateOrderDetalles(order.id, nextRows.map(normalizeMeasureRow), { silent: true })
+    },
+    [order, updateOrderDetalles],
+  )
+
+  useEffect(() => {
+    if (!order) return
+    if (hydratedOrderIdRef.current !== String(order.id)) return
+    const t = window.setTimeout(() => persistDraft(rows), 400)
+    return () => window.clearTimeout(t)
+  }, [rows, order, persistDraft])
+
+  useEffect(() => {
+    return () => {
+      if (hydratedOrderIdRef.current != null && hydratedOrderIdRef.current === String(orderId)) {
+        persistDraft(rowsRef.current)
+      }
+    }
+  }, [persistDraft, orderId])
+
   const handleBack = useCallback(() => {
+    persistDraft()
     navigate(basePath)
-  }, [navigate, basePath])
+  }, [persistDraft, navigate, basePath])
 
   const handleSave = useCallback(() => {
     if (!order) return
+    const materialError = validateRowsHaveMaterial(rows)
+    if (materialError) {
+      setMeasureError(materialError)
+      return
+    }
     const cantoError = validateCantoCatalogInRows(rows, cantoOptions)
     if (cantoError) {
       setMeasureError(cantoError)

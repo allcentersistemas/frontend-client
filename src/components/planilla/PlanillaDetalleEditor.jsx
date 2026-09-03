@@ -621,7 +621,7 @@ export function PlanillaDetalleEditor({
 
       <footer className="planilla-modal__footer planilla-modal__footer--end">
         <button type="button" className="btn btn--ghost" onClick={onClose}>
-          {readOnly ? 'Cerrar' : 'Cancelar'}
+          Cerrar
         </button>
         {!readOnly ? (
           <button

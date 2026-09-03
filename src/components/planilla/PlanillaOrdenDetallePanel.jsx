@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { PlanillaDetalleEditor } from '../../components/planilla/PlanillaDetalleEditor'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { newDetalle, planillaOrderDetallePath } from '../../planilla/helpers'
-import { normalizeMeasureRow, validateAllBoardMeasures, validateBoardMeasureValue } from '../../planilla/measureInput'
+import {
+  normalizeMeasureRow,
+  validateAllBoardMeasures,
+  validateBoardMeasureValue,
+  validateMaterialSelected,
+} from '../../planilla/measureInput'
 import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
 import { formatDetalleImportErrors } from '../../planilla/detalleImportErrors'
 import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
@@ -53,13 +58,56 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const [sharedTablero, setSharedTablero] = useState('')
   const [measureError, setMeasureError] = useState('')
   const [aiVisionEnabled, setAiVisionEnabled] = useState(false)
+  /** Solo hidrata al abrir / cambiar de orden; no pisa ediciones locales. */
+  const hydratedOrderIdRef = useRef(null)
+  const rowsRef = useRef(rows)
+  const sharedTableroRef = useRef(sharedTablero)
+  rowsRef.current = rows
+  sharedTableroRef.current = sharedTablero
 
   useEffect(() => {
     if (!order) return
+    const idKey = String(order.id)
+    if (hydratedOrderIdRef.current === idKey) return
+    hydratedOrderIdRef.current = idKey
     const detalles = order.detalles.length ? order.detalles.map((d) => ({ ...d })) : [newDetalle()]
     setRows(detalles)
     setSharedTablero(detalles.find((d) => d.tablero)?.tablero || '')
+    setMeasureError('')
   }, [order])
+
+  const persistDraft = useCallback(
+    (nextRows = rowsRef.current, nextTablero = sharedTableroRef.current, { silent = true } = {}) => {
+      if (readOnly || !order) return
+      const withMaterial = nextRows.map((row) => ({
+        ...row,
+        tablero: String(nextTablero || row.tablero || '').trim(),
+      }))
+      updateOrderDetalles(order.id, withMaterial.map(normalizeMeasureRow), { silent })
+    },
+    [readOnly, order, updateOrderDetalles],
+  )
+
+  // Autoguardado del borrador mientras se edita (sobrevive cerrar / reabrir).
+  useEffect(() => {
+    if (readOnly || !order) return
+    if (hydratedOrderIdRef.current !== String(order.id)) return
+    const t = window.setTimeout(() => persistDraft(rows, sharedTablero, { silent: true }), 400)
+    return () => window.clearTimeout(t)
+  }, [rows, sharedTablero, readOnly, order, persistDraft])
+
+  // Al desmontar (Escape, fondo, navegación) conserva lo editado.
+  useEffect(() => {
+    return () => {
+      if (
+        !readOnly &&
+        hydratedOrderIdRef.current != null &&
+        hydratedOrderIdRef.current === String(orderId)
+      ) {
+        persistDraft(rowsRef.current, sharedTableroRef.current, { silent: true })
+      }
+    }
+  }, [readOnly, persistDraft, orderId])
 
   useEffect(() => {
     if (readOnly) {
@@ -111,7 +159,9 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         const { rows: imported, cantoErrors, ranuraErrors } = await parsePlanillaDetalleExcel(file, {
           cantoOptions,
         })
-        setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
+        const next = imported.map((row) => ({ ...row, tablero: sharedTablero }))
+        setRows(next)
+        persistDraft(next, sharedTablero, { silent: true })
         const importMsg = formatDetalleImportErrors(cantoErrors, ranuraErrors)
         setMeasureError(importMsg)
       } catch (e) {
@@ -119,7 +169,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         throw e
       }
     },
-    [readOnly, order, rows, sharedTablero, cantoOptions],
+    [readOnly, order, rows, sharedTablero, cantoOptions, persistDraft],
   )
 
   const handleImportPhoto = useCallback(
@@ -152,7 +202,9 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
           setMeasureError('No se detectaron filas de corte en la imagen. Pruebe con otra foto más nítida.')
           return
         }
-        setRows(imported.map((row) => ({ ...row, tablero: sharedTablero })))
+        const next = imported.map((row) => ({ ...row, tablero: sharedTablero }))
+        setRows(next)
+        persistDraft(next, sharedTablero, { silent: true })
         const importMsg = formatDetalleImportErrors(cantoErrors, ranuraErrors)
         setMeasureError(
           importMsg ||
@@ -163,11 +215,21 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
         throw e
       }
     },
-    [readOnly, order, rows, sharedTablero, cantoOptions],
+    [readOnly, order, rows, sharedTablero, cantoOptions, persistDraft],
   )
+
+  const handleClose = useCallback(() => {
+    persistDraft()
+    onClose()
+  }, [persistDraft, onClose])
 
   const handleSave = useCallback(() => {
     if (readOnly || !order) return
+    const materialError = validateMaterialSelected(sharedTablero)
+    if (materialError) {
+      setMeasureError(materialError)
+      return
+    }
     const withMaterial = rows.map((row) => ({ ...row, tablero: sharedTablero }))
     const cantoError = validateCantoCatalogInRows(withMaterial, cantoOptions)
     if (cantoError) {
@@ -208,7 +270,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
       tableros={tableros}
       cantoOptions={cantoOptions}
       readOnly={readOnly}
-      onClose={onClose}
+      onClose={handleClose}
       onSave={handleSave}
       maquinaParametros={maquinaParametros}
       onDownloadTemplate={async () => {

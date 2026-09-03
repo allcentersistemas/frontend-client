@@ -6,6 +6,7 @@ import {
   formatCantoCatalogErrors,
 } from '../planilla/cantoImportValidation'
 import { collectRanuraImportErrors, formatRanuraImportErrors } from '../planilla/ranuraImportValidation'
+import { validateRowsHaveMaterial } from '../planilla/measureInput'
 import {
   isPersistedProjectId,
   mapDetalleToApiPayload,
@@ -232,11 +233,13 @@ export function PlanillaDraftProvider({ projectKey, children }) {
     setOrders((prev) => prev.filter((order) => order.id !== orderId))
   }, [])
 
-  const updateOrderDetalles = useCallback((orderId, detalles) => {
+  const updateOrderDetalles = useCallback((orderId, detalles, { silent = false } = {}) => {
     setOrders((prev) =>
       prev.map((order) => (order.id === orderId ? { ...order, detalles } : order)),
     )
-    setSaveOk('Detalle de orden actualizado.')
+    if (!silent) {
+      setSaveOk('Detalle de orden actualizado.')
+    }
   }, [])
 
   const updateOrderMeta = useCallback((orderId, patch) => {
@@ -293,6 +296,11 @@ export function PlanillaDraftProvider({ projectKey, children }) {
       return false
     }
     for (const order of orders) {
+      const materialError = validateRowsHaveMaterial(order.detalles)
+      if (materialError) {
+        setSaveError(`Orden «${order.codigo}»: seleccione el material (tablero) antes de enviar el proyecto.`)
+        return false
+      }
       const cantoErrors = collectCantoCatalogErrors(order.detalles, cantoOptions)
       if (cantoErrors.length) {
         setSaveError(
