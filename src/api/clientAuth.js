@@ -25,6 +25,7 @@ export async function clientLogin(login, password) {
  * @property {boolean} juridica
  * @property {string} [displayName]
  * @property {string} [phone]
+ * @property {string} [telegramChatId]
  * @property {string} [tipoDocumento]
  * @property {string} [numeroDocumento]
  * @property {string} [direccion]
@@ -90,6 +91,12 @@ export function validateClientRegisterPayload(input) {
     return { ok: false, message: 'El teléfono no puede superar 40 caracteres' }
   }
   if (phone) body.phone = phone
+
+  const telegramChatId = trimOpt(input.telegramChatId)
+  if (telegramChatId && telegramChatId.length > 64) {
+    return { ok: false, message: 'El Chat ID de Telegram no puede superar 64 caracteres' }
+  }
+  if (telegramChatId) body.telegramChatId = telegramChatId
 
   if (juridica) {
     for (const [field, label] of [
@@ -159,6 +166,17 @@ export async function clientRefreshSession(refreshToken) {
 export async function clientFetchMe(accessToken) {
   return fetchJson(clientApiUrl('/auth/me'), {
     headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function clientUpdateProfile(accessToken, body) {
+  return fetchJson(clientApiUrl('/auth/me'), {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
   })
 }
 

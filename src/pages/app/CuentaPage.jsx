@@ -4,6 +4,7 @@ import {
   clientChangePassword,
   clientFetchLoginHistory,
   clientLogoutAll,
+  clientUpdateProfile,
 } from '../../api/clientAuth'
 import { clearClientSession, getClientAccessToken } from '../../auth/clientSession'
 import { formatAppDateTime } from '../../utils/appDateTime'
@@ -44,9 +45,17 @@ export default function CuentaPage() {
   const [historyError, setHistoryError] = useState('')
   const [page, setPage] = useState(0)
 
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [tgMsg, setTgMsg] = useState('')
+  const [tgBusy, setTgBusy] = useState(false)
+
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
   const [pwdMsg, setPwdMsg] = useState('')
   const [pwdBusy, setPwdBusy] = useState(false)
+
+  useEffect(() => {
+    setTelegramChatId(user?.telegramChatId ?? '')
+  }, [user?.telegramChatId])
 
   const loadHistory = useCallback(async (pageIndex = 0) => {
     const token = getClientAccessToken()
@@ -70,6 +79,27 @@ export default function CuentaPage() {
   }, [loadHistory])
 
   const totalPages = Math.max(1, Math.ceil((history.totalElements || 0) / (history.size || 20)))
+
+  async function handleSaveTelegram(e) {
+    e.preventDefault()
+    setTgMsg('')
+    const token = getClientAccessToken()
+    if (!token) return
+    setTgBusy(true)
+    try {
+      await clientUpdateProfile(token, { telegramChatId: telegramChatId.trim() })
+      setTgMsg(
+        telegramChatId.trim()
+          ? 'Chat ID de Telegram guardado. Recibirá avisos cuando su pedido esté listo.'
+          : 'Chat ID de Telegram eliminado.',
+      )
+      await refreshUser(token)
+    } catch (err) {
+      setTgMsg(err.message || 'No se pudo guardar el Chat ID.')
+    } finally {
+      setTgBusy(false)
+    }
+  }
 
   async function handleChangePassword(e) {
     e.preventDefault()
@@ -158,6 +188,7 @@ export default function CuentaPage() {
             </>
           )}
           <InfoRow label="Teléfono" value={user?.phone} />
+          <InfoRow label="Telegram Chat ID" value={user?.telegramChatId} />
           <InfoRow label="Cuenta creada" value={formatAppDateTime(user?.createdAt)} />
           <InfoRow label="Último acceso" value={formatAppDateTime(user?.lastLoginAt)} />
           <InfoRow label="IP del último acceso" value={user?.lastLoginIp} />
@@ -166,6 +197,44 @@ export default function CuentaPage() {
             value={user?.loginCount != null ? String(user.loginCount) : '—'}
           />
         </dl>
+      </section>
+
+      <section className="card pad">
+        <h2 className="card__title">Notificaciones Telegram</h2>
+        <p className="muted small mt-1">
+          Opcional. Guarde su Chat ID para recibir un aviso cuando su pedido esté listo para
+          entregar. Abra el bot de AllCenter en Telegram y obtenga su Chat ID (por ejemplo con
+          @userinfobot).
+        </p>
+        <form className="mt-4" onSubmit={(e) => void handleSaveTelegram(e)}>
+          <label className="field">
+            <span className="field__label">Chat ID de Telegram</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={64}
+              placeholder="Ej. 123456789"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+            />
+          </label>
+          {tgMsg ? (
+            <p
+              className={
+                tgMsg.includes('guardado') || tgMsg.includes('eliminado')
+                  ? 'form-success mt-3'
+                  : 'form-error mt-3'
+              }
+              role="status"
+            >
+              {tgMsg}
+            </p>
+          ) : null}
+          <button type="submit" className="btn btn--primary mt-4" disabled={tgBusy}>
+            {tgBusy ? 'Guardando…' : 'Guardar Chat ID'}
+          </button>
+        </form>
       </section>
 
       <section className="card pad">

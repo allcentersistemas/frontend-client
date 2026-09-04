@@ -8,6 +8,7 @@ import {
   Lock,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
   User,
   UserCircle,
@@ -34,6 +35,7 @@ const emptyProfile = () => ({
   juridica: false,
   displayName: '',
   phone: '',
+  telegramChatId: '',
   tipoDocumento: 'DNI',
   numeroDocumento: '',
   direccion: '',
@@ -116,6 +118,7 @@ export default function RegisterPage() {
         juridica: profile.juridica,
         displayName: profile.displayName,
         phone: profile.phone,
+        telegramChatId: profile.telegramChatId,
         tipoDocumento: profile.tipoDocumento,
         numeroDocumento: profile.numeroDocumento,
         direccion: profile.direccion,
@@ -448,6 +451,21 @@ function AddressFields({ profile, setProfileField }) {
           />
         </AuthField>
       </div>
+      <AuthField label="Telegram Chat ID (opcional)" icon={MessageCircle}>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={profile.telegramChatId}
+          onChange={(e) => setProfileField('telegramChatId', e.target.value)}
+          maxLength={64}
+          placeholder="Ej. 123456789"
+          className={`${authInputClass} pl-12`}
+        />
+      </AuthField>
+      <p className="text-xs text-slate-500 dark:text-yellow-200/50">
+        Opcional. Inicie el bot de AllCenter en Telegram y consulte su Chat ID (por ejemplo con
+        @userinfobot) para recibir avisos cuando su pedido esté listo.
+      </p>
     </>
   )
 }
