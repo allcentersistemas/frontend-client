@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, findProyectoByNombre } from '../../api/orderApi'
-import { canDownloadCotizacion, canViewPlano, isProyectoCancelado } from '../../planilla/proyectoListUtils'
+import { canDownloadCotizacion, canViewPlano, isProyectoCancelado, resolveEstadoProyectoDesdeOrdenes } from '../../planilla/proyectoListUtils'
 import { PlanillaOrdenDetallePanel } from '../../components/planilla/PlanillaOrdenDetallePanel'
 import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import { usePlanillaDraft } from '../../context/PlanillaDraftContext'
 import { isPersistedProjectId, planillaOrderDetallePath } from '../../planilla/helpers'
 import { EstadoTag } from '../../components/EstadoTag'
+import { OrdenFlujoEstado } from '../../components/OrdenFlujoEstado'
+import { ProyectoFlujoBar } from '../../components/ProyectoFlujoBar'
 
 function StepBadge({ step, label, active, done }) {
   return (
@@ -157,6 +159,7 @@ export default function PlanillaCortePage() {
   }
 
   const step1Done = Boolean(project)
+  const estadoEfectivo = resolveEstadoProyectoDesdeOrdenes(projectEstado, orders)
 
   return (
     <>
@@ -178,58 +181,63 @@ export default function PlanillaCortePage() {
                   : 'Configure el proyecto y las órdenes; abra el detalle de cada orden para capturar piezas.'}
               </p>
               {projectEstado ? (
-                <p className="small mt-2 flex flex-wrap items-center gap-2">
-                  <span>Estado:</span> <EstadoTag estado={projectEstado} />
-                  {readOnly && canDownloadCotizacion({ estado: projectEstado, cotizacionArchivo: project?.cotizacionArchivo }) && project?.id ? (
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      disabled={busyCotizacion}
-                      onClick={async () => {
-                        setBusyCotizacion(true)
-                        setCotizacionError('')
-                        try {
-                          const safe = (project.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
-                          await downloadProyectoCotizacion(project.id, safe)
-                        } catch (err) {
-                          setCotizacionError(err.message || 'No se pudo descargar la cotización.')
-                        } finally {
-                          setBusyCotizacion(false)
-                        }
-                      }}
-                    >
-                      Descargar cotización
-                    </button>
+                <div className="mt-3">
+                  <p className="small flex flex-wrap items-center gap-2">
+                    <span>Estado:</span> <EstadoTag estado={estadoEfectivo || projectEstado} />
+                    {readOnly && canDownloadCotizacion({ estado: projectEstado, cotizacionArchivo: project?.cotizacionArchivo }) && project?.id ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        disabled={busyCotizacion}
+                        onClick={async () => {
+                          setBusyCotizacion(true)
+                          setCotizacionError('')
+                          try {
+                            const safe = (project.nombre || 'proyecto').replace(/[^\w.-]+/g, '_')
+                            await downloadProyectoCotizacion(project.id, safe)
+                          } catch (err) {
+                            setCotizacionError(err.message || 'No se pudo descargar la cotización.')
+                          } finally {
+                            setBusyCotizacion(false)
+                          }
+                        }}
+                      >
+                        Descargar cotización
+                      </button>
+                    ) : null}
+                    {readOnly &&
+                    canViewPlano({
+                      tienePlano: project?.tienePlano,
+                      planoArchivo: project?.planoArchivo,
+                    }) &&
+                    project?.id ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setPlanoViewerOpen(true)}
+                      >
+                        Ver planos
+                      </button>
+                    ) : null}
+                    {cotizacionError ? (
+                      <span className="small form-error">{cotizacionError}</span>
+                    ) : null}
+                    {canCancelProject ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        disabled={busyCancel}
+                        style={{ color: 'var(--danger, #b00020)' }}
+                        onClick={() => void handleCancelProject()}
+                      >
+                        Cancelar proyecto
+                      </button>
+                    ) : null}
+                  </p>
+                  {!isProyectoCancelado(projectEstado) ? (
+                    <ProyectoFlujoBar estado={estadoEfectivo || projectEstado} />
                   ) : null}
-                  {readOnly &&
-                  canViewPlano({
-                    tienePlano: project?.tienePlano,
-                    planoArchivo: project?.planoArchivo,
-                  }) &&
-                  project?.id ? (
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => setPlanoViewerOpen(true)}
-                    >
-                      Ver planos
-                    </button>
-                  ) : null}
-                  {cotizacionError ? (
-                    <span className="small form-error">{cotizacionError}</span>
-                  ) : null}
-                  {canCancelProject ? (
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      disabled={busyCancel}
-                      style={{ color: 'var(--danger, #b00020)' }}
-                      onClick={() => void handleCancelProject()}
-                    >
-                      Cancelar proyecto
-                    </button>
-                  ) : null}
-                </p>
+                </div>
               ) : null}
             </div>
           </div>
@@ -352,6 +360,14 @@ export default function PlanillaCortePage() {
                           {order.detalles.length} filas · {orderPiezas(order)} pzas
                         </span>
                       </div>
+                      {readOnly ? (
+                        <div className="mt-2">
+                          <OrdenFlujoEstado
+                            proyectoEstado={projectEstado}
+                            estadoEscaneo={order.estadoEscaneo}
+                          />
+                        </div>
+                      ) : null}
                       <div className="order-card__actions">
                         <button
                           type="button"

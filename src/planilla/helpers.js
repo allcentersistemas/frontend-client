@@ -131,6 +131,10 @@ export function mapOrdersFromApi(savedOrders) {
     id: order.id,
     codigo: order.codigo || '',
     descripcion: order.descripcion || '',
+    biesseOrderId: order.biesseOrderId ?? order.biesse_order_id ?? null,
+    biesseOrderName: order.biesseOrderName ?? order.biesse_order_name ?? null,
+    opCodigo: order.opCodigo ?? order.op_codigo ?? null,
+    estadoEscaneo: order.estadoEscaneo ?? order.estado_escaneo ?? null,
     detalles: (order.detalles || []).map(mapDetalleFromApi),
   }))
 }

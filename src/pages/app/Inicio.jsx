@@ -24,8 +24,8 @@ export default function Inicio() {
       <header className="page__head">
         <h1>Inicio</h1>
         <p className="page__lead">
-          Hola{name ? `, ${name}` : ''}. Desde aquí gestiona sus optimizaciones: revise proyectos
-          existentes o cree una planilla de corte nueva.
+          Hola{name ? `, ${name}` : ''}. Siga el avance de sus pedidos (proyecto + obra/XML) o cree
+          una planilla nueva.
         </p>
       </header>
 

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import {
   clientChangePassword,
   clientFetchLoginHistory,
+  clientFetchTelegramInfo,
   clientLogoutAll,
   clientUpdateProfile,
 } from '../../api/clientAuth'
@@ -48,6 +49,7 @@ export default function CuentaPage() {
   const [telegramChatId, setTelegramChatId] = useState('')
   const [tgMsg, setTgMsg] = useState('')
   const [tgBusy, setTgBusy] = useState(false)
+  const [telegramInfo, setTelegramInfo] = useState(null)
 
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
   const [pwdMsg, setPwdMsg] = useState('')
@@ -56,6 +58,21 @@ export default function CuentaPage() {
   useEffect(() => {
     setTelegramChatId(user?.telegramChatId ?? '')
   }, [user?.telegramChatId])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await clientFetchTelegramInfo()
+        if (!cancelled) setTelegramInfo(data)
+      } catch {
+        if (!cancelled) setTelegramInfo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const loadHistory = useCallback(async (pageIndex = 0) => {
     const token = getClientAccessToken()
@@ -202,9 +219,23 @@ export default function CuentaPage() {
       <section className="card pad">
         <h2 className="card__title">Notificaciones Telegram</h2>
         <p className="muted small mt-1">
-          Opcional. Guarde su Chat ID para recibir un aviso cuando su pedido esté listo para
-          entregar. Abra el bot de AllCenter en Telegram y obtenga su Chat ID (por ejemplo con
-          @userinfobot).
+          Opcional. Guarde su Chat ID para recibir un aviso cuando su pedido esté listo para entregar.
+          {telegramInfo?.enabled && telegramInfo?.botUsername ? (
+            <>
+              {' '}
+              Abra el bot{' '}
+              <a
+                href={telegramInfo.botUrl || `https://t.me/${telegramInfo.botUsername}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                @{telegramInfo.botUsername}
+              </a>
+              , inicie el chat y obtenga su Chat ID (por ejemplo con @userinfobot).
+            </>
+          ) : (
+            <> Las notificaciones Telegram no están activas todavía o el bot no tiene usuario configurado.</>
+          )}
         </p>
         <form className="mt-4" onSubmit={(e) => void handleSaveTelegram(e)}>
           <label className="field">
@@ -219,6 +250,18 @@ export default function CuentaPage() {
               onChange={(e) => setTelegramChatId(e.target.value)}
             />
           </label>
+          {telegramInfo?.enabled && telegramInfo?.botUrl ? (
+            <p className="mt-3">
+              <a
+                className="btn btn--secondary btn--sm"
+                href={telegramInfo.botUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Abrir @{telegramInfo.botUsername} en Telegram
+              </a>
+            </p>
+          ) : null}
           {tgMsg ? (
             <p
               className={

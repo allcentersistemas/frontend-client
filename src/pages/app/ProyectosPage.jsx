@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { downloadProyectoCotizacion, cancelProyectoOptimizacion, listProyectosOptimizacion } from '../../api/orderApi'
 import { EstadoTag } from '../../components/EstadoTag'
 import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
+import { ProyectoFlujoBar } from '../../components/ProyectoFlujoBar'
 import {
   ESTADOS_PROYECTO,
   canDownloadCotizacion,
@@ -10,6 +11,7 @@ import {
   emptyProyectoFilters,
   filterProyectosClientSide,
   formatProyectoDate,
+  isProyectoCancelado,
 } from '../../planilla/proyectoListUtils'
 
 export default function ProyectosPage() {
@@ -144,6 +146,7 @@ export default function ProyectosPage() {
           <h2 className="project-card__title">{project.nombre}</h2>
           <EstadoTag estado={project.estado} />
         </div>
+        {!isProyectoCancelado(project) ? <ProyectoFlujoBar estado={project.estado} /> : null}
         {project.descripcion ? (
           <p className="project-card__desc line-clamp-2">{project.descripcion}</p>
         ) : (
@@ -165,7 +168,8 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Consulte el estado de sus envíos y descargue la cotización cuando esté disponible.
+              Siga el avance de su pedido en un solo flujo: enviado → cotizado → vendido →
+              optimizado → producción → despacho. Descargue la cotización cuando esté disponible.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -271,7 +275,10 @@ export default function ProyectosPage() {
                     <tr key={p.id}>
                       <td className="font-medium">{p.nombre}</td>
                       <td>
-                        <EstadoTag estado={p.estado} />
+                        <div className="flex flex-col gap-2 py-1">
+                          <EstadoTag estado={p.estado} />
+                          {!isProyectoCancelado(p) ? <ProyectoFlujoBar estado={p.estado} /> : null}
+                        </div>
                       </td>
                       <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
                       <td>{p.cantidadOrdenes ?? 0}</td>

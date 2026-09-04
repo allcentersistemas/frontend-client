@@ -1,53 +1,111 @@
 import { formatAppDateTime, parseAppDateTime } from '../utils/appDateTime'
 
+/**
+ * Flujo continuo cliente: comercial del proyecto + continuación obra/XML.
+ * Tras VENDIDO, el avance lo marca principalmente el estado_escaneo del XML.
+ */
+export const ESTADOS_FLUJO_CLIENTE = [
+  { value: 'ENVIADO', label: 'Enviado', fase: 'comercial' },
+  { value: 'EN_ATENCION', label: 'En atención', fase: 'comercial' },
+  { value: 'COTIZADO', label: 'Cotizado', fase: 'comercial' },
+  { value: 'VENDIDO', label: 'Vendido', fase: 'comercial' },
+  { value: 'OPTIMIZADO', label: 'Optimizado', fase: 'obra' },
+  { value: 'PRODUCCION', label: 'Producción', fase: 'obra' },
+  { value: 'DESPACHO', label: 'Listo para despacho', fase: 'obra' },
+  { value: 'LISTO_PARA_ENTREGAR', label: 'Listo para entregar', fase: 'obra' },
+  { value: 'ENTREGADO', label: 'Despachado', fase: 'obra' },
+]
+
 export const ESTADOS_PROYECTO = [
   { value: '', label: 'Todos los estados' },
-  { value: 'ENVIADO', label: 'Enviando' },
-  { value: 'EN_ATENCION', label: 'En atención' },
-  { value: 'COTIZADO', label: 'Cotizado' },
-  { value: 'VENDIDO', label: 'Vendido' },
-  { value: 'PRODUCCION', label: 'Producción' },
-  { value: 'DESPACHO', label: 'Despacho' },
-  { value: 'LISTO_PARA_ENTREGAR', label: 'Listo para entregar' },
-  { value: 'ENTREGADO', label: 'Entregado' },
+  ...ESTADOS_FLUJO_CLIENTE.map(({ value, label }) => ({ value, label })),
   { value: 'CANCELADO', label: 'Cancelado' },
 ]
 
-export function formatEstadoProyecto(value) {
-  const map = {
-    ENVIADO: 'Enviando',
-    EN_ATENCION: 'En atención',
-    COTIZADO: 'Cotizado',
-    VENDIDO: 'Vendido',
-    PRODUCCION: 'Producción',
-    DESPACHO: 'Despacho',
-    LISTO_PARA_ENTREGAR: 'Listo para entregar',
-    ENTREGADO: 'Entregado',
-    CANCELADO: 'Cancelado',
-  }
-  return map[value] || value || '—'
+/** @deprecated Usar ESTADOS_FLUJO_CLIENTE (fase obra). */
+export const ESTADOS_SEGUIMIENTO_CLIENTE = ESTADOS_FLUJO_CLIENTE.filter((s) => s.fase === 'obra')
+
+export function normalizeEstadoCodigo(estado) {
+  if (estado == null || estado === '') return null
+  const e = String(estado).trim().toUpperCase().replace(/[\s-]+/g, '_')
+  if (e === 'ENVIANDO') return 'ENVIADO'
+  if (e === 'COMPLETADA' || e === 'COMPLETADO' || e === 'LISTO') return 'LISTO_PARA_ENTREGAR'
+  if (e === 'EN_PROCESO') return 'DESPACHO'
+  return e
 }
 
-/** Clase CSS según estado del proyecto. */
+export function flujoStepIndex(estado) {
+  const code = normalizeEstadoCodigo(estado)
+  if (!code || code === 'CANCELADO') return -1
+  return ESTADOS_FLUJO_CLIENTE.findIndex((s) => s.value === code)
+}
+
+/**
+ * Une estado de proyecto + XML: el más avanzado en el flujo continuo.
+ */
+export function resolveEstadoContinuo(proyectoEstado, estadoEscaneo) {
+  if (normalizeEstadoCodigo(proyectoEstado) === 'CANCELADO') return 'CANCELADO'
+  const iProj = flujoStepIndex(proyectoEstado)
+  const iXml = flujoStepIndex(estadoEscaneo)
+  const i = Math.max(iProj, iXml)
+  if (i < 0) return normalizeEstadoCodigo(proyectoEstado) || normalizeEstadoCodigo(estadoEscaneo)
+  return ESTADOS_FLUJO_CLIENTE[i].value
+}
+
+/** Estado efectivo del proyecto mirando también el XML de sus órdenes. */
+export function resolveEstadoProyectoDesdeOrdenes(proyectoEstado, orders = []) {
+  if (normalizeEstadoCodigo(proyectoEstado) === 'CANCELADO') return 'CANCELADO'
+  let best = flujoStepIndex(proyectoEstado)
+  for (const order of orders) {
+    best = Math.max(best, flujoStepIndex(order?.estadoEscaneo))
+  }
+  if (best < 0) return normalizeEstadoCodigo(proyectoEstado)
+  return ESTADOS_FLUJO_CLIENTE[best].value
+}
+
+export function formatEstadoProyecto(value) {
+  const code = normalizeEstadoCodigo(value)
+  if (code === 'CANCELADO') return 'Cancelado'
+  const hit = ESTADOS_FLUJO_CLIENTE.find((s) => s.value === code)
+  return hit?.label || value || '—'
+}
+
+export function formatEstadoObra(value) {
+  return formatEstadoProyecto(value)
+}
+
 export function estadoTagClass(estado) {
+  const code = normalizeEstadoCodigo(estado)
   const map = {
     ENVIADO: 'tag tag--estado-enviado',
     EN_ATENCION: 'tag tag--estado-atencion',
     COTIZADO: 'tag tag--estado-cotizado',
     VENDIDO: 'tag tag--estado-vendido',
+    OPTIMIZADO: 'tag tag--estado-optimizado',
     PRODUCCION: 'tag tag--estado-produccion',
     DESPACHO: 'tag tag--estado-despacho',
     LISTO_PARA_ENTREGAR: 'tag tag--estado-listo',
     ENTREGADO: 'tag tag--estado-entregado',
     CANCELADO: 'tag tag--estado-cancelado',
   }
-  return map[estado] || 'tag'
+  return map[code] || 'tag'
+}
+
+export function normalizeEstadoSeguimiento(estado) {
+  const code = normalizeEstadoCodigo(estado)
+  if (!code) return null
+  if (ESTADOS_SEGUIMIENTO_CLIENTE.some((s) => s.value === code)) return code
+  return null
+}
+
+export function seguimientoStepIndex(estado) {
+  return flujoStepIndex(estado)
 }
 
 export function isProyectoCancelado(projectOrEstado) {
   const estado =
     typeof projectOrEstado === 'string' ? projectOrEstado : projectOrEstado?.estado
-  return estado === 'CANCELADO'
+  return normalizeEstadoCodigo(estado) === 'CANCELADO'
 }
 
 export function canDownloadCotizacion(project) {
@@ -55,14 +113,9 @@ export function canDownloadCotizacion(project) {
   if (project.tieneCotizacion) return true
   const archivo = project.cotizacionArchivo ?? project.cotizacion_archivo
   if (archivo && String(archivo).trim()) return true
-  return (
-    project.estado === 'COTIZADO' ||
-    project.estado === 'VENDIDO' ||
-    project.estado === 'PRODUCCION' ||
-    project.estado === 'DESPACHO' ||
-    project.estado === 'LISTO_PARA_ENTREGAR' ||
-    project.estado === 'ENTREGADO'
-  )
+  const idx = flujoStepIndex(project.estado)
+  const cotizadoIdx = flujoStepIndex('COTIZADO')
+  return idx >= cotizadoIdx
 }
 
 export function canViewPlano(project) {

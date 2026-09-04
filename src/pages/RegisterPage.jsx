@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import {
   Building2,
@@ -13,7 +13,7 @@ import {
   User,
   UserCircle,
 } from 'lucide-react'
-import { clientRegister } from '../api/clientAuth'
+import { clientFetchTelegramInfo, clientRegister } from '../api/clientAuth'
 import { getClientAccessToken, saveClientSession } from '../auth/clientSession'
 import { registrationEnabled } from '../config/security'
 import { validatePassword } from '../utils/passwordPolicy'
@@ -462,11 +462,51 @@ function AddressFields({ profile, setProfileField }) {
           className={`${authInputClass} pl-12`}
         />
       </AuthField>
-      <p className="text-xs text-slate-500 dark:text-yellow-200/50">
-        Opcional. Inicie el bot de AllCenter en Telegram y consulte su Chat ID (por ejemplo con
-        @userinfobot) para recibir avisos cuando su pedido esté listo.
-      </p>
+      <TelegramBotHint />
     </>
+  )
+}
+
+function TelegramBotHint() {
+  const [info, setInfo] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await clientFetchTelegramInfo()
+        if (!cancelled) setInfo(data)
+      } catch {
+        if (!cancelled) setInfo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!info?.enabled || !info?.botUsername) {
+    return (
+      <p className="text-xs text-slate-500 dark:text-yellow-200/50">
+        Opcional. Si activa notificaciones Telegram, podrá guardar su Chat ID también desde Mi cuenta.
+      </p>
+    )
+  }
+
+  return (
+    <p className="text-xs text-slate-500 dark:text-yellow-200/50">
+      Opcional. Abra el bot{' '}
+      <a
+        href={info.botUrl || `https://t.me/${info.botUsername}`}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-amber-800 underline dark:text-amber-200"
+      >
+        @{info.botUsername}
+      </a>
+      , inicie el chat y obtenga su Chat ID (por ejemplo con @userinfobot) para recibir avisos cuando
+      su pedido esté listo.
+    </p>
   )
 }
 

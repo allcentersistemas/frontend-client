@@ -180,6 +180,11 @@ export async function clientUpdateProfile(accessToken, body) {
   })
 }
 
+/** Info pública del bot (sin auth). */
+export async function clientFetchTelegramInfo() {
+  return fetchJson(clientApiUrl('/auth/telegram-info'))
+}
+
 export async function clientFetchLoginHistory(accessToken, { page = 0, size = 20 } = {}) {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
   return fetchJson(clientApiUrl(`/auth/login-history?${params}`), {
