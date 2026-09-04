@@ -35,7 +35,11 @@ export default function PlanillaOrdenDetallePage() {
   const [measureError, setMeasureError] = useState('')
   const hydratedOrderIdRef = useRef(null)
   const rowsRef = useRef(rows)
+  const orderIdRef = useRef(orderId)
+  const updateOrderDetallesRef = useRef(updateOrderDetalles)
   rowsRef.current = rows
+  orderIdRef.current = orderId
+  updateOrderDetallesRef.current = updateOrderDetalles
 
   useEffect(() => {
     if (!order) return
@@ -53,31 +57,22 @@ export default function PlanillaOrdenDetallePage() {
     }
   }, [order, loadingProject, navigate, basePath])
 
-  const persistDraft = useCallback(
-    (nextRows = rowsRef.current) => {
-      if (!order) return
-      updateOrderDetalles(order.id, nextRows.map(normalizeMeasureRow), { silent: true })
-    },
-    [order, updateOrderDetalles],
-  )
-
-  useEffect(() => {
-    if (!order) return
-    if (hydratedOrderIdRef.current !== String(order.id)) return
-    const t = window.setTimeout(() => persistDraft(rows), 400)
-    return () => window.clearTimeout(t)
-  }, [rows, order, persistDraft])
+  const persistDraft = useCallback((nextRows = rowsRef.current) => {
+    const id = orderIdRef.current
+    if (id == null || id === '') return
+    updateOrderDetallesRef.current(id, nextRows.map(normalizeMeasureRow), { silent: true })
+  }, [])
 
   useEffect(() => {
     return () => {
-      if (hydratedOrderIdRef.current != null && hydratedOrderIdRef.current === String(orderId)) {
+      if (hydratedOrderIdRef.current != null && hydratedOrderIdRef.current === String(orderIdRef.current)) {
         persistDraft(rowsRef.current)
       }
     }
-  }, [persistDraft, orderId])
+  }, [persistDraft])
 
   const handleBack = useCallback(() => {
-    persistDraft()
+    persistDraft(rowsRef.current)
     navigate(basePath)
   }, [persistDraft, navigate, basePath])
 

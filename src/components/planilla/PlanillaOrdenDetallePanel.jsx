@@ -62,8 +62,14 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   const hydratedOrderIdRef = useRef(null)
   const rowsRef = useRef(rows)
   const sharedTableroRef = useRef(sharedTablero)
+  const readOnlyRef = useRef(readOnly)
+  const orderIdRef = useRef(orderId)
+  const updateOrderDetallesRef = useRef(updateOrderDetalles)
   rowsRef.current = rows
   sharedTableroRef.current = sharedTablero
+  readOnlyRef.current = readOnly
+  orderIdRef.current = orderId
+  updateOrderDetallesRef.current = updateOrderDetalles
 
   useEffect(() => {
     if (!order) return
@@ -78,36 +84,30 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
 
   const persistDraft = useCallback(
     (nextRows = rowsRef.current, nextTablero = sharedTableroRef.current, { silent = true } = {}) => {
-      if (readOnly || !order) return
+      if (readOnlyRef.current) return
+      const id = orderIdRef.current
+      if (id == null || id === '') return
       const withMaterial = nextRows.map((row) => ({
         ...row,
         tablero: String(nextTablero || row.tablero || '').trim(),
       }))
-      updateOrderDetalles(order.id, withMaterial.map(normalizeMeasureRow), { silent })
+      updateOrderDetallesRef.current(id, withMaterial.map(normalizeMeasureRow), { silent })
     },
-    [readOnly, order, updateOrderDetalles],
+    [],
   )
 
-  // Autoguardado del borrador mientras se edita (sobrevive cerrar / reabrir).
-  useEffect(() => {
-    if (readOnly || !order) return
-    if (hydratedOrderIdRef.current !== String(order.id)) return
-    const t = window.setTimeout(() => persistDraft(rows, sharedTablero, { silent: true }), 400)
-    return () => window.clearTimeout(t)
-  }, [rows, sharedTablero, readOnly, order, persistDraft])
-
-  // Al desmontar (Escape, fondo, navegación) conserva lo editado.
+  // Solo al desmontar de verdad (Escape / fondo / navegar). No depende de `order`.
   useEffect(() => {
     return () => {
       if (
-        !readOnly &&
+        !readOnlyRef.current &&
         hydratedOrderIdRef.current != null &&
-        hydratedOrderIdRef.current === String(orderId)
+        hydratedOrderIdRef.current === String(orderIdRef.current)
       ) {
         persistDraft(rowsRef.current, sharedTableroRef.current, { silent: true })
       }
     }
-  }, [readOnly, persistDraft, orderId])
+  }, [persistDraft])
 
   useEffect(() => {
     if (readOnly) {
@@ -219,7 +219,7 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
   )
 
   const handleClose = useCallback(() => {
-    persistDraft()
+    persistDraft(rowsRef.current, sharedTableroRef.current, { silent: true })
     onClose()
   }, [persistDraft, onClose])
 

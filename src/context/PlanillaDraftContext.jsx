@@ -234,12 +234,24 @@ export function PlanillaDraftProvider({ projectKey, children }) {
   }, [])
 
   const updateOrderDetalles = useCallback((orderId, detalles, { silent = false } = {}) => {
-    setOrders((prev) =>
-      prev.map((order) => (order.id === orderId ? { ...order, detalles } : order)),
-    )
-    if (!silent) {
-      setSaveOk('Detalle de orden actualizado.')
-    }
+    const idKey = String(orderId)
+    setOrders((prev) => {
+      const idx = prev.findIndex((order) => String(order.id) === idKey)
+      if (idx < 0) return prev
+      try {
+        if (JSON.stringify(prev[idx].detalles ?? []) === JSON.stringify(detalles ?? [])) {
+          return prev
+        }
+      } catch {
+        /* si no se puede comparar, actualizar */
+      }
+      if (!silent) {
+        queueMicrotask(() => setSaveOk('Detalle de orden actualizado.'))
+      }
+      return prev.map((order) =>
+        String(order.id) === idKey ? { ...order, detalles } : order,
+      )
+    })
   }, [])
 
   const updateOrderMeta = useCallback((orderId, patch) => {
