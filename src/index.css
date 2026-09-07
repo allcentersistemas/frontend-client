@@ -251,10 +251,19 @@
   }
 
   .seguimiento-bar {
-    @apply mt-2 w-full overflow-x-auto;
+    @apply mt-0 w-full min-w-0;
   }
   .seguimiento-bar__list {
-    @apply m-0 flex list-none items-start gap-0 p-0 min-w-[40rem];
+    @apply m-0 flex list-none items-start gap-0 p-0;
+  }
+  .seguimiento-bar:not(.seguimiento-bar--compact) {
+    @apply overflow-x-auto;
+  }
+  .seguimiento-bar:not(.seguimiento-bar--compact) .seguimiento-bar__list {
+    @apply min-w-[40rem];
+  }
+  .seguimiento-bar--compact .seguimiento-bar__list {
+    @apply min-w-0;
   }
   .seguimiento-bar__step {
     @apply relative flex flex-1 flex-col items-center gap-1.5 px-0.5 text-center;
@@ -276,6 +285,9 @@
   .seguimiento-bar__dot {
     @apply relative z-[1] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-slate-300 bg-white dark:border-slate-500 dark:bg-slate-900;
   }
+  .seguimiento-bar--compact .seguimiento-bar__dot {
+    @apply h-2.5 w-2.5;
+  }
   .seguimiento-bar__step--done .seguimiento-bar__dot {
     @apply border-indigo-500 bg-indigo-500 dark:border-indigo-400 dark:bg-indigo-400;
   }
@@ -292,24 +304,30 @@
   .seguimiento-bar__hint {
     @apply mt-1.5 mb-0 text-[0.68rem];
   }
+  .seguimiento-bar__current {
+    @apply mt-1.5 mb-0 text-center text-[0.72rem] font-medium;
+  }
 
+  .proyecto-ordenes {
+    @apply mt-1;
+  }
+  .proyecto-ordenes__title {
+    @apply mb-2 text-[0.72rem] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
   .proyecto-ordenes__list {
     @apply m-0 grid list-none gap-2 p-0;
   }
   .proyecto-ordenes__item {
-    @apply rounded-lg border border-slate-200/90 bg-slate-50/70 px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.03];
+    @apply rounded-xl border border-slate-200/90 bg-slate-50/80 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.03];
   }
   .proyecto-ordenes__head {
-    @apply mb-1.5 flex flex-wrap items-baseline justify-between gap-2;
+    @apply flex flex-wrap items-center justify-between gap-2;
   }
   .proyecto-ordenes__name {
-    @apply text-[0.8rem] font-semibold leading-snug;
+    @apply min-w-0 flex-1 truncate text-[0.85rem] font-semibold leading-snug;
   }
-  .proyecto-ordenes .orden-obra-estado {
-    @apply border-0 bg-transparent p-0;
-  }
-  .proyecto-ordenes .seguimiento-bar {
-    @apply mt-1;
+  .proyecto-ordenes__meta {
+    @apply mt-1 flex flex-wrap gap-x-3 gap-y-0.5;
   }
 
   .code-inline {

@@ -1,16 +1,20 @@
 import { ESTADOS_FLUJO_CLIENTE, flujoStepIndex } from '../planilla/proyectoListUtils'
 
 /**
- * Barra única: Enviado…Vendido → Optimizado…Despachado (XML como continuación).
+ * Barra de avance del pedido.
+ * @param {{ estado?: string, className?: string, compact?: boolean }} props
  */
-export function ProyectoFlujoBar({ estado, className = '' }) {
+export function ProyectoFlujoBar({ estado, className = '', compact = false }) {
   const current = flujoStepIndex(estado)
   if (current < 0) return null
 
   const obraStart = ESTADOS_FLUJO_CLIENTE.findIndex((s) => s.fase === 'obra')
 
   return (
-    <div className={`seguimiento-bar ${className}`.trim()} aria-label="Avance del pedido">
+    <div
+      className={`seguimiento-bar${compact ? ' seguimiento-bar--compact' : ''} ${className}`.trim()}
+      aria-label="Avance del pedido"
+    >
       <ol className="seguimiento-bar__list">
         {ESTADOS_FLUJO_CLIENTE.map((step, index) => {
           const done = index < current
@@ -29,17 +33,23 @@ export function ProyectoFlujoBar({ estado, className = '' }) {
               ]
                 .filter(Boolean)
                 .join(' ')}
-              title={isObra ? 'Avance de obra / XML' : 'Estado del proyecto'}
+              title={step.label}
             >
               <span className="seguimiento-bar__dot" aria-hidden />
-              <span className="seguimiento-bar__label">{step.label}</span>
+              {!compact ? <span className="seguimiento-bar__label">{step.label}</span> : null}
             </li>
           )
         })}
       </ol>
-      <p className="seguimiento-bar__hint muted">
-        El proyecto solo avanza cuando todas las órdenes llegan a ese estado.
-      </p>
+      {!compact ? (
+        <p className="seguimiento-bar__hint muted">
+          El proyecto solo avanza cuando todas las órdenes llegan a ese estado.
+        </p>
+      ) : (
+        <p className="seguimiento-bar__current muted small">
+          {ESTADOS_FLUJO_CLIENTE[current]?.label}
+        </p>
+      )}
     </div>
   )
 }

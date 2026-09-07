@@ -102,24 +102,40 @@
   @apply grid gap-4;
 }
 
+.project-grid--seguimiento {
+  @apply grid-cols-1 xl:grid-cols-2;
+}
+
 .project-card {
   @apply rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-md dark:border-white/[0.08] dark:bg-white/[0.03];
 }
 
+.project-card--seguimiento {
+  @apply flex min-w-0 flex-col gap-3 overflow-visible p-4 sm:p-5;
+}
+
 .project-card__head {
-  @apply mb-2 flex flex-wrap items-start justify-between gap-2;
+  @apply mb-0 flex flex-wrap items-start justify-between gap-2;
+}
+
+.project-card__title-wrap {
+  @apply min-w-0 flex-1;
 }
 
 .project-card__title {
-  @apply text-base font-semibold text-slate-900 dark:text-white;
+  @apply m-0 text-base font-semibold text-slate-900 dark:text-white;
+}
+
+.project-card__meta {
+  @apply mt-1 mb-0;
 }
 
 .project-card__desc {
-  @apply text-sm text-slate-600 dark:text-slate-400;
+  @apply m-0 text-sm text-slate-600 dark:text-slate-400;
 }
 
 .project-card__actions {
-  @apply mt-4 flex flex-wrap gap-2;
+  @apply mt-auto flex flex-wrap gap-2 border-t border-slate-200/80 pt-3 dark:border-white/10;
 }
 
 .order-list {

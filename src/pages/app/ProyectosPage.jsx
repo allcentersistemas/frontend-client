@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 import {
   downloadProyectoCotizacion,
   cancelProyectoOptimizacion,
+  getProyectoOptimizacion,
   listProyectosOptimizacion,
   listSeguimientoProyectosBoard,
 } from '../../api/orderApi'
 import { EstadoTag } from '../../components/EstadoTag'
-import { OrdenFlujoEstado } from '../../components/OrdenFlujoEstado'
 import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import { ProyectoFlujoBar } from '../../components/ProyectoFlujoBar'
 import {
@@ -16,8 +16,10 @@ import {
   canViewPlano,
   emptyProyectoFilters,
   filterProyectosClientSide,
+  formatEstadoProyecto,
   formatProyectoDate,
   isProyectoCancelado,
+  resolveEstadoContinuo,
 } from '../../planilla/proyectoListUtils'
 
 function mergeProjectsWithBoard(projects, board) {
@@ -40,39 +42,98 @@ function mergeProjectsWithBoard(projects, board) {
   })
 }
 
+function mapTreeOrders(tree) {
+  const orders = Array.isArray(tree?.orders) ? tree.orders : []
+  return orders.map((o) => ({
+    ordenId: o.id,
+    codigo: o.codigo,
+    biesseOrderId: o.biesseOrderId ?? o.biesse_order_id ?? null,
+    biesseOrderName: o.biesseOrderName ?? o.biesse_order_name ?? null,
+    opCodigo: o.opCodigo ?? o.op_codigo ?? null,
+    estadoEscaneo: o.estadoEscaneo ?? o.estado_escaneo ?? null,
+  }))
+}
+
+async function fillMissingOrdenes(projects) {
+  const missing = projects.filter(
+    (p) => (Number(p.cantidadOrdenes) > 0 || Number(p.totalOrdenes) > 0) && !(p.ordenes?.length > 0),
+  )
+  if (!missing.length) return projects
+
+  const trees = await Promise.all(
+    missing.map(async (p) => {
+      try {
+        const tree = await getProyectoOptimizacion(p.id)
+        return [String(p.id), mapTreeOrders(tree)]
+      } catch {
+        return [String(p.id), []]
+      }
+    }),
+  )
+  const byId = new Map(trees)
+  return projects.map((p) => {
+    const ordenes = byId.get(String(p.id))
+    if (!ordenes) return p
+    return {
+      ...p,
+      ordenes,
+      totalOrdenes: ordenes.length || p.totalOrdenes || p.cantidadOrdenes,
+      ordenesConXml: ordenes.filter((o) => o.biesseOrderId != null).length,
+    }
+  })
+}
+
 function OrdenesDelProyecto({ project }) {
   const ordenes = Array.isArray(project.ordenes) ? project.ordenes : []
+  const expected = Number(project.totalOrdenes ?? project.cantidadOrdenes ?? 0)
+
   if (!ordenes.length) {
-    return <p className="muted small mt-2 mb-0">Sin órdenes registradas.</p>
+    if (expected > 0) {
+      return <p className="muted small mt-3 mb-0">No se pudo cargar el detalle de las órdenes.</p>
+    }
+    return <p className="muted small mt-3 mb-0">Sin órdenes registradas.</p>
   }
+
   const conXml =
     project.ordenesConXml ?? ordenes.filter((o) => o.biesseOrderId != null).length
+
   return (
-    <div className="proyecto-ordenes mt-3">
-      <p className="small muted mb-2">
-        Órdenes ({conXml}/{ordenes.length} con XML). El proyecto avanza cuando{' '}
-        <strong>todas</strong> llegan al mismo estado.
-      </p>
+    <div className="proyecto-ordenes">
+      <div className="proyecto-ordenes__title">
+        <span>
+          Órdenes · {conXml}/{ordenes.length} con XML
+        </span>
+      </div>
       <ul className="proyecto-ordenes__list">
         {ordenes.map((orden) => {
           const name =
             orden.biesseOrderName ||
             orden.codigo ||
             (orden.ordenId != null ? `Orden #${orden.ordenId}` : 'Orden')
+          const efectivo = resolveEstadoContinuo(project.estado, orden.estadoEscaneo, {
+            hasXml: orden.biesseOrderId != null,
+          })
           return (
-            <li key={orden.ordenId ?? `${project.id}-${orden.biesseOrderId}-${name}`} className="proyecto-ordenes__item">
+            <li
+              key={orden.ordenId ?? `${project.id}-${orden.biesseOrderId}-${name}`}
+              className="proyecto-ordenes__item"
+            >
               <div className="proyecto-ordenes__head">
                 <strong className="proyecto-ordenes__name" title={name}>
                   {name}
                 </strong>
-                {orden.codigo ? <span className="muted small">{orden.codigo}</span> : null}
+                <EstadoTag estado={efectivo} />
               </div>
-              <OrdenFlujoEstado
-                proyectoEstado={project.estado}
-                estadoEscaneo={orden.estadoEscaneo}
-                hasXml={orden.biesseOrderId != null}
-                compact
-              />
+              <div className="proyecto-ordenes__meta">
+                {orden.codigo && orden.codigo !== name ? (
+                  <span className="muted small">{orden.codigo}</span>
+                ) : null}
+                {orden.biesseOrderId == null ? (
+                  <span className="muted small">Sin XML anidado</span>
+                ) : (
+                  <span className="muted small">{formatEstadoProyecto(efectivo)}</span>
+                )}
+              </div>
             </li>
           )
         })}
@@ -95,11 +156,15 @@ export default function ProyectosPage() {
     setLoading(true)
     setError('')
     try {
-      const [list, board] = await Promise.all([
-        listProyectosOptimizacion(),
-        listSeguimientoProyectosBoard().catch(() => []),
-      ])
-      setProjects(mergeProjectsWithBoard(list, board))
+      const list = await listProyectosOptimizacion()
+      let board = []
+      try {
+        board = await listSeguimientoProyectosBoard()
+      } catch {
+        board = []
+      }
+      const merged = mergeProjectsWithBoard(Array.isArray(list) ? list : [], board)
+      setProjects(await fillMissingOrdenes(merged))
     } catch (err) {
       setProjects([])
       setError(err.message || 'No se pudieron cargar sus proyectos.')
@@ -170,7 +235,7 @@ export default function ProyectosPage() {
   function renderProyectoActions(project) {
     return (
       <>
-        <Link to={`/app/planilla-corte/${project.id}`} className="btn btn--ghost btn--sm">
+        <Link to={`/app/planilla-corte/${project.id}`} className="btn btn--primary btn--sm">
           Ver detalle
         </Link>
         {canDownloadCotizacion(project) ? (
@@ -180,18 +245,16 @@ export default function ProyectosPage() {
             disabled={busyId === project.id}
             onClick={() => void handleDownloadCotizacion(project)}
           >
-            {busyId === project.id ? 'Descargando…' : 'Descargar cotización'}
+            {busyId === project.id ? 'Descargando…' : 'Cotización'}
           </button>
-        ) : (
-          <span className="small muted self-center">Sin cotización</span>
-        )}
+        ) : null}
         {canViewPlano(project) ? (
           <button
             type="button"
             className="btn btn--ghost btn--sm"
             onClick={() => setPlanoViewer({ id: project.id, nombre: project.nombre })}
           >
-            Ver planos
+            Planos
           </button>
         ) : null}
         {canCancelProject(project) ? (
@@ -210,24 +273,29 @@ export default function ProyectosPage() {
   }
 
   function renderProyectoCard(project) {
+    const total = project.totalOrdenes ?? project.cantidadOrdenes ?? 0
     return (
-      <article key={project.id} className="project-card">
+      <article key={project.id} className="project-card project-card--seguimiento">
         <div className="project-card__head">
-          <h2 className="project-card__title">{project.nombre}</h2>
+          <div className="project-card__title-wrap">
+            <h2 className="project-card__title">{project.nombre}</h2>
+            <p className="project-card__meta muted small">
+              {total} orden{total === 1 ? '' : 'es'} · {formatProyectoDate(project.fechaCreacion)}
+            </p>
+          </div>
           <EstadoTag estado={project.estado} />
         </div>
-        {!isProyectoCancelado(project) ? <ProyectoFlujoBar estado={project.estado} /> : null}
+
+        {!isProyectoCancelado(project) ? (
+          <ProyectoFlujoBar estado={project.estado} compact />
+        ) : null}
+
         {project.descripcion ? (
           <p className="project-card__desc line-clamp-2">{project.descripcion}</p>
-        ) : (
-          <p className="project-card__desc muted">Sin descripción</p>
-        )}
-        <p className="small muted mt-2">
-          {project.totalOrdenes ?? project.cantidadOrdenes ?? 0} orden
-          {(project.totalOrdenes ?? project.cantidadOrdenes ?? 0) === 1 ? '' : 'es'} ·{' '}
-          {formatProyectoDate(project.fechaCreacion)}
-        </p>
+        ) : null}
+
         {!isProyectoCancelado(project) ? <OrdenesDelProyecto project={project} /> : null}
+
         <div className="project-card__actions">{renderProyectoActions(project)}</div>
       </article>
     )
@@ -240,8 +308,8 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Vea el estado de cada orden agrupado por proyecto. El proyecto solo pasa a
-              optimizado (y siguientes) cuando <strong>todas</strong> las órdenes llegan.
+              Estado por orden, agrupado por proyecto. El proyecto avanza solo cuando{' '}
+              <strong>todas</strong> las órdenes llegan.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -297,7 +365,12 @@ export default function ProyectosPage() {
           <button type="button" className="btn btn--ghost" onClick={resetFilters}>
             Limpiar
           </button>
-          <button type="button" className="btn btn--ghost" disabled={loading} onClick={() => void loadProjects()}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            disabled={loading}
+            onClick={() => void loadProjects()}
+          >
             Actualizar
           </button>
         </form>
@@ -324,49 +397,11 @@ export default function ProyectosPage() {
           ) : null}
         </div>
       ) : (
-        <>
-          <div className="grid gap-4 md:hidden">
-            {filtered.map((p) => renderProyectoCard(p))}
-          </div>
-
-          <div className="card card--table hidden md:block">
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Estado / órdenes</th>
-                    <th>Descripción</th>
-                    <th>Órdenes</th>
-                    <th>Enviado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => (
-                    <tr key={p.id}>
-                      <td className="font-medium align-top">{p.nombre}</td>
-                      <td className="align-top">
-                        <div className="flex flex-col gap-2 py-1">
-                          <EstadoTag estado={p.estado} />
-                          {!isProyectoCancelado(p) ? <ProyectoFlujoBar estado={p.estado} /> : null}
-                          {!isProyectoCancelado(p) ? <OrdenesDelProyecto project={p} /> : null}
-                        </div>
-                      </td>
-                      <td className="max-w-xs truncate align-top">{p.descripcion || '—'}</td>
-                      <td className="align-top">{p.totalOrdenes ?? p.cantidadOrdenes ?? 0}</td>
-                      <td className="small whitespace-nowrap align-top">{formatProyectoDate(p.fechaCreacion)}</td>
-                      <td className="align-top">
-                        <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+        <div className="project-grid project-grid--seguimiento">
+          {filtered.map((p) => renderProyectoCard(p))}
+        </div>
       )}
+
       <PlanoViewerModal
         open={Boolean(planoViewer)}
         proyectoId={planoViewer?.id}
