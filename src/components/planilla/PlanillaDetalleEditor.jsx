@@ -269,6 +269,7 @@ export function PlanillaDetalleEditor({
   onPatchRow,
   onRemoveRow,
   onBulkUpdateColumn,
+  onBulkReplaceColumn,
   onUpdateOrderMeta,
   onDownloadTemplate,
   onImportExcel,
@@ -285,6 +286,10 @@ export function PlanillaDetalleEditor({
   const [fillFromFirst, setFillFromFirst] = useState(() =>
     Object.fromEntries(DETALLE_FILL_FROM_FIRST_KEYS.map((key) => [key, false])),
   )
+  const [showReplace, setShowReplace] = useState(false)
+  const [replaceKey, setReplaceKey] = useState(DETALLE_TABLE_COLUMNS[0]?.key ?? '')
+  const [replaceSearch, setReplaceSearch] = useState('')
+  const [replaceValue, setReplaceValue] = useState('')
   const [orderCodigo, setOrderCodigo] = useState(order?.codigo ?? '')
 
   useEffect(() => {
@@ -521,11 +526,64 @@ export function PlanillaDetalleEditor({
                   </button>
                 </>
               ) : null}
+              {onBulkReplaceColumn ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => setShowReplace((v) => !v)}
+                >
+                  Buscar y reemplazar
+                </button>
+              ) : null}
             </>
           ) : (
             <span className="tag tag--ok">Solo lectura</span>
           )}
         </div>
+        {showReplace && onBulkReplaceColumn ? (
+          <div className="flex flex-wrap items-end gap-2 mt-2">
+            <label className="field" style={{ minWidth: 140 }}>
+              <span>Columna</span>
+              <select value={replaceKey} onChange={(e) => setReplaceKey(e.target.value)}>
+                {DETALLE_TABLE_COLUMNS.map((col) => (
+                  <option key={col.key} value={col.key}>
+                    {col.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field" style={{ minWidth: 120 }}>
+              <span>Buscar</span>
+              <input
+                type="text"
+                value={replaceSearch}
+                onChange={(e) => setReplaceSearch(e.target.value)}
+                placeholder='ej. "D"'
+              />
+            </label>
+            <label className="field" style={{ minWidth: 160 }}>
+              <span>Reemplazar por</span>
+              <input
+                type="text"
+                value={replaceValue}
+                onChange={(e) => setReplaceValue(e.target.value)}
+                placeholder='ej. "D.PELIKANO"'
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              disabled={!replaceSearch.trim()}
+              onClick={() => {
+                onBulkReplaceColumn(replaceKey, replaceSearch, replaceValue)
+                setReplaceSearch('')
+                setReplaceValue('')
+              }}
+            >
+              Aplicar a todas las filas
+            </button>
+          </div>
+        ) : null}
         {measureError ? <p className="form-error m-0 text-sm">{measureError}</p> : null}
       </div>
 

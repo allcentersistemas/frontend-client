@@ -11,6 +11,7 @@ import {
   validateMaterialSelected,
 } from '../../planilla/measureInput'
 import { validateCantoCatalogInRows } from '../../planilla/cantoImportValidation'
+import { replaceColumnValue } from '../../planilla/bulkReplace'
 import { formatDetalleImportErrors } from '../../planilla/detalleImportErrors'
 import { validateRanuraOptionsInRows } from '../../planilla/ranuraImportValidation'
 import { parsePlanillaDetalleExcel } from '../../planilla/excelImport'
@@ -312,6 +313,14 @@ function PlanillaOrdenDetalleModal({ orderId, readOnly, onClose }) {
           : (key, value) => {
               setMeasureError('')
               setRows((prev) => prev.map((row) => ({ ...row, [key]: value })))
+            }
+      }
+      onBulkReplaceColumn={
+        readOnly
+          ? undefined
+          : (key, searchValue, replaceValue) => {
+              setMeasureError('')
+              setRows((prev) => replaceColumnValue(prev, key, searchValue, replaceValue))
             }
       }
       onPatchRow={
