@@ -15,11 +15,13 @@ import {
   canDownloadCotizacion,
   canViewPlano,
   emptyProyectoFilters,
+  estadoOrdenClienteTagClass,
   filterProyectosClientSide,
-  formatEstadoProyecto,
+  formatEstadoOrdenCliente,
   formatProyectoDate,
   isProyectoCancelado,
-  resolveEstadoContinuo,
+  normalizeEstadoCodigo,
+  resolveEstadoOrdenCliente,
 } from '../../planilla/proyectoListUtils'
 
 function mergeProjectsWithBoard(projects, board) {
@@ -94,15 +96,10 @@ function OrdenesDelProyecto({ project }) {
     return <p className="muted small mt-3 mb-0">Sin órdenes registradas.</p>
   }
 
-  const conXml =
-    project.ordenesConXml ?? ordenes.filter((o) => o.biesseOrderId != null).length
-
   return (
     <div className="proyecto-ordenes">
       <div className="proyecto-ordenes__title">
-        <span>
-          Órdenes · {conXml}/{ordenes.length} con XML
-        </span>
+        <span>Órdenes · avance de producción</span>
       </div>
       <ul className="proyecto-ordenes__list">
         {ordenes.map((orden) => {
@@ -110,9 +107,7 @@ function OrdenesDelProyecto({ project }) {
             orden.biesseOrderName ||
             orden.codigo ||
             (orden.ordenId != null ? `Orden #${orden.ordenId}` : 'Orden')
-          const efectivo = resolveEstadoContinuo(project.estado, orden.estadoEscaneo, {
-            hasXml: orden.biesseOrderId != null,
-          })
+          const estadoOrden = resolveEstadoOrdenCliente(project.estado, orden)
           return (
             <li
               key={orden.ordenId ?? `${project.id}-${orden.biesseOrderId}-${name}`}
@@ -122,18 +117,15 @@ function OrdenesDelProyecto({ project }) {
                 <strong className="proyecto-ordenes__name" title={name}>
                   {name}
                 </strong>
-                <EstadoTag estado={efectivo} />
+                <span className={estadoOrdenClienteTagClass(estadoOrden)}>
+                  {formatEstadoOrdenCliente(estadoOrden)}
+                </span>
               </div>
-              <div className="proyecto-ordenes__meta">
-                {orden.codigo && orden.codigo !== name ? (
+              {orden.codigo && orden.codigo !== name ? (
+                <div className="proyecto-ordenes__meta">
                   <span className="muted small">{orden.codigo}</span>
-                ) : null}
-                {orden.biesseOrderId == null ? (
-                  <span className="muted small">Sin XML anidado</span>
-                ) : (
-                  <span className="muted small">{formatEstadoProyecto(efectivo)}</span>
-                )}
-              </div>
+                </div>
+              ) : null}
             </li>
           )
         })}
@@ -274,6 +266,7 @@ export default function ProyectosPage() {
 
   function renderProyectoCard(project) {
     const total = project.totalOrdenes ?? project.cantidadOrdenes ?? 0
+    const estadoProyecto = normalizeEstadoCodigo(project.estado) || project.estado
     return (
       <article key={project.id} className="project-card project-card--seguimiento">
         <div className="project-card__head">
@@ -283,18 +276,27 @@ export default function ProyectosPage() {
               {total} orden{total === 1 ? '' : 'es'} · {formatProyectoDate(project.fechaCreacion)}
             </p>
           </div>
-          <EstadoTag estado={project.estado} />
+          <EstadoTag estado={estadoProyecto} />
         </div>
 
-        {!isProyectoCancelado(project) ? (
-          <ProyectoFlujoBar estado={project.estado} compact />
-        ) : null}
+        <div className="project-card__section">
+          <p className="project-card__section-label">Estado del proyecto</p>
+          {!isProyectoCancelado(project) ? (
+            <ProyectoFlujoBar estado={estadoProyecto} compact />
+          ) : (
+            <p className="muted small mb-0">Proyecto cancelado</p>
+          )}
+        </div>
 
         {project.descripcion ? (
           <p className="project-card__desc line-clamp-2">{project.descripcion}</p>
         ) : null}
 
-        {!isProyectoCancelado(project) ? <OrdenesDelProyecto project={project} /> : null}
+        {!isProyectoCancelado(project) ? (
+          <div className="project-card__section">
+            <OrdenesDelProyecto project={{ ...project, estado: estadoProyecto }} />
+          </div>
+        ) : null}
 
         <div className="project-card__actions">{renderProyectoActions(project)}</div>
       </article>

@@ -109,19 +109,60 @@ export function formatEstadoObra(value) {
 
 export function estadoTagClass(estado) {
   const code = normalizeEstadoCodigo(estado)
-  const map = {
-    ENVIADO: 'tag tag--estado-enviado',
-    EN_ATENCION: 'tag tag--estado-atencion',
-    COTIZADO: 'tag tag--estado-cotizado',
-    VENDIDO: 'tag tag--estado-vendido',
-    OPTIMIZADO: 'tag tag--estado-optimizado',
-    PRODUCCION: 'tag tag--estado-produccion',
-    DESPACHO: 'tag tag--estado-despacho',
-    LISTO_PARA_ENTREGAR: 'tag tag--estado-listo',
-    ENTREGADO: 'tag tag--estado-entregado',
-    CANCELADO: 'tag tag--estado-cancelado',
+  // Clases completas y estáticas para que Tailwind las incluya en el build.
+  switch (code) {
+    case 'ENVIADO':
+      return 'tag tag--estado-enviado'
+    case 'EN_ATENCION':
+      return 'tag tag--estado-atencion'
+    case 'COTIZADO':
+      return 'tag tag--estado-cotizado'
+    case 'VENDIDO':
+      return 'tag tag--estado-vendido'
+    case 'OPTIMIZADO':
+      return 'tag tag--estado-optimizado'
+    case 'PRODUCCION':
+      return 'tag tag--estado-produccion'
+    case 'DESPACHO':
+      return 'tag tag--estado-despacho'
+    case 'LISTO_PARA_ENTREGAR':
+      return 'tag tag--estado-listo'
+    case 'ENTREGADO':
+      return 'tag tag--estado-entregado'
+    case 'CANCELADO':
+      return 'tag tag--estado-cancelado'
+    default:
+      return 'tag'
   }
-  return map[code] || 'tag'
+}
+
+/** Estado de una orden para el portal cliente (viene del XML; sin jerga interna). */
+export function resolveEstadoOrdenCliente(proyectoEstado, orden) {
+  if (normalizeEstadoCodigo(proyectoEstado) === 'CANCELADO') return 'CANCELADO'
+  const iProj = flujoStepIndex(proyectoEstado)
+  const iVendido = flujoStepIndex('VENDIDO')
+  // Antes de vendido: la orden aún no tiene avance de producción propio.
+  if (iProj >= 0 && iProj < iVendido) {
+    return ESTADOS_FLUJO_CLIENTE[iProj].value
+  }
+  if (orden?.biesseOrderId == null) {
+    return 'PENDIENTE_PRODUCCION'
+  }
+  const iXml = flujoStepIndex(orden?.estadoEscaneo)
+  if (iXml < 0) return 'OPTIMIZADO'
+  return ESTADOS_FLUJO_CLIENTE[Math.max(iVendido, iXml)].value
+}
+
+export function formatEstadoOrdenCliente(value) {
+  if (value === 'PENDIENTE_PRODUCCION') return 'En preparación'
+  return formatEstadoProyecto(value)
+}
+
+export function estadoOrdenClienteTagClass(estado) {
+  if (estado === 'PENDIENTE_PRODUCCION') {
+    return 'tag tag--estado-pendiente'
+  }
+  return estadoTagClass(estado)
 }
 
 export function normalizeEstadoSeguimiento(estado) {
