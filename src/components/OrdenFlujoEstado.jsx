@@ -1,10 +1,14 @@
 import { EstadoTag } from './EstadoTag'
 import { ProyectoFlujoBar } from './ProyectoFlujoBar'
-import { flujoStepIndex, resolveEstadoContinuo } from '../planilla/proyectoListUtils'
+import {
+  formatEstadoOrdenCliente,
+  flujoStepIndex,
+  resolveEstadoOrdenCliente,
+} from '../planilla/proyectoListUtils'
 
 /**
- * Flujo continuo por orden: estado del proyecto + continuación del XML.
- * @param {{ proyectoEstado?: string, estadoEscaneo?: string|null, hasXml?: boolean, compact?: boolean }} props
+ * Flujo por orden en detalle de planilla (portal cliente).
+ * El avance de producción se muestra sin jerga interna de XML.
  */
 export function OrdenFlujoEstado({
   proyectoEstado,
@@ -12,27 +16,31 @@ export function OrdenFlujoEstado({
   hasXml,
   compact = false,
 }) {
-  const xmlPresent =
-    typeof hasXml === 'boolean' ? hasXml : Boolean(estadoEscaneo)
-  const efectivo = resolveEstadoContinuo(proyectoEstado, estadoEscaneo, {
-    hasXml: xmlPresent,
+  const efectivo = resolveEstadoOrdenCliente(proyectoEstado, {
+    biesseOrderId: typeof hasXml === 'boolean' ? (hasXml ? 1 : null) : estadoEscaneo ? 1 : null,
+    estadoEscaneo,
   })
   if (!efectivo) return null
   if (efectivo === 'CANCELADO') return <EstadoTag estado="CANCELADO" />
 
-  const sinXml = !xmlPresent
-  const yaVendido = flujoStepIndex(efectivo) >= flujoStepIndex('VENDIDO')
+  const label =
+    efectivo === 'PENDIENTE_PRODUCCION'
+      ? formatEstadoOrdenCliente(efectivo)
+      : null
+  const enPreparacion = efectivo === 'PENDIENTE_PRODUCCION'
+  const showBar = !compact && !enPreparacion && flujoStepIndex(efectivo) >= 0
 
   return (
     <div className="orden-obra-estado">
       <div className="orden-obra-estado__row">
         <span className="small muted">Avance:</span>
-        <EstadoTag estado={efectivo} />
-        {sinXml && yaVendido ? (
-          <span className="small muted">· Sin XML (el proyecto no avanza hasta anidarlo)</span>
-        ) : null}
+        {enPreparacion ? (
+          <span className="tag tag--estado-pendiente">{label}</span>
+        ) : (
+          <EstadoTag estado={efectivo} />
+        )}
       </div>
-      {!compact ? <ProyectoFlujoBar estado={efectivo} /> : null}
+      {showBar ? <ProyectoFlujoBar estado={efectivo} /> : null}
     </div>
   )
 }
