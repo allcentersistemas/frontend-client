@@ -4,13 +4,23 @@ import { flujoStepIndex, resolveEstadoContinuo } from '../planilla/proyectoListU
 
 /**
  * Flujo continuo por orden: estado del proyecto + continuación del XML.
+ * @param {{ proyectoEstado?: string, estadoEscaneo?: string|null, hasXml?: boolean, compact?: boolean }} props
  */
-export function OrdenFlujoEstado({ proyectoEstado, estadoEscaneo, compact = false }) {
-  const efectivo = resolveEstadoContinuo(proyectoEstado, estadoEscaneo)
+export function OrdenFlujoEstado({
+  proyectoEstado,
+  estadoEscaneo,
+  hasXml,
+  compact = false,
+}) {
+  const xmlPresent =
+    typeof hasXml === 'boolean' ? hasXml : Boolean(estadoEscaneo)
+  const efectivo = resolveEstadoContinuo(proyectoEstado, estadoEscaneo, {
+    hasXml: xmlPresent,
+  })
   if (!efectivo) return null
   if (efectivo === 'CANCELADO') return <EstadoTag estado="CANCELADO" />
 
-  const sinXml = !estadoEscaneo
+  const sinXml = !xmlPresent
   const yaVendido = flujoStepIndex(efectivo) >= flujoStepIndex('VENDIDO')
 
   return (
@@ -19,7 +29,7 @@ export function OrdenFlujoEstado({ proyectoEstado, estadoEscaneo, compact = fals
         <span className="small muted">Avance:</span>
         <EstadoTag estado={efectivo} />
         {sinXml && yaVendido ? (
-          <span className="small muted">· XML pendiente de asignar</span>
+          <span className="small muted">· Sin XML (el proyecto no avanza hasta anidarlo)</span>
         ) : null}
       </div>
       {!compact ? <ProyectoFlujoBar estado={efectivo} /> : null}

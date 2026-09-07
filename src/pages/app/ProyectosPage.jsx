@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { downloadProyectoCotizacion, cancelProyectoOptimizacion, listProyectosOptimizacion } from '../../api/orderApi'
+import {
+  downloadProyectoCotizacion,
+  cancelProyectoOptimizacion,
+  listProyectosOptimizacion,
+  listSeguimientoProyectosBoard,
+} from '../../api/orderApi'
 import { EstadoTag } from '../../components/EstadoTag'
+import { OrdenFlujoEstado } from '../../components/OrdenFlujoEstado'
 import { PlanoViewerModal } from '../../components/planilla/PlanoViewerModal'
 import { ProyectoFlujoBar } from '../../components/ProyectoFlujoBar'
 import {
@@ -13,6 +19,67 @@ import {
   formatProyectoDate,
   isProyectoCancelado,
 } from '../../planilla/proyectoListUtils'
+
+function mergeProjectsWithBoard(projects, board) {
+  const byId = new Map()
+  for (const item of Array.isArray(board) ? board : []) {
+    if (item?.proyectoId != null) byId.set(String(item.proyectoId), item)
+  }
+  return (Array.isArray(projects) ? projects : []).map((p) => {
+    const boardItem = byId.get(String(p.id))
+    if (!boardItem) {
+      return { ...p, ordenes: Array.isArray(p.ordenes) ? p.ordenes : [] }
+    }
+    return {
+      ...p,
+      estado: boardItem.estado || p.estado,
+      ordenes: Array.isArray(boardItem.ordenes) ? boardItem.ordenes : [],
+      ordenesConXml: boardItem.ordenesConXml,
+      totalOrdenes: boardItem.totalOrdenes ?? p.cantidadOrdenes,
+    }
+  })
+}
+
+function OrdenesDelProyecto({ project }) {
+  const ordenes = Array.isArray(project.ordenes) ? project.ordenes : []
+  if (!ordenes.length) {
+    return <p className="muted small mt-2 mb-0">Sin órdenes registradas.</p>
+  }
+  const conXml =
+    project.ordenesConXml ?? ordenes.filter((o) => o.biesseOrderId != null).length
+  return (
+    <div className="proyecto-ordenes mt-3">
+      <p className="small muted mb-2">
+        Órdenes ({conXml}/{ordenes.length} con XML). El proyecto avanza cuando{' '}
+        <strong>todas</strong> llegan al mismo estado.
+      </p>
+      <ul className="proyecto-ordenes__list">
+        {ordenes.map((orden) => {
+          const name =
+            orden.biesseOrderName ||
+            orden.codigo ||
+            (orden.ordenId != null ? `Orden #${orden.ordenId}` : 'Orden')
+          return (
+            <li key={orden.ordenId ?? `${project.id}-${orden.biesseOrderId}-${name}`} className="proyecto-ordenes__item">
+              <div className="proyecto-ordenes__head">
+                <strong className="proyecto-ordenes__name" title={name}>
+                  {name}
+                </strong>
+                {orden.codigo ? <span className="muted small">{orden.codigo}</span> : null}
+              </div>
+              <OrdenFlujoEstado
+                proyectoEstado={project.estado}
+                estadoEscaneo={orden.estadoEscaneo}
+                hasXml={orden.biesseOrderId != null}
+                compact
+              />
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
 
 export default function ProyectosPage() {
   const [projects, setProjects] = useState([])
@@ -28,8 +95,11 @@ export default function ProyectosPage() {
     setLoading(true)
     setError('')
     try {
-      const list = await listProyectosOptimizacion()
-      setProjects(Array.isArray(list) ? list : [])
+      const [list, board] = await Promise.all([
+        listProyectosOptimizacion(),
+        listSeguimientoProyectosBoard().catch(() => []),
+      ])
+      setProjects(mergeProjectsWithBoard(list, board))
     } catch (err) {
       setProjects([])
       setError(err.message || 'No se pudieron cargar sus proyectos.')
@@ -153,9 +223,11 @@ export default function ProyectosPage() {
           <p className="project-card__desc muted">Sin descripción</p>
         )}
         <p className="small muted mt-2">
-          {project.cantidadOrdenes ?? 0} orden{(project.cantidadOrdenes ?? 0) === 1 ? '' : 'es'} ·{' '}
+          {project.totalOrdenes ?? project.cantidadOrdenes ?? 0} orden
+          {(project.totalOrdenes ?? project.cantidadOrdenes ?? 0) === 1 ? '' : 'es'} ·{' '}
           {formatProyectoDate(project.fechaCreacion)}
         </p>
+        {!isProyectoCancelado(project) ? <OrdenesDelProyecto project={project} /> : null}
         <div className="project-card__actions">{renderProyectoActions(project)}</div>
       </article>
     )
@@ -168,8 +240,8 @@ export default function ProyectosPage() {
           <div>
             <h1>Mis proyectos</h1>
             <p className="page__lead">
-              Siga el avance de su pedido en un solo flujo: enviado → cotizado → vendido →
-              optimizado → producción → despacho. Descargue la cotización cuando esté disponible.
+              Vea el estado de cada orden agrupado por proyecto. El proyecto solo pasa a
+              optimizado (y siguientes) cuando <strong>todas</strong> las órdenes llegan.
             </p>
           </div>
           <Link to="/app/planilla-corte" className="btn btn--primary shrink-0">
@@ -263,7 +335,7 @@ export default function ProyectosPage() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
-                    <th>Estado</th>
+                    <th>Estado / órdenes</th>
                     <th>Descripción</th>
                     <th>Órdenes</th>
                     <th>Enviado</th>
@@ -273,17 +345,18 @@ export default function ProyectosPage() {
                 <tbody>
                   {filtered.map((p) => (
                     <tr key={p.id}>
-                      <td className="font-medium">{p.nombre}</td>
-                      <td>
+                      <td className="font-medium align-top">{p.nombre}</td>
+                      <td className="align-top">
                         <div className="flex flex-col gap-2 py-1">
                           <EstadoTag estado={p.estado} />
                           {!isProyectoCancelado(p) ? <ProyectoFlujoBar estado={p.estado} /> : null}
+                          {!isProyectoCancelado(p) ? <OrdenesDelProyecto project={p} /> : null}
                         </div>
                       </td>
-                      <td className="max-w-xs truncate">{p.descripcion || '—'}</td>
-                      <td>{p.cantidadOrdenes ?? 0}</td>
-                      <td className="small whitespace-nowrap">{formatProyectoDate(p.fechaCreacion)}</td>
-                      <td>
+                      <td className="max-w-xs truncate align-top">{p.descripcion || '—'}</td>
+                      <td className="align-top">{p.totalOrdenes ?? p.cantidadOrdenes ?? 0}</td>
+                      <td className="small whitespace-nowrap align-top">{formatProyectoDate(p.fechaCreacion)}</td>
+                      <td className="align-top">
                         <div className="flex flex-wrap gap-2">{renderProyectoActions(p)}</div>
                       </td>
                     </tr>

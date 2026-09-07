@@ -120,6 +120,15 @@ export async function listProyectosOptimizacion() {
   )
 }
 
+/** Seguimiento: proyectos con órdenes/XML (estado proyecto = cuello de botella). */
+export async function listSeguimientoProyectosBoard() {
+  return withClientAuth((accessToken) =>
+    fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/seguimiento/board`), {
+      headers: authHeaders(accessToken),
+    }),
+  )
+}
+
 export async function getProyectoOptimizacion(proyectoId) {
   return withClientAuth((accessToken) =>
     fetchJson(clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}`), {

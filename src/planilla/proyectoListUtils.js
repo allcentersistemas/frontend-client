@@ -41,26 +41,59 @@ export function flujoStepIndex(estado) {
 }
 
 /**
- * Une estado de proyecto + XML: el más avanzado en el flujo continuo.
+ * Une estado de proyecto + XML de una orden.
+ * Tras VENDIDO, cada orden avanza con su propio XML; sin XML se queda en VENDIDO.
+ * @param {string} proyectoEstado
+ * @param {string|null|undefined} estadoEscaneo
+ * @param {{ hasXml?: boolean }} [opts]
  */
-export function resolveEstadoContinuo(proyectoEstado, estadoEscaneo) {
+export function resolveEstadoContinuo(proyectoEstado, estadoEscaneo, opts = {}) {
   if (normalizeEstadoCodigo(proyectoEstado) === 'CANCELADO') return 'CANCELADO'
   const iProj = flujoStepIndex(proyectoEstado)
+  const iVendido = flujoStepIndex('VENDIDO')
+  if (iProj < 0) {
+    return normalizeEstadoCodigo(estadoEscaneo) || normalizeEstadoCodigo(proyectoEstado)
+  }
+  // Fase comercial: manda el proyecto.
+  if (iProj < iVendido) return ESTADOS_FLUJO_CLIENTE[iProj].value
+
+  const hasXml =
+    typeof opts.hasXml === 'boolean' ? opts.hasXml : Boolean(estadoEscaneo)
+  // Post-venta sin XML → no puede pasar de VENDIDO.
+  if (!hasXml) return 'VENDIDO'
   const iXml = flujoStepIndex(estadoEscaneo)
-  const i = Math.max(iProj, iXml)
-  if (i < 0) return normalizeEstadoCodigo(proyectoEstado) || normalizeEstadoCodigo(estadoEscaneo)
-  return ESTADOS_FLUJO_CLIENTE[i].value
+  // XML vacío/PENDIENTE → OPTIMIZADO (igual que backend).
+  if (iXml < 0) return 'OPTIMIZADO'
+  return ESTADOS_FLUJO_CLIENTE[Math.max(iVendido, iXml)].value
 }
 
-/** Estado efectivo del proyecto mirando también el XML de sus órdenes. */
+/**
+ * Estado del proyecto = cuello de botella (mínimo) de todas sus órdenes.
+ * Si falta XML en alguna → VENDIDO (en fase post-venta).
+ */
 export function resolveEstadoProyectoDesdeOrdenes(proyectoEstado, orders = []) {
   if (normalizeEstadoCodigo(proyectoEstado) === 'CANCELADO') return 'CANCELADO'
-  let best = flujoStepIndex(proyectoEstado)
-  for (const order of orders) {
-    best = Math.max(best, flujoStepIndex(order?.estadoEscaneo))
+  const iProj = flujoStepIndex(proyectoEstado)
+  const iVendido = flujoStepIndex('VENDIDO')
+  if (iProj < 0) return normalizeEstadoCodigo(proyectoEstado)
+  // Pre-venta: no inventar avance desde XML.
+  if (iProj < iVendido) return ESTADOS_FLUJO_CLIENTE[iProj].value
+  if (!Array.isArray(orders) || orders.length === 0) {
+    return ESTADOS_FLUJO_CLIENTE[iProj].value
   }
-  if (best < 0) return normalizeEstadoCodigo(proyectoEstado)
-  return ESTADOS_FLUJO_CLIENTE[best].value
+
+  let bottleneck = null
+  for (const order of orders) {
+    const hasXml = order?.biesseOrderId != null
+    if (!hasXml) {
+      return 'VENDIDO'
+    }
+    let i = flujoStepIndex(order?.estadoEscaneo)
+    if (i < 0) i = flujoStepIndex('OPTIMIZADO')
+    if (bottleneck == null || i < bottleneck) bottleneck = i
+  }
+  if (bottleneck == null) return 'VENDIDO'
+  return ESTADOS_FLUJO_CLIENTE[Math.max(iVendido, bottleneck)].value
 }
 
 export function formatEstadoProyecto(value) {

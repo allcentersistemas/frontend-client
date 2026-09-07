@@ -38,7 +38,7 @@ export function ProyectoFlujoBar({ estado, className = '' }) {
         })}
       </ol>
       <p className="seguimiento-bar__hint muted">
-        Hasta vendido: proyecto · Desde optimizado: obra/XML
+        El proyecto solo avanza cuando todas las órdenes llegan a ese estado.
       </p>
     </div>
   )

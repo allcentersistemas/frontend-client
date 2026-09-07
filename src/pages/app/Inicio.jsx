@@ -4,7 +4,7 @@ const shortcuts = [
   {
     to: '/app/proyectos',
     title: 'Mis proyectos',
-    desc: 'Ver, buscar y abrir proyectos guardados de su cuenta.',
+    desc: 'Estado por orden agrupado por proyecto. El proyecto avanza cuando todas las órdenes llegan.',
     step: '1',
   },
   {
@@ -24,8 +24,8 @@ export default function Inicio() {
       <header className="page__head">
         <h1>Inicio</h1>
         <p className="page__lead">
-          Hola{name ? `, ${name}` : ''}. Siga el avance de sus pedidos (proyecto + obra/XML) o cree
-          una planilla nueva.
+          Hola{name ? `, ${name}` : ''}. Consulte el avance por orden dentro de cada proyecto, o
+          cree una planilla nueva.
         </p>
       </header>
 

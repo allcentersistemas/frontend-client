@@ -293,6 +293,25 @@
     @apply mt-1.5 mb-0 text-[0.68rem];
   }
 
+  .proyecto-ordenes__list {
+    @apply m-0 grid list-none gap-2 p-0;
+  }
+  .proyecto-ordenes__item {
+    @apply rounded-lg border border-slate-200/90 bg-slate-50/70 px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.03];
+  }
+  .proyecto-ordenes__head {
+    @apply mb-1.5 flex flex-wrap items-baseline justify-between gap-2;
+  }
+  .proyecto-ordenes__name {
+    @apply text-[0.8rem] font-semibold leading-snug;
+  }
+  .proyecto-ordenes .orden-obra-estado {
+    @apply border-0 bg-transparent p-0;
+  }
+  .proyecto-ordenes .seguimiento-bar {
+    @apply mt-1;
+  }
+
   .code-inline {
     @apply rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[0.8rem] text-amber-800 dark:border-white/10 dark:bg-black/40 dark:text-amber-100/90;
   }

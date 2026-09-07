@@ -365,6 +365,7 @@ export default function PlanillaCortePage() {
                           <OrdenFlujoEstado
                             proyectoEstado={projectEstado}
                             estadoEscaneo={order.estadoEscaneo}
+                            hasXml={order.biesseOrderId != null}
                           />
                         </div>
                       ) : null}
