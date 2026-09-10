@@ -4,6 +4,7 @@ import {
   clientChangePassword,
   clientFetchLoginHistory,
   clientFetchTelegramInfo,
+  clientFetchWhatsAppInfo,
   clientLogoutAll,
   clientUpdateProfile,
 } from '../../api/clientAuth'
@@ -51,22 +52,37 @@ export default function CuentaPage() {
   const [tgBusy, setTgBusy] = useState(false)
   const [telegramInfo, setTelegramInfo] = useState(null)
 
+  const [whatsappPhone, setWhatsappPhone] = useState('')
+  const [waMsg, setWaMsg] = useState('')
+  const [waBusy, setWaBusy] = useState(false)
+  const [whatsappInfo, setWhatsappInfo] = useState(null)
+
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
   const [pwdMsg, setPwdMsg] = useState('')
   const [pwdBusy, setPwdBusy] = useState(false)
 
   useEffect(() => {
     setTelegramChatId(user?.telegramChatId ?? '')
-  }, [user?.telegramChatId])
+    setWhatsappPhone(user?.whatsappPhone ?? '')
+  }, [user?.telegramChatId, user?.whatsappPhone])
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
       try {
-        const data = await clientFetchTelegramInfo()
-        if (!cancelled) setTelegramInfo(data)
+        const [tg, wa] = await Promise.all([
+          clientFetchTelegramInfo().catch(() => null),
+          clientFetchWhatsAppInfo().catch(() => null),
+        ])
+        if (!cancelled) {
+          setTelegramInfo(tg)
+          setWhatsappInfo(wa)
+        }
       } catch {
-        if (!cancelled) setTelegramInfo(null)
+        if (!cancelled) {
+          setTelegramInfo(null)
+          setWhatsappInfo(null)
+        }
       }
     })()
     return () => {
@@ -115,6 +131,27 @@ export default function CuentaPage() {
       setTgMsg(err.message || 'No se pudo guardar el Chat ID.')
     } finally {
       setTgBusy(false)
+    }
+  }
+
+  async function handleSaveWhatsApp(e) {
+    e.preventDefault()
+    setWaMsg('')
+    const token = getClientAccessToken()
+    if (!token) return
+    setWaBusy(true)
+    try {
+      await clientUpdateProfile(token, { whatsappPhone: whatsappPhone.trim() })
+      setWaMsg(
+        whatsappPhone.trim()
+          ? 'WhatsApp guardado. Recibirá avisos cuando su pedido esté listo.'
+          : 'WhatsApp eliminado.',
+      )
+      await refreshUser(token)
+    } catch (err) {
+      setWaMsg(err.message || 'No se pudo guardar el WhatsApp.')
+    } finally {
+      setWaBusy(false)
     }
   }
 
@@ -206,6 +243,7 @@ export default function CuentaPage() {
           )}
           <InfoRow label="Teléfono" value={user?.phone} />
           <InfoRow label="Telegram Chat ID" value={user?.telegramChatId} />
+          <InfoRow label="WhatsApp" value={user?.whatsappPhone} />
           <InfoRow label="Cuenta creada" value={formatAppDateTime(user?.createdAt)} />
           <InfoRow label="Último acceso" value={formatAppDateTime(user?.lastLoginAt)} />
           <InfoRow label="IP del último acceso" value={user?.lastLoginIp} />
@@ -276,6 +314,48 @@ export default function CuentaPage() {
           ) : null}
           <button type="submit" className="btn btn--primary mt-4" disabled={tgBusy}>
             {tgBusy ? 'Guardando…' : 'Guardar Chat ID'}
+          </button>
+        </form>
+      </section>
+
+      <section className="card pad">
+        <h2 className="card__title">Notificaciones WhatsApp</h2>
+        <p className="muted small mt-1">
+          Opcional. Guarde su número (con código de país) para recibir el aviso cuando su pedido esté
+          listo para recoger.
+          {whatsappInfo?.enabled ? (
+            <> Las notificaciones WhatsApp están activas.</>
+          ) : (
+            <> Las notificaciones WhatsApp no están activas todavía.</>
+          )}
+        </p>
+        <form className="mt-4" onSubmit={(e) => void handleSaveWhatsApp(e)}>
+          <label className="field">
+            <span className="field__label">Número WhatsApp</span>
+            <input
+              type="text"
+              inputMode="tel"
+              autoComplete="tel"
+              maxLength={32}
+              placeholder="Ej. 51987654321"
+              value={whatsappPhone}
+              onChange={(e) => setWhatsappPhone(e.target.value)}
+            />
+          </label>
+          {waMsg ? (
+            <p
+              className={
+                waMsg.includes('guardado') || waMsg.includes('eliminado')
+                  ? 'form-success mt-3'
+                  : 'form-error mt-3'
+              }
+              role="status"
+            >
+              {waMsg}
+            </p>
+          ) : null}
+          <button type="submit" className="btn btn--primary mt-4" disabled={waBusy}>
+            {waBusy ? 'Guardando…' : 'Guardar WhatsApp'}
           </button>
         </form>
       </section>

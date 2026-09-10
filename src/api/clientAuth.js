@@ -98,6 +98,12 @@ export function validateClientRegisterPayload(input) {
   }
   if (telegramChatId) body.telegramChatId = telegramChatId
 
+  const whatsappPhone = trimOpt(input.whatsappPhone)
+  if (whatsappPhone && whatsappPhone.length > 32) {
+    return { ok: false, message: 'El WhatsApp no puede superar 32 caracteres' }
+  }
+  if (whatsappPhone) body.whatsappPhone = whatsappPhone
+
   if (juridica) {
     for (const [field, label] of [
       ['razonSocial', 'La razón social'],
@@ -183,6 +189,11 @@ export async function clientUpdateProfile(accessToken, body) {
 /** Info pública del bot (sin auth). */
 export async function clientFetchTelegramInfo() {
   return fetchJson(clientApiUrl('/auth/telegram-info'))
+}
+
+/** Info pública WhatsApp (sin auth). */
+export async function clientFetchWhatsAppInfo() {
+  return fetchJson(clientApiUrl('/auth/whatsapp-info'))
 }
 
 export async function clientFetchLoginHistory(accessToken, { page = 0, size = 20 } = {}) {

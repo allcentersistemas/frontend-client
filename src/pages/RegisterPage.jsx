@@ -13,7 +13,7 @@ import {
   User,
   UserCircle,
 } from 'lucide-react'
-import { clientFetchTelegramInfo, clientRegister } from '../api/clientAuth'
+import { clientFetchTelegramInfo, clientFetchWhatsAppInfo, clientRegister } from '../api/clientAuth'
 import { getClientAccessToken, saveClientSession } from '../auth/clientSession'
 import { registrationEnabled } from '../config/security'
 import { validatePassword } from '../utils/passwordPolicy'
@@ -36,6 +36,7 @@ const emptyProfile = () => ({
   displayName: '',
   phone: '',
   telegramChatId: '',
+  whatsappPhone: '',
   tipoDocumento: 'DNI',
   numeroDocumento: '',
   direccion: '',
@@ -119,6 +120,7 @@ export default function RegisterPage() {
         displayName: profile.displayName,
         phone: profile.phone,
         telegramChatId: profile.telegramChatId,
+        whatsappPhone: profile.whatsappPhone,
         tipoDocumento: profile.tipoDocumento,
         numeroDocumento: profile.numeroDocumento,
         direccion: profile.direccion,
@@ -462,7 +464,19 @@ function AddressFields({ profile, setProfileField }) {
           className={`${authInputClass} pl-12`}
         />
       </AuthField>
+      <AuthField label="WhatsApp (opcional)" icon={MessageCircle}>
+        <input
+          type="text"
+          inputMode="tel"
+          value={profile.whatsappPhone}
+          onChange={(e) => setProfileField('whatsappPhone', e.target.value)}
+          maxLength={32}
+          placeholder="Ej. 51987654321"
+          className={`${authInputClass} pl-12`}
+        />
+      </AuthField>
       <TelegramBotHint />
+      <WhatsAppHint />
     </>
   )
 }
@@ -506,6 +520,40 @@ function TelegramBotHint() {
       </a>
       , inicie el chat y obtenga su Chat ID (por ejemplo con @userinfobot) para recibir avisos cuando
       su pedido esté listo.
+    </p>
+  )
+}
+
+function WhatsAppHint() {
+  const [info, setInfo] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await clientFetchWhatsAppInfo()
+        if (!cancelled) setInfo(data)
+      } catch {
+        if (!cancelled) setInfo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!info?.enabled) {
+    return (
+      <p className="text-xs text-slate-500 dark:text-yellow-200/50">
+        Opcional. Si activa notificaciones WhatsApp, podrá guardar su número también desde Mi cuenta.
+      </p>
+    )
+  }
+
+  return (
+    <p className="text-xs text-slate-500 dark:text-yellow-200/50">
+      Opcional. Indique su número con código de país (ej. 51987654321) para recibir el aviso cuando
+      su pedido esté listo para recoger.
     </p>
   )
 }
