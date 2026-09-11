@@ -1,40 +1,69 @@
-import { useEffect, useState } from 'react'
-import { fetchProyectoPlanosViewBlobUrl } from '../../api/orderApi'
+import { useEffect, useRef, useState } from 'react'
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { fetchProyectoPlanosPdfData } from '../../api/orderApi'
+
+GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
 /**
- * Visor de planos PDF (solo lectura). Sin botón ni flujo de descarga.
- * Usa object+iframe con fondo claro: el CSP debe permitir frame-src/object-src blob:.
+ * Visor de planos PDF (solo lectura) renderizado con pdf.js en canvas.
+ * Evita el iframe/object nativo, que en muchos navegadores queda en blanco con blob:.
  */
 export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) {
-  const [blobUrl, setBlobUrl] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [pageCount, setPageCount] = useState(0)
+  const pagesRef = useRef(null)
 
   useEffect(() => {
     if (!open || !proyectoId) {
-      setBlobUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev)
-        return null
-      })
       setError('')
       setLoading(false)
+      setPageCount(0)
+      if (pagesRef.current) pagesRef.current.innerHTML = ''
       return undefined
     }
+
     let cancelled = false
+    let pdfDoc = null
     setLoading(true)
     setError('')
-    setBlobUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev)
-      return null
-    })
+    setPageCount(0)
+    if (pagesRef.current) pagesRef.current.innerHTML = ''
+
     ;(async () => {
       try {
-        const url = await fetchProyectoPlanosViewBlobUrl(proyectoId)
+        const data = await fetchProyectoPlanosPdfData(proyectoId)
+        if (cancelled) return
+        pdfDoc = await getDocument({ data, disableAutoFetch: true, disableStream: true }).promise
         if (cancelled) {
-          URL.revokeObjectURL(url)
+          await pdfDoc.destroy().catch(() => {})
           return
         }
-        setBlobUrl(url)
+        const total = pdfDoc.numPages
+        setPageCount(total)
+        const host = pagesRef.current
+        if (!host) return
+        host.innerHTML = ''
+
+        for (let pageNum = 1; pageNum <= total; pageNum += 1) {
+          if (cancelled) break
+          const page = await pdfDoc.getPage(pageNum)
+          const base = page.getViewport({ scale: 1 })
+          const maxWidth = Math.min(host.clientWidth || 900, 1100)
+          const scale = Math.min(2, Math.max(1, maxWidth / base.width))
+          const viewport = page.getViewport({ scale })
+          const canvas = document.createElement('canvas')
+          canvas.className = 'plano-viewer-modal__page'
+          canvas.width = Math.floor(viewport.width)
+          canvas.height = Math.floor(viewport.height)
+          canvas.setAttribute('aria-label', `Página ${pageNum} de ${total}`)
+          const ctx = canvas.getContext('2d', { alpha: false })
+          if (!ctx) throw new Error('No se pudo inicializar el lienzo del PDF.')
+          await page.render({ canvasContext: ctx, viewport }).promise
+          if (cancelled) break
+          host.appendChild(canvas)
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err?.message || 'No se pudieron cargar los planos.')
@@ -43,16 +72,14 @@ export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) 
         if (!cancelled) setLoading(false)
       }
     })()
+
     return () => {
       cancelled = true
+      if (pdfDoc) {
+        pdfDoc.destroy().catch(() => {})
+      }
     }
   }, [open, proyectoId])
-
-  useEffect(() => {
-    return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl)
-    }
-  }, [blobUrl])
 
   if (!open) return null
 
@@ -76,6 +103,11 @@ export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) 
             <h2 id="plano-viewer-title" className="planilla-modal__title">
               Planos{proyectoNombre ? ` · ${proyectoNombre}` : ''}
             </h2>
+            {pageCount > 0 ? (
+              <p className="muted small" style={{ margin: '0.25rem 0 0' }}>
+                {pageCount} página{pageCount === 1 ? '' : 's'}
+              </p>
+            ) : null}
           </div>
           <button type="button" className="btn btn--ghost planilla-modal__close" onClick={onClose}>
             Cerrar
@@ -84,22 +116,13 @@ export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) 
         <div className="plano-viewer-modal__body">
           {loading ? (
             <p className="muted pad plano-viewer-modal__status">Cargando planos…</p>
-          ) : error ? (
-            <p className="form-error pad plano-viewer-modal__status">{error}</p>
-          ) : blobUrl ? (
-            <object
-              className="plano-viewer-modal__frame"
-              data={blobUrl}
-              type="application/pdf"
-              title="Planos del proyecto"
-            >
-              <iframe
-                title="Planos del proyecto"
-                className="plano-viewer-modal__frame"
-                src={blobUrl}
-              />
-            </object>
           ) : null}
+          {error ? <p className="form-error pad plano-viewer-modal__status">{error}</p> : null}
+          <div
+            ref={pagesRef}
+            className="plano-viewer-modal__pages"
+            hidden={loading || Boolean(error)}
+          />
         </div>
       </div>
     </div>

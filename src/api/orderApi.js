@@ -218,10 +218,9 @@ export async function downloadProyectoCotizacion(proyectoId, filenameHint = 'cot
 }
 
 /**
- * Obtiene el PDF de planos para visualización (sin descarga).
- * Devuelve un object URL; el llamador debe revokeObjectURL al cerrar.
+ * Obtiene el PDF de planos como ArrayBuffer para renderizar con pdf.js.
  */
-export async function fetchProyectoPlanosViewBlobUrl(proyectoId) {
+export async function fetchProyectoPlanosPdfData(proyectoId) {
   return withClientAuth(async (accessToken) => {
     const url = clientApiUrl(`${OPT_BASE}/proyectos/${proyectoId}/planos/view`)
     const res = await fetch(url, {
@@ -232,14 +231,22 @@ export async function fetchProyectoPlanosViewBlobUrl(proyectoId) {
       const text = await res.text().catch(() => '')
       throw new Error(parseErrorMessage(text, 'No se pudieron cargar los planos.'))
     }
-    const blob = await res.blob()
-    if (!blob || blob.size === 0) {
+    const buffer = await res.arrayBuffer()
+    if (!buffer || buffer.byteLength === 0) {
       throw new Error('Los planos llegaron vacíos desde el servidor. Contacte a ventas.')
     }
-    const pdfBlob =
-      blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
-    return URL.createObjectURL(pdfBlob)
+    return buffer
   })
+}
+
+/**
+ * Obtiene el PDF de planos para visualización (sin descarga).
+ * Devuelve un object URL; el llamador debe revokeObjectURL al cerrar.
+ * @deprecated Preferir {@link fetchProyectoPlanosPdfData} + pdf.js.
+ */
+export async function fetchProyectoPlanosViewBlobUrl(proyectoId) {
+  const data = await fetchProyectoPlanosPdfData(proyectoId)
+  return URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
 }
 
 export async function cancelProyectoOptimizacion(proyectoId) {
