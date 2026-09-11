@@ -3,6 +3,7 @@ import { fetchProyectoPlanosViewBlobUrl } from '../../api/orderApi'
 
 /**
  * Visor de planos PDF (solo lectura). Sin botón ni flujo de descarga.
+ * Usa object+iframe con fondo claro: el CSP debe permitir frame-src/object-src blob:.
  */
 export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) {
   const [blobUrl, setBlobUrl] = useState(null)
@@ -82,15 +83,22 @@ export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) 
         </header>
         <div className="plano-viewer-modal__body">
           {loading ? (
-            <p className="muted pad">Cargando planos…</p>
+            <p className="muted pad plano-viewer-modal__status">Cargando planos…</p>
           ) : error ? (
-            <p className="form-error pad">{error}</p>
+            <p className="form-error pad plano-viewer-modal__status">{error}</p>
           ) : blobUrl ? (
-            <iframe
-              title="Planos del proyecto"
+            <object
               className="plano-viewer-modal__frame"
-              src={`${blobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-            />
+              data={blobUrl}
+              type="application/pdf"
+              title="Planos del proyecto"
+            >
+              <iframe
+                title="Planos del proyecto"
+                className="plano-viewer-modal__frame"
+                src={blobUrl}
+              />
+            </object>
           ) : null}
         </div>
       </div>
