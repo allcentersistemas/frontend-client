@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { fetchProyectoPlanosPdfData } from '../../api/orderApi'
-
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+import { renderPdfToContainer } from './pdfViewer'
 
 /**
  * Visor de planos PDF (solo lectura) renderizado con pdf.js en canvas.
@@ -35,35 +32,13 @@ export function PlanoViewerModal({ proyectoId, proyectoNombre, open, onClose }) 
       try {
         const data = await fetchProyectoPlanosPdfData(proyectoId)
         if (cancelled) return
-        pdfDoc = await getDocument({ data, disableAutoFetch: true, disableStream: true }).promise
-        if (cancelled) {
-          await pdfDoc.destroy().catch(() => {})
-          return
-        }
-        const total = pdfDoc.numPages
-        setPageCount(total)
         const host = pagesRef.current
         if (!host) return
-        host.innerHTML = ''
-
-        for (let pageNum = 1; pageNum <= total; pageNum += 1) {
-          if (cancelled) break
-          const page = await pdfDoc.getPage(pageNum)
-          const base = page.getViewport({ scale: 1 })
-          const maxWidth = Math.min(host.clientWidth || 900, 1100)
-          const scale = Math.min(2, Math.max(1, maxWidth / base.width))
-          const viewport = page.getViewport({ scale })
-          const canvas = document.createElement('canvas')
-          canvas.className = 'plano-viewer-modal__page'
-          canvas.width = Math.floor(viewport.width)
-          canvas.height = Math.floor(viewport.height)
-          canvas.setAttribute('aria-label', `Página ${pageNum} de ${total}`)
-          const ctx = canvas.getContext('2d', { alpha: false })
-          if (!ctx) throw new Error('No se pudo inicializar el lienzo del PDF.')
-          await page.render({ canvasContext: ctx, viewport }).promise
-          if (cancelled) break
-          host.appendChild(canvas)
-        }
+        const result = await renderPdfToContainer(data, host, {
+          cancelled: () => cancelled,
+        })
+        pdfDoc = result.pdfDoc
+        if (!cancelled) setPageCount(result.pageCount || 0)
       } catch (err) {
         if (!cancelled) {
           setError(err?.message || 'No se pudieron cargar los planos.')
